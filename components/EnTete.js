@@ -7,11 +7,11 @@ export default function EnTete() {
       sequence={[
         // Same substring at the start will only be typed out once, initially
         'Mathsapp',
-        1000, // wait 1s before replacing "Mice" with "Hamsters"
+        200, // wait 1s before replacing "Mice" with "Hamsters"
         'Mathsapp upload',
-        1000,
+        200,
         'Mathsapp upload de vos fichiers',
-        1000
+        200
       ]}
       wrapper="h2"
       className='font-thin text-xl md:text-3xl'

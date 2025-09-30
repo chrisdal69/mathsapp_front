@@ -7,6 +7,7 @@ const DragAndDropUpload = () => {
   const [form] = Form.useForm();
 
   const onFinish = async (values) => {
+    console.log(values)
     const formData = new FormData();
     formData.append("name", values.name || "");
 
@@ -14,9 +15,10 @@ const DragAndDropUpload = () => {
     values.files?.forEach((fileWrapper) => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
-
+    console.log(formData)
     try {
-      const res = await fetch("http://localhost:3000/users", {
+      const res = await fetch("https://mathsapp-back.vercel.app/users", {
+      //const res = await fetch("http://localhost:3000/users", {
         method: "POST",
         body: formData,
       });
