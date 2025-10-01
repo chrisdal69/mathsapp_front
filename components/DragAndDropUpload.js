@@ -55,8 +55,8 @@ const DragAndDropUpload = () => {
       console.error("Erreur upload:", err);
       setUpload(false);
       setMessageErreur(`Erreur upload : ${err}`);
-      setTimeout(() => setMessageErreur(""), 1000);
-       form.resetFields();
+      setTimeout(() => setMessageErreur(""), 5000);
+      form.resetFields();
       return;
     }
   };
