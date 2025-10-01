@@ -34,7 +34,7 @@ const DragAndDropUpload = () => {
     });
     try {
       const res = await fetch("https://mathsapp-back.vercel.app/users", {
-      //const res = await fetch("http://localhost:3000/users", {
+        //const res = await fetch("http://localhost:3000/users", {
         method: "POST",
         body: formData,
       });
@@ -53,6 +53,11 @@ const DragAndDropUpload = () => {
       }
     } catch (err) {
       console.error("Erreur upload:", err);
+      setUpload(false);
+      setMessageErreur(`Erreur upload : ${err}`);
+      setTimeout(() => setMessageErreur(""), 1000);
+       form.resetFields();
+      return;
     }
   };
 
@@ -72,7 +77,7 @@ const DragAndDropUpload = () => {
         valuePropName="fileList"
         getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
       >
-        <Dragger multiple beforeUpload={() => false} >
+        <Dragger multiple beforeUpload={() => false}>
           <p className="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
