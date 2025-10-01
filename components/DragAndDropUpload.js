@@ -72,7 +72,7 @@ const DragAndDropUpload = () => {
         valuePropName="fileList"
         getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
       >
-        <Dragger multiple beforeUpload={() => false} maxCount={3}>
+        <Dragger multiple beforeUpload={() => false} >
           <p className="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
