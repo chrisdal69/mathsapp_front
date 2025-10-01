@@ -5,34 +5,26 @@ import { Spin } from "antd";
 
 const { Dragger } = Upload;
 
-const contentStyle = {
-  position: "absolute",
-  background: "rgba(0, 100, 0, 0.05)",
-  borderRadius: 4,
-  color: "red",
-};
-
-const content = <div style={contentStyle} />;
-
 const DragAndDropUpload = () => {
   const [form] = Form.useForm();
-  const [upload, setUpload] = useState(false);
-  const [messageErreur, setMessageErreur] = useState("rr");
+  const [upload, setUpload] = useState(false); //affichage du spin
+  const [messageErreur, setMessageErreur] = useState(""); //affichage commentaire entre boutons
+  const [colorMessage, setColorMessage] = useState("text-red-300");
 
   const onFinish = async (values) => {
     setUpload(true);
     const formData = new FormData();
-    console.log(values , !values.name , !values.files)
+    console.log(values, !values.name, !values.files);
     if (!values.name) {
       setUpload(false);
       setMessageErreur("Le champ Nom doit être complété");
-      setTimeout(()=>setMessageErreur(""),1000);
+      setTimeout(() => setMessageErreur(""), 1000);
       return;
     }
     if (!values.files) {
       setUpload(false);
       setMessageErreur("Aucun fichier sélectionné");
-      setTimeout(()=>setMessageErreur(""), 1000);
+      setTimeout(() => setMessageErreur(""), 1000);
       return;
     }
     formData.append("name", values.name || "");
@@ -41,15 +33,24 @@ const DragAndDropUpload = () => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
     try {
-      const res = await fetch("https://mathsapp-back.vercel.app/users", {
-        //const res = await fetch("http://localhost:3000/users", {
+      //const res = await fetch("https://mathsapp-back.vercel.app/users", {
+      const res = await fetch("http://localhost:3000/users", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       console.log("Réponse du back:", data);
-      data.result && form.resetFields();
-      setUpload(false);
+      if (data.result) {
+        form.resetFields();
+        setUpload(false);
+        const mes = `Fichiers uploadés :  ${data.files.join()}`;
+        setColorMessage("text-green-400");
+        setMessageErreur(mes);
+        setTimeout(() => {
+          setMessageErreur("");
+          setColorMessage("text-red-300");
+        }, 3000);
+      }
     } catch (err) {
       console.error("Erreur upload:", err);
     }
@@ -86,7 +87,7 @@ const DragAndDropUpload = () => {
           Envoyer
         </Button>
         {upload && <Spin size="large" />}
-        {messageErreur && <p className="text-red-300">{messageErreur}</p>}
+        {messageErreur && <p className={colorMessage}>{messageErreur}</p>}
         <Button htmlType="button" onClick={onReset} className="w-25 ">
           Reset
         </Button>
