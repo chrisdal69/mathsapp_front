@@ -3,6 +3,9 @@ import Head from 'next/head';
 import '@ant-design/v5-patch-for-react-19';
 import { unstableSetRender } from 'antd';
 import { createRoot } from 'react-dom/client';
+import Menu from '../components/Menu';
+import Footer from '../components/Footer';
+
 
 unstableSetRender((node, container) => {
   container._reactRoot ||= createRoot(container);
@@ -20,9 +23,10 @@ function App({ Component, pageProps }) {
     <>
       <Head>
         <title>Mathsapp</title>
-        
       </Head>
+      <Menu/>
       <Component {...pageProps} />
+      <Footer/>
     </>
   );
 }

@@ -33,8 +33,8 @@ const DragAndDropUpload = () => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
     try {
-      const res = await fetch("https://mathsapp-back.vercel.app/users", {
-        //const res = await fetch("http://localhost:3000/users", {
+      //const res = await fetch("https://mathsapp-back.vercel.app/users", {
+        const res = await fetch("http://localhost:3000/upload", {
         method: "POST",
         body: formData,
       });

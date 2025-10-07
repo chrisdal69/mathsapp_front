@@ -1,8 +1,9 @@
 import React from "react";
-import { Layout, Menu, theme } from "antd";
+import { Layout, theme } from "antd";
 const { Content } = Layout;
 
-const App = () => {
+
+export default function PythonPage() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -18,10 +19,9 @@ const App = () => {
             marginTop: "20px",
           }}
         >
-          MATHS
+          PYTHON
         </div>
       </Content>
     </Layout>
   );
-};
-export default App;
+}

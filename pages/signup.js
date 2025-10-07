@@ -1,11 +1,16 @@
 import React from "react";
-import { Layout, Menu, theme } from "antd";
+import { Layout, theme } from "antd";
 const { Content } = Layout;
+import { LoaderCircle, Lock, Mail } from "lucide-react";
 
-const App = () => {
+import { ChangeEvent, FormEvent, useState } from "react";
+
+
+export default function LoginPage() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+ 
   return (
     <Layout>
       <Content style={{ padding: "0 48px" }}>
@@ -18,10 +23,11 @@ const App = () => {
             marginTop: "20px",
           }}
         >
-          MATHS
+          <div className="flex justify-center">
+
+          </div>
         </div>
       </Content>
     </Layout>
   );
-};
-export default App;
+}
