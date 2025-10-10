@@ -1,138 +1,108 @@
-import React from "react";
-import { Layout, theme } from "antd";
-const { Content } = Layout;
-import { LoaderCircle, Lock, Mail } from "lucide-react";
 import Link from "next/link";
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import zxcvbn from "zxcvbn";
+import { Eye, EyeOff } from "lucide-react"; // 👁️ import des icônes
 
-import { ChangeEvent, FormEvent, useState } from "react";
+// ✅ Schéma de validation Yup
+const schema = yup.object().shape({
+  email: yup
+    .string()
+    .email("Adresse email invalide")
+    .required("L'email est obligatoire"),
 
-export default function LoginPage() {
+});
+
+export default function SignupForm() {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordRules, setPasswordRules] = useState({
+    length: false,
+    upper: false,
+    lower: false,
+    number: false,
+    special: false,
+  });
+
   const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
-  const [email, setEmail] = useState("");
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: "onChange",
+    defaultValues: { email: "", },
+  });
 
-  const [error, setError] = useState("");
 
-  const [loading, setLoading] = useState(false);
 
-  const [success, setSuccess] = useState(false);
+  useEffect(() => {
+    reset({ email: "", password: "" });
+  }, [reset]);
 
-  const handleChange = (e) => {
-    setEmail(e.target.value);
-
-    setError("");
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!email.trim()) {
-      setError("Please enter a valid email.");
-
-      return;
-    }
-
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-
-      setSuccess(true);
-    }, 2000);
+  const onSubmit = (data) => {
+    console.log("✅ Données validées :", data);
+    alert("Inscription réussie !");
   };
 
   return (
-    <Layout>
-      <Content style={{ padding: "0 48px" }}>
-        <div
-          style={{
-            background: colorBgContainer,
-            minHeight: 280,
-            padding: 24,
-            borderRadius: borderRadiusLG,
-            marginTop: "20px",
-          }}
-        >
-          <div className="flex justify-center">
-            <div className="flex min-h-screen  justify-center">
-              <div className="w-full max-w-md rounded-lg bg-white p-6">
-                <h2 className="mb-8 text-center text-2xl font-semibold text-gray-800">
-                  Forgot Password?
-                </h2>
+    <div className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white">
+      <h2 className="text-2xl font-semibold text-center mb-6">Mot de pass oublié</h2>
 
-                {success ? (
-                  <p className="mb-6 text-center text-green-600">
-                    Email has been sent. Please check your inbox.
-                  </p>
-                ) : (
-                  <form onSubmit={handleSubmit}>
-                    {/* Email Input */}
-
-                    <div className="mb-6">
-                      <label
-                        htmlFor="email"
-                        className="mb-1.5 block text-sm font-medium text-gray-700"
-                      >
-                        Email Address
-                      </label>
-
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-gray-500">
-                          <Mail size={20} />
-                        </span>
-
-                        <input
-                          id="email"
-                          type="email"
-                          name="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={handleChange}
-                          className={`w-full rounded-lg border px-4 py-2.5 pl-10 focus:ring-2 focus:ring-blue-200 ${
-                            error
-                              ? "border-red-500 ring-red-200"
-                              : "border-gray-300"
-                          }`}
-                        />
-                      </div>
-
-                      {error && (
-                        <p className="mt-1 text-sm text-red-600">{error}</p>
-                      )}
-                    </div>
-
-                    {/* Submit Button */}
-
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="flex h-10 w-full items-center justify-center rounded-lg bg-neutral-800 text-white hover:bg-neutral-700 disabled:bg-gray-300"
-                    >
-                      {loading ? (
-                        <LoaderCircle className="animate-spin" size={20} />
-                      ) : (
-                        "Reset Password"
-                      )}
-                    </button>
-                  </form>
-                )}
-
-                {/* Back to Login */}
-
-                <div className="mt-4 text-center">
-                  <Link
-                    href="/signin"
-                    className="text-sm font-medium text-blue-600 hover:underline"
-                  >
-                    Back to Login
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+      <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" noValidate>
+        {/* EMAIL */}
+        <div className="mb-5">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700"
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            {...register("email")}
+            className={`mt-1 block w-full rounded-lg border px-3 py-2 ${
+              errors.email ? "border-red-500" : "border-gray-300"
+            }`}
+          />
+          {errors.email && (
+            <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
+          )}
         </div>
-      </Content>
-    </Layout>
+
+        {/* BUTTON */}
+        <button
+          type="submit"
+          disabled={!isValid || isSubmitting}
+          className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:bg-gray-300"
+        >
+          {isSubmitting ? "Envoi..." : "Reinitialiser le mot de pass"}
+        </button>
+      </form>
+      <div className="mt-4 text-center">
+        <span className="text-sm text-gray-600">Retour? </span>
+        <Link
+          href="/login"
+          className="text-sm font-medium text-blue-600 hover:underline"
+        >
+          Login
+        </Link>
+      </div>
+
+      {/* 🔧 CSS pour neutraliser le fond jaune de Chrome */}
+      <style jsx global>{`
+        input:-webkit-autofill {
+          -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+          -webkit-text-fill-color: #000 !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+    </div>
   );
 }

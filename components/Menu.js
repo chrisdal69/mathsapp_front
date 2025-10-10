@@ -2,28 +2,43 @@ import React from "react";
 import { Layout, Menu, theme } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import Link from "next/link";
-const { Header, Content, Footer } = Layout;
+import { useRouter } from "next/router"; // 👈 import indispensable
 
-const items = [
-  {
-    key: "1",
-    label: <Link href="/">Maths</Link>,
-  },
-  {
-    key: "2",
-    label: <Link href="/python">Python</Link>,
-  },
-  {
-    key: "3",
-    icon: <UserOutlined />,
-    label: <Link href="/login">Login</Link>,
-  },
-];
+const { Header } = Layout;
 
 const App = () => {
+  const router = useRouter(); // 👈 pour connaître la route actuelle
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  // ✅ on mappe la route actuelle à la clé du menu
+  const pathToKey = {
+    "/": "1",
+    "/python": "2",
+    "/login": "3",
+    "/signup": "3",
+    "/forgot": "3",
+  };
+
+  const selectedKey = pathToKey[router.pathname] || "1"; // clé active selon la route
+
+  const items = [
+    {
+      key: "1",
+      label: <Link href="/">Maths</Link>,
+    },
+    {
+      key: "2",
+      label: <Link href="/python">Python</Link>,
+    },
+    {
+      key: "3",
+      icon: <UserOutlined />,
+      label: <Link href="/login">Login</Link>,
+    },
+  ];
+
   return (
     <Header
       style={{
@@ -36,8 +51,7 @@ const App = () => {
       <Menu
         theme="dark"
         mode="horizontal"
-        reverseArrow="true"
-        defaultSelectedKeys={["1"]}
+        selectedKeys={[selectedKey]} // ✅ dynamique, remplace defaultSelectedKeys
         items={items}
         style={{
           flex: 1,
@@ -48,4 +62,5 @@ const App = () => {
     </Header>
   );
 };
+
 export default App;

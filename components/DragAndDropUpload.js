@@ -34,9 +34,10 @@ const DragAndDropUpload = () => {
     });
     try {
       //const res = await fetch("https://mathsapp-back.vercel.app/users", {
-        const res = await fetch("http://localhost:3000/upload", {
+      const res = await fetch("http://localhost:3000/upload", {
         method: "POST",
         body: formData,
+        credentials: "include", // 👈 indispensable pour envoyer le cookie JWT
       });
       const data = await res.json();
       console.log("Réponse du back:", data);
@@ -67,10 +68,6 @@ const DragAndDropUpload = () => {
 
   return (
     <Form form={form} onFinish={onFinish}>
-      <Form.Item label="Nom" name="name">
-        <Input placeholder="user name" variant="filled" />
-      </Form.Item>
-
       <Form.Item
         label="Drag & Drop"
         name="files"
