@@ -15,7 +15,7 @@ const schema = yup.object().shape({
   password: yup.string().required("Mot de passe obligatoire"),
 });
 
-export default function Signin() {
+export default function SignupForm() {
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -39,7 +39,7 @@ export default function Signin() {
         credentials: "include",
       });
       const json = await res.json();
-
+      reset();
       if (res.ok) {
         console.log(json);
       } else {
