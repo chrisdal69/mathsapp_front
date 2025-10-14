@@ -35,8 +35,9 @@ export default function Login(props) {
   });
 
   const onSubmit = async (data) => {
+          console.log("urlFetch de login.js ",urlFetch , `${urlFetch}/auth/login`)
+
     try {
-      console.log("urlFetch de login.js ",urlFetch , `${urlFetch}/auth/login`)
 
       const res = await fetch(`${urlFetch}/auth/login`, {
         method: "POST",
