@@ -3,9 +3,17 @@ import Head from 'next/head';
 import '@ant-design/v5-patch-for-react-19';
 import { unstableSetRender } from 'antd';
 import { createRoot } from 'react-dom/client';
-import Menu from '../components/Menu';
+import Nav from '../components/Nav';
 import Footer from '../components/Footer';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from "../reducers/authSlice";
 
+const store = configureStore({
+ reducer: {
+    auth: authReducer,
+  },
+}); 
 
 unstableSetRender((node, container) => {
   container._reactRoot ||= createRoot(container);
@@ -20,14 +28,14 @@ unstableSetRender((node, container) => {
 
 function App({ Component, pageProps }) {
   return (
-    <>
+    <Provider store={store}>
       <Head>
         <title>Mathsapp</title>
       </Head>
-      <Menu/>
+      <Nav/>
       <Component {...pageProps} />
       <Footer/>
-    </>
+    </Provider>
   );
 }
 

@@ -1,12 +1,13 @@
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/router";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuthenticated, clearAuth } from "../reducers/authSlice";
 
-// ✅ Schéma de validation Yup
 const schema = yup.object().shape({
   email: yup
     .string()
@@ -15,19 +16,19 @@ const schema = yup.object().shape({
   password: yup.string().required("Mot de passe obligatoire"),
 });
 
-export default function Signin() {
+export default function Login() {
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [serverMessage, setServerMessage] = useState("");
+  const dispatch = useDispatch(); // ✅ initialisation du dispatch
 
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors, isValid, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
     mode: "onChange",
-    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (data) => {
@@ -38,15 +39,24 @@ export default function Signin() {
         body: JSON.stringify(data),
         credentials: "include",
       });
-      const json = await res.json();
+
+      const response = await res.json();
 
       if (res.ok) {
-        console.log(json);
+        console.log("✅ Connexion réussie", response);
+        dispatch(
+          setAuthenticated({
+            email: response.email,
+            nom: response.nom,
+            prenom: response.prenom,
+          })
+        );
+        router.push("/account"); // redirection vers la page compte
       } else {
-        console.error(json.error || json);
+        setServerMessage(response.message || "Erreur de connexion.");
       }
     } catch (err) {
-      console.error("Erreur serveur.");
+      setServerMessage("Erreur serveur.");
     }
   };
 
@@ -54,27 +64,11 @@ export default function Signin() {
     <div className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white">
       <h2 className="text-2xl font-semibold text-center mb-6">Se loguer</h2>
 
-      {/* ✅ clé dynamique pour éviter réutilisation après navigation */}
-      <form
-        key={router.asPath}
-        onSubmit={handleSubmit(onSubmit)}
-        autoComplete="off"
-        noValidate
-      >
-        {/* Champs leurres pour neutraliser l'autofill */}
-        <input
-          type="text"
-          name="fakeuser"
-          autoComplete="off"
-          style={{ display: "none" }}
-        />
-        <input
-          type="password"
-          name="fakepass"
-          autoComplete="new-password"
-          style={{ display: "none" }}
-        />
+      {serverMessage && (
+        <p className="text-center text-sm mb-4 text-red-600">{serverMessage}</p>
+      )}
 
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         {/* EMAIL */}
         <div className="mb-5">
           <label
@@ -87,7 +81,6 @@ export default function Signin() {
             id="email"
             type="email"
             {...register("email")}
-            autoComplete="new-email"
             className={`mt-1 block w-full rounded-lg border px-3 py-2 ${
               errors.email ? "border-red-500" : "border-gray-300"
             }`}
@@ -105,18 +98,15 @@ export default function Signin() {
           >
             Mot de passe
           </label>
-
           <div className="relative">
             <input
               id="password"
               type={passwordVisible ? "text" : "password"}
               {...register("password")}
-              autoComplete="new-password"
               className={`mt-1 block w-full rounded-lg border px-3 py-2 pr-10 ${
                 errors.password ? "border-red-500" : "border-gray-300"
               }`}
             />
-
             <button
               type="button"
               onClick={() => setPasswordVisible(!passwordVisible)}
@@ -124,7 +114,6 @@ export default function Signin() {
             >
               {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-
             <div className="mt-2 text-right">
               <Link
                 href="/forgot"
@@ -142,7 +131,7 @@ export default function Signin() {
           disabled={!isValid || isSubmitting}
           className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:bg-gray-300"
         >
-          {isSubmitting ? "Envoi..." : "Se loguer"}
+          {isSubmitting ? "Connexion..." : "Se loguer"}
         </button>
       </form>
 
@@ -155,15 +144,6 @@ export default function Signin() {
           Inscription
         </Link>
       </div>
-
-      {/* 🔧 CSS pour neutraliser le fond jaune Chrome */}
-      <style jsx global>{`
-        input:-webkit-autofill {
-          -webkit-box-shadow: 0 0 0px 1000px white inset !important;
-          -webkit-text-fill-color: #000 !important;
-          transition: background-color 5000s ease-in-out 0s;
-        }
-      `}</style>
     </div>
   );
 }

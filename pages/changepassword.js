@@ -1,32 +1,40 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import zxcvbn from "zxcvbn";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// ✅ Validation stricte du mot de passe (identique à signup)
+// ✅ Schéma de validation
 const schema = yup.object().shape({
   newPassword: yup
     .string()
     .min(8, "8 caractères minimum")
-    .matches(/[A-Z]/, "1 majuscule requise")
-    .matches(/[a-z]/, "1 minuscule requise")
-    .matches(/[0-9]/, "1 chiffre requis")
-    .matches(/[^A-Za-z0-9]/, "1 caractère spécial requis")
-    .required("Mot de passe obligatoire"),
-  confirmNewPassword: yup
+    .matches(/[A-Z]/, "Une majuscule requise")
+    .matches(/[a-z]/, "Une minuscule requise")
+    .matches(/[0-9]/, "Un chiffre requis")
+    .matches(/[^A-Za-z0-9]/, "Un caractère spécial requis")
+    .required("Nouveau mot de passe obligatoire"),
+  confirmPassword: yup
     .string()
-    .oneOf([yup.ref("newPassword"), null], "Les mots de passe ne correspondent pas")
+    .oneOf(
+      [yup.ref("newPassword"), null],
+      "Les mots de passe ne correspondent pas"
+    )
     .required("Confirmation obligatoire"),
 });
 
-export default function ChangePasswordPage() {
+export default function ChangePassword() {
   const router = useRouter();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 🔹 Indicateurs de robustesse
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordRules, setPasswordRules] = useState({
     length: false,
@@ -35,36 +43,21 @@ export default function ChangePasswordPage() {
     number: false,
     special: false,
   });
-  const [message, setMessage] = useState("");
-
-  // 🧩 Protection de la page
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/me", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!res.ok) router.push("/login");
-      } catch {
-        router.push("/login");
-      }
-    };
-    checkAuth();
-  }, [router]);
 
   const {
     register,
     handleSubmit,
+    reset,
     watch,
     formState: { errors, isValid, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
     mode: "onChange",
-    defaultValues: { newPassword: "", confirmNewPassword: "" },
   });
 
   const newPassword = watch("newPassword", "");
+
+  // ✅ Vérifie en direct la robustesse
   useEffect(() => {
     setPasswordRules({
       length: newPassword.length >= 8,
@@ -76,6 +69,29 @@ export default function ChangePasswordPage() {
     setPasswordStrength(zxcvbn(newPassword).score);
   }, [newPassword]);
 
+  // ✅ Labels et couleurs pour la jauge
+  const getStrengthLabel = (score) => {
+    const labels = ["Très faible", "Faible", "Moyen", "Bon", "Excellent"];
+    const colors = ["#dc2626", "#f97316", "#eab308", "#22c55e", "#16a34a"];
+    return (
+      <div className="mt-2">
+        <div className="h-2 rounded bg-gray-200 overflow-hidden">
+          <div
+            className="h-full transition-all"
+            style={{
+              width: `${(score + 1) * 20}%`,
+              backgroundColor: colors[score],
+            }}
+          />
+        </div>
+        <p className="text-sm mt-1" style={{ color: colors[score] }}>
+          {labels[score]}
+        </p>
+      </div>
+    );
+  };
+
+  // ✅ Liste des règles dynamiques
   const renderPasswordRules = () => {
     const rules = [
       { key: "length", label: "Au moins 8 caractères" },
@@ -100,56 +116,65 @@ export default function ChangePasswordPage() {
     );
   };
 
-  const getStrengthLabel = (score) => {
-    const labels = ["Très faible", "Faible", "Moyen", "Bon", "Excellent"];
-    const colors = ["#dc2626", "#f97316", "#eab308", "#22c55e", "#16a34a"];
-    return (
-      <div className="mt-2">
-        <div className="h-2 rounded bg-gray-200 overflow-hidden">
-          <div
-            className="h-full transition-all"
-            style={{
-              width: `${(score + 1) * 20}%`,
-              backgroundColor: colors[score],
-            }}
-          />
-        </div>
-        <p className="text-sm mt-1" style={{ color: colors[score] }}>
-          {labels[score]}
-        </p>
-      </div>
-    );
-  };
+  // ✅ Vérification si l'utilisateur est connecté
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/users/me", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) {
+          router.push("/login"); // redirige si non connecté ou token expiré
+        }
+      } catch (err) {
+        router.push("/login");
+      }
+    };
+    checkAuth();
+  }, [router]);
 
+  // ✅ Soumission du formulaire
   const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/changepassword", {
+      const res = await fetch("http://localhost:3000/users/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ newPassword: data.newPassword }),
+        credentials: "include",
       });
       const json = await res.json();
       if (res.ok) {
-        setMessage("Mot de passe modifié avec succès ✅");
-        setTimeout(() => router.push("/account"), 1500);
+        setMessage("Mot de passe changé avec succès ✅");
+        reset();
+        setPasswordStrength(0);
+        setTimeout(() => router.push("/account"), 1000);
       } else {
-        setMessage(json.error || json.message || "Erreur ❌");
+        setMessage(json.error || "Erreur lors du changement de mot de passe.");
       }
-    } catch {
-      setMessage("Erreur serveur ❌");
+    } catch (err) {
+      setMessage("Erreur serveur.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg">
-      <h2 className="text-2xl font-semibold text-center mb-6">Changer le mot de passe</h2>
-      {message && <p className="text-center text-sm text-gray-700 mb-4">{message}</p>}
+    <div className="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6">
+      <h2 className="text-2xl font-semibold text-center mb-6">
+        Changer le mot de passe
+      </h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" noValidate>
+      {message && <p className="text-blue-600 text-center mb-4">{message}</p>}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Nouveau mot de passe */}
-        <div className="mb-5">
-          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+        <div>
+          <label
+            htmlFor="newPassword"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Nouveau mot de passe
           </label>
           <div className="relative">
@@ -157,9 +182,7 @@ export default function ChangePasswordPage() {
               id="newPassword"
               type={passwordVisible ? "text" : "password"}
               {...register("newPassword")}
-              className={`w-full border rounded px-3 py-2 pr-10 ${
-                errors.newPassword ? "border-red-500" : "border-gray-300"
-              }`}
+              className="w-full border rounded px-3 py-2 pr-10"
             />
             <button
               type="button"
@@ -169,26 +192,31 @@ export default function ChangePasswordPage() {
               {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+
           {errors.newPassword && (
-            <p className="text-sm text-red-600 mt-1">{errors.newPassword.message}</p>
+            <p className="text-sm text-red-600 mt-1">
+              {errors.newPassword.message}
+            </p>
           )}
+
           {renderPasswordRules()}
           {newPassword && getStrengthLabel(passwordStrength)}
         </div>
 
         {/* Confirmation */}
-        <div className="mb-5">
-          <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-1">
-            Confirmer le mot de passe
+        <div>
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Confirmer le nouveau mot de passe
           </label>
           <div className="relative">
             <input
-              id="confirmNewPassword"
+              id="confirmPassword"
               type={confirmVisible ? "text" : "password"}
-              {...register("confirmNewPassword")}
-              className={`w-full border rounded px-3 py-2 pr-10 ${
-                errors.confirmNewPassword ? "border-red-500" : "border-gray-300"
-              }`}
+              {...register("confirmPassword")}
+              className="w-full border rounded px-3 py-2 pr-10"
             />
             <button
               type="button"
@@ -198,25 +226,30 @@ export default function ChangePasswordPage() {
               {confirmVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          {errors.confirmNewPassword && (
-            <p className="text-sm text-red-600 mt-1">{errors.confirmNewPassword.message}</p>
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-600 mt-1">
+              {errors.confirmPassword.message}
+            </p>
           )}
         </div>
 
         <button
           type="submit"
-          disabled={!isValid || isSubmitting}
+          disabled={!isValid || isSubmitting || isLoading}
           className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
         >
-          {isSubmitting ? "Envoi..." : "Valider"}
+          {isLoading ? "Mise à jour..." : "Changer le mot de passe"}
         </button>
-      </form>
 
-      <div className="mt-4 text-center">
-        <Link href="/account" className="text-sm text-blue-600 hover:underline">
-          Retour au compte
-        </Link>
-      </div>
+        <div className="text-center mt-4">
+          <Link
+            href="/account"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Retour à mon compte
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }
