@@ -39,7 +39,7 @@ export default function Account(props) {
       <h2 className="text-2xl font-semibold mb-6">Mon compte</h2>
       {user && (
         <h2 className="text-2xl  mb-6">
-          {user.nom} {user.prenom}
+          {user.prenom} {user.nom}
         </h2>
       )}
       {message && <p className="text-blue-600 mb-4">{message}</p>}

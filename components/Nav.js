@@ -17,26 +17,7 @@ export default function Nav() {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  // useEffect(() => {
-  //   const checkAuth = async () => {
-  //     try {
-  //       const res = await fetch("http://localhost:3000/users/me", {
-  //         credentials: "include",
-  //       });
-  //       if (res.ok) {
-  //         const response = await res.json();
-  //         console.log("response ds Nav.js" , response)
-  //         dispatch(setAuthenticated(response || null));
-  //       } else {
-  //         dispatch(clearAuth());
-  //       }
-  //     } catch {
-  //       dispatch(clearAuth());
-  //     }
-  //   };
-  //   checkAuth();
-  // }, [dispatch]);
-
+  
   const pathToKey = {
     "/": "1",
     "/python": "2",

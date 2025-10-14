@@ -29,7 +29,7 @@ export default function App() {
   return (
     <>
       <Button type="primary" onClick={showModal}>
-        {isAuthenticated ? `${user.nom} ${user.prenom}` : "Login"}
+        {isAuthenticated ? `${user.prenom.substr(0,1).toUpperCase()} ${user.nom.substr(0,1).toUpperCase()}` : "Login"}
       </Button>
       <Modal
         title={null}
