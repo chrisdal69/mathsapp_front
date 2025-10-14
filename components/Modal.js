@@ -37,7 +37,7 @@ export default function App() {
         footer={null}
         
       >
-        {isAuthenticated ? <Account close={handleOk}/> : <Login close={handleOk} />}
+        {isAuthenticated ? <Account close={handleOk}/> : <Login close={handleOk} isOpen={open} />}
       </Modal>
     </>
   );

@@ -35,7 +35,13 @@ export default function Login(props) {
     mode: "onChange",
     defaultValues: { email: "", password: "" },
   });
-
+  useEffect(() => {
+    if (props.isOpen) {
+      reset({ email: "", password: "" });
+      setServerMessage("");
+      setPasswordVisible(false);
+    }
+  }, [props.isOpen, reset]);
   const onSubmit = async (data) => {
     try {
       const res = await fetch(`${urlFetch}/auth/login`, {
@@ -57,7 +63,7 @@ export default function Login(props) {
             prenom: response.prenom,
           })
         );
-        reset();
+        reset({ email: "", password: "" });
         props.close();
       } else {
         setServerMessage(response.message || "Erreur de connexion.");
