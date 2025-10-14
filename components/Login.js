@@ -28,14 +28,15 @@ export default function Login(props) {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isValid, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
     mode: "onChange",
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (data) => {
-
     try {
       const res = await fetch(`${urlFetch}/auth/login`, {
         method: "POST",
@@ -45,7 +46,7 @@ export default function Login(props) {
       });
 
       const response = await res.json();
-      console.log("response de login.js ", res , response, );
+      console.log("response de login.js ", res, response);
 
       if (res.ok) {
         console.log("✅ Connexion réussie", response);
@@ -56,7 +57,7 @@ export default function Login(props) {
             prenom: response.prenom,
           })
         );
-        //router.push("/"); // redirection vers la page compte
+        reset();
         props.close();
       } else {
         setServerMessage(response.message || "Erreur de connexion.");
