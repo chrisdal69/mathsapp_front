@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const NODE_ENV = process.env.NODE_ENV;
-const URL_BACK = process.env.URL_BACK;
+const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 // ✅ Schéma de validation
