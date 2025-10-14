@@ -8,6 +8,9 @@ import { Eye, EyeOff, CheckCircle, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+const NODE_ENV = process.env.NODE_ENV;
+const URL_BACK = process.env.URL_BACK;
+const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 // === Schémas de validation ===
 const emailSchema = yup.object().shape({
@@ -97,7 +100,7 @@ export default function ForgotWizard() {
   const onSubmitEmail = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/forgot", {
+      const res = await fetch(`${urlFetch}/auth/forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -128,7 +131,7 @@ export default function ForgotWizard() {
   const onSubmitPassword = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/reset-password", {
+      const res = await fetch(`${urlFetch}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,7 +144,7 @@ export default function ForgotWizard() {
       if (res.ok) {
         setMessage("Mot de passe réinitialisé avec succès ✅");
         setStep(4);
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push("/"), 2000);
       } else {
         setMessage(json.error || "Erreur lors de la réinitialisation.");
       }
@@ -156,7 +159,7 @@ export default function ForgotWizard() {
   const handleResendCode = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/resend-code", {
+      const res = await fetch(`${urlFetch}/auth/resend-forgot`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -273,10 +276,10 @@ export default function ForgotWizard() {
             </button>
             <div className=" text-right">
               <Link
-                href="/login"
+                href="/"
                 className="text-sm text-blue-600 hover:underline"
               >
-                Retour page Login ?
+                Retour page Maths ?
               </Link>
             </div>
           </motion.form>

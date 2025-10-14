@@ -8,6 +8,9 @@ import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+const NODE_ENV = process.env.NODE_ENV;
+const URL_BACK = process.env.URL_BACK;
+const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 // ✅ Validation schéma
 const schema = yup.object().shape({
@@ -56,7 +59,7 @@ export default function SignupWizard() {
   const {
     register,
     handleSubmit,
-    reset,
+    resetField, // 👈 ajoute ici !
     watch,
     formState: { errors, isValid, isSubmitting },
   } = useForm({
@@ -87,7 +90,7 @@ export default function SignupWizard() {
   const onSubmitSignup = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/signup", {
+      const res = await fetch(`${urlFetch}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -110,7 +113,7 @@ export default function SignupWizard() {
   const handleVerifyCode = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/verifmail", {
+      const res = await fetch(`${urlFetch}/auth/verifmail`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, code: verificationCode }),
@@ -119,9 +122,10 @@ export default function SignupWizard() {
       if (res.ok) {
         setStep(3);
         setMessage("");
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push("/"), 2000);
       } else {
         setMessage(json.error || "Code invalide.");
+        setVerificationCode("");
       }
     } catch (err) {
       setMessage("Erreur serveur.");
@@ -133,7 +137,7 @@ export default function SignupWizard() {
   const handleResendCode = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/auth/resend-code", {
+      const res = await fetch(`${urlFetch}/auth/resend-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -141,6 +145,7 @@ export default function SignupWizard() {
       const json = await res.json();
       if (res.ok) {
         setMessage("Nouveau code envoyé !");
+        setVerificationCode("");
       } else {
         setMessage(json.error || "Erreur lors du renvoi.");
       }
@@ -382,10 +387,10 @@ export default function SignupWizard() {
               <div className="mt-1 text-center">
                 <span className="text-sm text-gray-600">Retour page </span>
                 <Link
-                  href="/login"
+                  href="/"
                   className="text-sm font-medium text-blue-600 hover:underline"
                 >
-                  Login
+                  Retour page Maths
                 </Link>
               </div>
             </form>

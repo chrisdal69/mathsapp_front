@@ -8,6 +8,10 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const NODE_ENV = process.env.NODE_ENV;
+const URL_BACK = process.env.URL_BACK;
+const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
+
 // ✅ Schéma de validation
 const schema = yup.object().shape({
   newPassword: yup
@@ -125,20 +129,21 @@ export default function ChangePassword() {
           credentials: "include",
         });
         if (!res.ok) {
-          router.push("/login"); // redirige si non connecté ou token expiré
+          router.push("/"); // redirige si non connecté ou token expiré
         }
       } catch (err) {
-        router.push("/login");
+        router.push("/");
       }
     };
     checkAuth();
   }, [router]);
 
   // ✅ Soumission du formulaire
+   
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/users/change-password", {
+      const res = await fetch(`${urlFetch}/users/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword: data.newPassword }),
@@ -149,7 +154,7 @@ export default function ChangePassword() {
         setMessage("Mot de passe changé avec succès ✅");
         reset();
         setPasswordStrength(0);
-        setTimeout(() => router.push("/account"), 1000);
+        setTimeout(() => router.push("/"), 1000);
       } else {
         setMessage(json.error || "Erreur lors du changement de mot de passe.");
       }
@@ -243,10 +248,10 @@ export default function ChangePassword() {
 
         <div className="text-center mt-4">
           <Link
-            href="/account"
+            href="/"
             className="text-sm text-blue-600 hover:underline"
           >
-            Retour à mon compte
+            Retour Page Maths
           </Link>
         </div>
       </form>

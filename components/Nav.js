@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthenticated, clearAuth } from "../reducers/authSlice";
+import Modal from "./Modal";
 
 const { Header } = Layout;
 
@@ -39,10 +40,8 @@ export default function Nav() {
   const pathToKey = {
     "/": "1",
     "/python": "2",
-    "/login": "3",
     "/signup": "3",
     "/forgot": "3",
-    "/account": "3",
     "/changepassword": "3",
   };
 
@@ -54,13 +53,10 @@ export default function Nav() {
     {
       key: "3",
       icon: <UserOutlined />,
-      label: isAuthenticated ? (
-        <Link href="/account">{user.nom} {user.prenom}</Link>
-      ) : (
-        <Link href="/login">Login</Link>
-      ),
+       label:  <Modal /> ,
     },
   ];
+
   return (
     <Header style={{ display: "flex", alignItems: "center" }}>
       <Menu
