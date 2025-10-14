@@ -124,7 +124,7 @@ export default function ChangePassword() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("http://localhost:3000/users/me", {
+        const res = await fetch(`${urlFetch}/users/me`, {
           method: "GET",
           credentials: "include",
         });
