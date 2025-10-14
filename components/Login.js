@@ -35,10 +35,8 @@ export default function Login(props) {
   });
 
   const onSubmit = async (data) => {
-          console.log("urlFetch de login.js ",urlFetch , `${urlFetch}/auth/login`)
 
     try {
-
       const res = await fetch(`${urlFetch}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,6 +45,7 @@ export default function Login(props) {
       });
 
       const response = await res.json();
+      console.log("response de login.js ", res , response, );
 
       if (res.ok) {
         console.log("✅ Connexion réussie", response);
