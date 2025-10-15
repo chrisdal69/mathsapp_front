@@ -1,6 +1,6 @@
 import { Form, Upload, Button, Input } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { clearAuth } from "../reducers/authSlice";
@@ -17,7 +17,13 @@ const DragAndDropUpload = () => {
   const [messageErreur, setMessageErreur] = useState(""); //affichage commentaire entre boutons
   const [colorMessage, setColorMessage] = useState("text-red-300");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const [filesCloud, setFilesCloud] = useState([]);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    isAuthenticated && onRecup();
+    console.log("dans le useEffect de Drag ... ", user);
+  }, [isAuthenticated, user]);
 
   const onFinish = async (values) => {
     setUpload(true);
@@ -55,6 +61,7 @@ const DragAndDropUpload = () => {
         }, 3000);
       }
       if (data.result) {
+        isAuthenticated && (await onRecup()); // rechargement fichiers du cloud
         form.resetFields();
         setUpload(false);
         const mes = `Fichiers uploadés :  ${data.files.join()}`;
@@ -79,6 +86,32 @@ const DragAndDropUpload = () => {
     form.resetFields();
   };
 
+  const onRecup = async () => {
+    console.log("click");
+    const formData = new FormData();
+    formData.append("name", `${user.nom}${user.prenom}` || "");
+    formData.append("parent", "ciel1");
+    formData.append("repertoire", "tp1");
+    try {
+      const res = await fetch(`${urlFetch}/upload/recup`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const data = await res.json();
+      setFilesCloud(data);
+      console.log("Réponse du back:", data);
+    } catch (err) {
+      console.error("Erreur upload:", err);
+    }
+  };
+  const fichiersCloud = filesCloud.map((obj, index) => {
+    return (
+      <li key={obj.url || index}>
+        <a href={obj.url}>{obj.name.split("/").pop().split("_").pop()}</a>
+      </li>
+    );
+  });
   return (
     <>
       {!isAuthenticated && (
@@ -113,6 +146,10 @@ const DragAndDropUpload = () => {
             <Button htmlType="button" onClick={onReset} className="w-25 ">
               Reset
             </Button>
+          </div>
+          <div className="flex flex-col items-center justify-center m-10  ">
+            <h1 className="text:left">Fichiers dans le cloud : </h1>
+            <ul>{fichiersCloud}</ul>
           </div>
         </Form>
       )}
