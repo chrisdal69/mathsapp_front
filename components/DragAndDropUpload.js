@@ -29,6 +29,9 @@ const DragAndDropUpload = () => {
       return;
     }
     formData.append("name", `${user.nom}${user.prenom}` || "");
+    formData.append("parent", "ciel1");
+    formData.append("repertoire", "tp1");
+
     // Ajout des fichiers depuis le fileList
     values.files?.forEach((fileWrapper) => {
       formData.append("fichiers", fileWrapper.originFileObj);
