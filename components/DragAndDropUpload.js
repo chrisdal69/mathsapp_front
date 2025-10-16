@@ -34,7 +34,6 @@ const DragAndDropUpload = () => {
       setTimeout(() => setMessageErreur(""), 1000);
       return;
     }
-    formData.append("name", `${user.nom}${user.prenom}` || "");
     formData.append("parent", "ciel1");
     formData.append("repertoire", "tp1");
 
@@ -87,9 +86,7 @@ const DragAndDropUpload = () => {
   };
 
   const onRecup = async () => {
-    console.log("click");
     const formData = new FormData();
-    formData.append("name", `${user.nom}${user.prenom}` || "");
     formData.append("parent", "ciel1");
     formData.append("repertoire", "tp1");
     try {
