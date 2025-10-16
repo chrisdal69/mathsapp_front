@@ -1,28 +1,71 @@
-import { Form, Upload, Button, Input } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
-import { useState, useEffect } from "react";
+import {
+  Form,
+  Upload,
+  Button,
+  Input,
+  List,
+  Space,
+  message,
+  Typography,
+  Popover,
+  Tooltip,
+  Select,
+  Image,
+} from "antd";
+import {
+  InboxOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  ExclamationCircleOutlined,
+  FilePdfOutlined,
+  FileImageOutlined,
+  FileTextOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FileUnknownOutlined,
+  FilterOutlined,
+  SortAscendingOutlined,
+  SortDescendingOutlined,
+} from "@ant-design/icons";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { clearAuth } from "../reducers/authSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
-const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
+const urlFetch =
+  NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 const { Dragger } = Upload;
+const { Text } = Typography;
+const { Option } = Select;
 
 const DragAndDropUpload = () => {
   const [form] = Form.useForm();
-  const [upload, setUpload] = useState(false); //affichage du spin
-  const [messageErreur, setMessageErreur] = useState(""); //affichage commentaire entre boutons
+  const [upload, setUpload] = useState(false);
+  const [messageErreur, setMessageErreur] = useState("");
   const [colorMessage, setColorMessage] = useState("text-red-300");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
+
+  // Filtres / tri
+  const [searchTerm, setSearchTerm] = useState("");
+  const [fileType, setFileType] = useState("all");
+  const [sortOrder, setSortOrder] = useState("asc");
+
+  // États pour popovers
+  const [renameVisible, setRenameVisible] = useState(null);
+  const [deleteVisible, setDeleteVisible] = useState(null);
+  const [newName, setNewName] = useState("");
+
   const dispatch = useDispatch();
+  const deleteTimer = useRef(null);
 
   useEffect(() => {
-    isAuthenticated && onRecup();
-    console.log("dans le useEffect de Drag ... ", user);
+    if (isAuthenticated) onRecup();
   }, [isAuthenticated, user]);
 
   const onFinish = async (values) => {
@@ -37,10 +80,10 @@ const DragAndDropUpload = () => {
     formData.append("parent", "ciel1");
     formData.append("repertoire", "tp1");
 
-    // Ajout des fichiers depuis le fileList
     values.files?.forEach((fileWrapper) => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
+
     try {
       const res = await fetch(`${urlFetch}/upload`, {
         method: "POST",
@@ -48,42 +91,32 @@ const DragAndDropUpload = () => {
         credentials: "include",
       });
       const data = await res.json();
-      console.log("Réponse du back:", data);
+
       if (res.status === 401 || res.status === 403) {
-        setMessageErreur(data.message || "erreurs 401 ou 403");
+        setMessageErreur(data.message || "erreur d’autorisation");
         setUpload(false);
         setTimeout(() => {
           setMessageErreur("");
           form.resetFields();
-
           dispatch(clearAuth());
         }, 3000);
       }
+
       if (data.result) {
-        isAuthenticated && (await onRecup()); // rechargement fichiers du cloud
+        await onRecup();
         form.resetFields();
         setUpload(false);
-        const mes = `Fichiers uploadés :  ${data.files.join()}`;
-        setColorMessage("text-green-400");
-        setMessageErreur(mes);
-        setTimeout(() => {
-          setMessageErreur("");
-          setColorMessage("text-red-300");
-        }, 3000);
+        message.success("Fichiers uploadés avec succès !");
       }
     } catch (err) {
       console.error("Erreur upload:", err);
       setUpload(false);
-      setMessageErreur(`Erreur upload : ${err}`);
-      setTimeout(() => setMessageErreur(""), 5000);
+      message.error("Erreur lors de l’upload");
       form.resetFields();
-      return;
     }
   };
 
-  const onReset = () => {
-    form.resetFields();
-  };
+  const onReset = () => form.resetFields();
 
   const onRecup = async () => {
     const formData = new FormData();
@@ -97,27 +130,147 @@ const DragAndDropUpload = () => {
       });
       const data = await res.json();
       setFilesCloud(data);
-      console.log("Réponse du back:", data);
     } catch (err) {
       console.error("Erreur upload:", err);
     }
   };
-  const fichiersCloud = filesCloud.map((obj, index) => {
-    return (
-      <li key={obj.url || index}>
-        <a href={obj.url}>{obj.name.split("/").pop().split("_").pop()}</a>
-      </li>
-    );
-  });
+
+  const handleDelete = async (fileName) => {
+    try {
+      const res = await fetch(`${urlFetch}/upload/delete`, {
+        method: "POST",
+        body: JSON.stringify({
+          parent: "ciel1",
+          repertoire: "tp1",
+          file: fileName,
+        }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Fichier supprimé !");
+        await onRecup();
+      } else {
+        message.error(data.message || "Erreur de suppression");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Erreur de communication avec le serveur");
+    }
+    setDeleteVisible(null);
+  };
+
+  const handleRenameClick = (file, index) => {
+    setRenameVisible(index);
+    setNewName(file.name.split("/").pop().split("_").pop());
+  };
+
+  const handleDeleteClick = (index) => {
+    setDeleteVisible(index);
+    clearTimeout(deleteTimer.current);
+    deleteTimer.current = setTimeout(() => setDeleteVisible(null), 2000);
+  };
+
+  const handleConfirmRename = async (file) => {
+    try {
+      const res = await fetch(`${urlFetch}/upload/rename`, {
+        method: "POST",
+        body: JSON.stringify({
+          parent: "ciel1",
+          repertoire: "tp1",
+          oldName: file.name,
+          newName,
+        }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success("Fichier renommé !");
+        await onRecup();
+      } else {
+        message.error(data.message || "Erreur de renommage");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Erreur de communication avec le serveur");
+    }
+    setRenameVisible(null);
+  };
+
+  /** 🔍 Type de fichier */
+  const getFileType = (file) => {
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) return "image";
+    if (ext === "pdf") return "pdf";
+    if (["doc", "docx"].includes(ext)) return "word";
+    if (["xls", "xlsx"].includes(ext)) return "excel";
+    if (["txt", "md"].includes(ext)) return "text";
+    return "other";
+  };
+
+  /** 🧩 Miniature ou icône */
+  const getFilePreview = (file) => {
+    const type = getFileType(file);
+    if (type === "image") {
+      return (
+        <Image
+          src={file.url}
+          alt={file.name}
+          width={36}
+          height={36}
+          style={{
+            objectFit: "cover",
+            borderRadius: "6px",
+            border: "1px solid #f0f0f0",
+          }}
+          preview={false}
+        />
+      );
+    }
+    const iconMap = {
+      pdf: <FilePdfOutlined style={{ color: "#ff4d4f", fontSize: 26 }} />,
+      word: <FileWordOutlined style={{ color: "#1890ff", fontSize: 26 }} />,
+      excel: <FileExcelOutlined style={{ color: "#52c41a", fontSize: 26 }} />,
+      text: <FileTextOutlined style={{ color: "#8c8c8c", fontSize: 26 }} />,
+      other: <FileUnknownOutlined style={{ color: "#bfbfbf", fontSize: 26 }} />,
+    };
+    return iconMap[type];
+  };
+
+  /** 🧮 Filtres et tri */
+  const filteredFiles = useMemo(() => {
+    let result = filesCloud;
+
+    if (searchTerm) {
+      result = result.filter((f) =>
+        f.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    if (fileType !== "all") {
+      result = result.filter((f) => getFileType(f) === fileType);
+    }
+    result = [...result].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      return sortOrder === "asc"
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA);
+    });
+    return result;
+  }, [filesCloud, searchTerm, fileType, sortOrder]);
+
   return (
     <>
       {!isAuthenticated && (
-        <h1 className="text-3xl">
+        <h1 className="text-3xl text-center p-4">
           Il faut d'abord se loguer pour pouvoir uploader
         </h1>
       )}
+
       {isAuthenticated && (
-        <Form form={form} onFinish={onFinish}>
+        <Form form={form} onFinish={onFinish} className="upload-form">
           <Form.Item
             label="Drag & Drop"
             name="files"
@@ -134,20 +287,166 @@ const DragAndDropUpload = () => {
               <p className="ant-upload-hint">Supporte l’upload multiple</p>
             </Dragger>
           </Form.Item>
-          <div className="flex justify-around">
+
+          <div className="flex flex-wrap justify-around gap-2 mb-6">
             <Button type="primary" htmlType="submit">
               Envoyer
             </Button>
             {upload && <Spin size="large" />}
             {messageErreur && <p className={colorMessage}>{messageErreur}</p>}
-            <Button htmlType="button" onClick={onReset} className="w-25 ">
+            <Button htmlType="button" onClick={onReset}>
               Reset
             </Button>
           </div>
-          <div className="flex flex-col items-center justify-center m-10  ">
-            <h1 className="text:left">Fichiers dans le cloud : </h1>
-            <ul>{fichiersCloud}</ul>
+
+          {/* 🎛️ Filtres */}
+          <div className="mb-6 flex flex-wrap gap-3 items-center justify-center md:justify-start">
+            <Input
+              placeholder="Rechercher un fichier..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              allowClear
+              style={{ width: 220 }}
+            />
+            <Select
+              value={fileType}
+              onChange={setFileType}
+              style={{ width: 160 }}
+              suffixIcon={<FilterOutlined />}
+            >
+              <Option value="all">Tous les types</Option>
+              <Option value="image">Images</Option>
+              <Option value="pdf">PDF</Option>
+              <Option value="word">Word</Option>
+              <Option value="excel">Excel</Option>
+              <Option value="text">Texte</Option>
+              <Option value="other">Autres</Option>
+            </Select>
+            <Button
+              icon={
+                sortOrder === "asc" ? (
+                  <SortAscendingOutlined />
+                ) : (
+                  <SortDescendingOutlined />
+                )
+              }
+              onClick={() =>
+                setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+              }
+            >
+              {sortOrder === "asc" ? "A → Z" : "Z → A"}
+            </Button>
           </div>
+
+          {/* 📂 Liste */}
+          <List
+            bordered
+            dataSource={filteredFiles}
+            locale={{ emptyText: "Aucun fichier trouvé" }}
+            renderItem={(file, index) => {
+              const shortName = file.name.split("/").pop().split("_").pop();
+              const isRenameOpen = renameVisible === index;
+              const isDeleteOpen = deleteVisible === index;
+
+              return (
+                <List.Item className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {getFilePreview(file)}
+                    <Tooltip title={file.name}>
+                      <a href={file.url} target="_blank" rel="noreferrer">
+                        <Text className="file-name">{shortName}</Text>
+                      </a>
+                    </Tooltip>
+                  </div>
+
+                  <div className="flex gap-2 justify-center md:justify-end">
+                    {/* ✏️ Renommer */}
+                    <Popover
+                      placement="bottom"
+                      open={isRenameOpen}
+                      onOpenChange={(visible) =>
+                        setRenameVisible(visible ? index : null)
+                      }
+                      trigger="click"
+                      content={
+                        <Space>
+                          <Input
+                            size="small"
+                            value={newName}
+                            onFocus={() => clearTimeout()} // 👈 empêche la fermeture auto
+                            onChange={(e) => setNewName(e.target.value)}
+                            placeholder="Nouveau nom"
+                          />
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<CheckOutlined />}
+                            onClick={() => handleConfirmRename(file)}
+                          />
+                          <Button
+                            size="small"
+                            icon={<CloseOutlined />}
+                            onClick={() => setRenameVisible(null)}
+                          />
+                        </Space>
+                      }
+                    >
+                      <Button
+                        icon={<EditOutlined />}
+                        size="small"
+                        className={isRenameOpen ? "btn-active" : ""}
+                        onClick={() => handleRenameClick(file, index)}
+                      />
+                    </Popover>
+
+                    {/* 🗑️ Supprimer */}
+                    <Popover
+                      placement="bottom"
+                      open={isDeleteOpen}
+                      onOpenChange={(visible) => {
+                        setDeleteVisible(visible ? index : null);
+                        if (visible) {
+                          clearTimeout(deleteTimer.current);
+                          deleteTimer.current = setTimeout(
+                            () => setDeleteVisible(null),
+                            2000
+                          );
+                        }
+                      }}
+                      trigger="click"
+                      content={
+                        <Space>
+                          <ExclamationCircleOutlined
+                            style={{ color: "#faad14" }}
+                          />
+                          <span>Supprimer ?</span>
+                          <Button
+                            danger
+                            size="small"
+                            icon={<CheckOutlined />}
+                            onClick={() => handleDelete(shortName)}
+                          />
+                          <Button
+                            size="small"
+                            icon={<CloseOutlined />}
+                            onClick={() => setDeleteVisible(null)}
+                          />
+                        </Space>
+                      }
+                    >
+                      <Button
+                        danger
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        className={isDeleteOpen ? "btn-active" : ""}
+                        onClick={() => handleDeleteClick(index)}
+                      />
+                    </Popover>
+                  </div>
+                </List.Item>
+              );
+            }}
+          />
         </Form>
       )}
     </>
