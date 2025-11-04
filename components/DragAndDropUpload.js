@@ -44,7 +44,6 @@ const { Option } = Select;
 const DragAndDropUpload = () => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
-  const [messageErreur, setMessageErreur] = useState("");
   const [colorMessage, setColorMessage] = useState("text-red-300");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
@@ -92,8 +91,7 @@ const DragAndDropUpload = () => {
     const formData = new FormData();
     if (!values.files) {
       setUpload(false);
-      setMessageErreur("Aucun fichier sélectionné");
-      setTimeout(() => setMessageErreur(""), 1000);
+      message.error("Aucun fichier sélectionné");
       return;
     }
     formData.append("parent", "ciel1");
@@ -103,30 +101,42 @@ const DragAndDropUpload = () => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
 
+  try {
+    const res = await fetch(`${urlFetch}/upload`, {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    let data = {};
     try {
-      const res = await fetch(`${urlFetch}/upload`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      const data = await res.json();
+      data = await res.json();
+    } catch (_) {}
 
-      if (res.status === 401 || res.status === 403) {
-        setMessageErreur(data.message || "erreur d’autorisation");
-        setUpload(false);
-        setTimeout(() => {
-          setMessageErreur("");
-          form.resetFields();
-          dispatch(clearAuth());
-        }, 3000);
-      }
-
-      if (data.result) {
-        await onRecup();
+    if (res.status === 401 || res.status === 403) {
+      setUpload(false);
+      message.error(data.message || "erreur d’autorisation"); 
+      setTimeout(() => {
         form.resetFields();
-        setUpload(false);
-        message.success("Fichiers uploadés avec succès !");
-      }
+        dispatch(clearAuth());
+      }, 3000);
+      return;
+    }
+
+    if (!res.ok || data.result === false) {
+      const msg = data.error || data.message || "Erreur lors de l’upload";
+      console.error("Upload error:", msg);
+      setUpload(false);
+      message.error(msg);
+      form.resetFields();
+      return;
+    }
+
+    if (data.result) {
+      await onRecup();
+      form.resetFields();
+      setUpload(false);
+      message.success("Fichiers uploadés avec succès !");
+    }
     } catch (err) {
       console.error("Erreur upload:", err);
       setUpload(false);
@@ -183,7 +193,7 @@ const DragAndDropUpload = () => {
 
   const handleRenameClick = (file, index) => {
     setRenameVisible(index);
-    setNewName(file.name.split("/").pop().split("_").pop());
+    setNewName(file.name.split("/").pop().split("___").pop());
   };
 
   const handleDeleteClick = (index) => {
@@ -193,13 +203,14 @@ const DragAndDropUpload = () => {
   };
 
   const handleConfirmRename = async (file) => {
+    console.log("handleConfirmRename : ",file.name,newName);
     try {
       const res = await fetch(`${urlFetch}/upload/rename`, {
         method: "POST",
         body: JSON.stringify({
           parent: "ciel1",
           repertoire: "tp1",
-          oldName: file.name,
+          oldName: file.name.split('/').pop(),
           newName,
         }),
         headers: { "Content-Type": "application/json" },
@@ -386,7 +397,7 @@ const DragAndDropUpload = () => {
               Envoyer
             </Button>
             {upload && <Spin size="large" />}
-            {messageErreur && <p className={colorMessage}>{messageErreur}</p>}
+            
             <Button htmlType="button" onClick={onReset}>
               Reset
             </Button>
@@ -449,7 +460,8 @@ const DragAndDropUpload = () => {
               dataSource={filteredFiles}
               locale={{ emptyText: "Aucun fichier trouvé" }}
               renderItem={(file, index) => {
-                const shortName = file.name.split("/").pop().split("_").pop();
+                const shortName = file.name.split("/").pop().split("___").pop();
+                const fullName = file.name.split("/").pop();
                 const isRenameOpen = renameVisible === index;
                 const isDeleteOpen = deleteVisible === index;
 
@@ -524,7 +536,7 @@ const DragAndDropUpload = () => {
                               danger
                               size="small"
                               icon={<CheckOutlined />}
-                              onClick={() => handleDelete(shortName)}
+                              onClick={() => handleDelete(fullName)}
                             />
                             <Button
                               size="small"
