@@ -41,7 +41,7 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
 
-const DragAndDropUpload = () => {
+const Cloud = () => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const [colorMessage, setColorMessage] = useState("text-red-300");
@@ -566,4 +566,4 @@ const DragAndDropUpload = () => {
   );
 };
 
-export default DragAndDropUpload;
+export default Cloud;
