@@ -5,33 +5,34 @@ import MyForm from "./DragAndDropUpload";
 import EnTete from "./EnTete";
 import Card from "./Card";
 
+const props1 = {
+  num: 1,
+  titre: "Nombres complexes et dictionnaires",
+};
+
 const App = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   return (
     <Layout>
-      <Content style={{ padding: "0 48px" }}>
+      <Content>
         <div
           style={{
             background: colorBgContainer,
-            minHeight: 280,
-            padding: 24,
+            minHeight: 20,
+            padding: 15,
             borderRadius: borderRadiusLG,
-            marginTop: "20px",
+            marginTop: 0,
           }}
+          className="flex flex-col  gap-y-20 items-center"
         >
-          <div className="md:px-[22%] px-[10%] mx-auto py-2 mt-5 border-b-[2px] border-blue-500  ">
-            <EnTete />
-          </div>
-
-          <div className=" md:px-[22%] md:mx-auto w-full mt-5 px-[10%]   ">
-            <Card num = "1" />
-            <br/>
-            <Card num = "2" />
-            <br/>
-            <Card num = "3" />
-          </div>
+          <Card {...props1}  />
+          <Card {...props1}  />
+          <Card {...props1}  />
+          <Card {...props1}  />
+          <Card {...props1} />
+          <Card {...props1}  />
         </div>
       </Content>
     </Layout>
