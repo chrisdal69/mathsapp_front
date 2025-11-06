@@ -3,53 +3,50 @@ import Image from "next/image";
 import { Card } from "antd";
 import Cloud from "./DragAndDropUpload";
 import complexe from "../public/complexe.png";
+import Questionnaire from "./Questionnaire";
 
 const tabListNoTitle = [
-  { key: "avatar", label: "Avatar" },
   { key: "contenu", label: "Contenu" },
   { key: "fichiers", label: "Fichiers" },
-  { key: "corriges", label: "Corrigés" },
+  { key: "quizz", label: "Quizz" },
   { key: "cloud", label: "Cloud" },
 ];
 
-const App = ({ titre }) => {
-  const [activeTabKey, setActiveTabKey] = useState("avatar");
+const CardBlock = ({ titre }) => {
+  const [activeTabKey, setActiveTabKey] = useState("contenu");
   const onTabChange = (key) => setActiveTabKey(key);
 
   const contentListNoTitle = {
-    avatar: (
+    contenu: (
       <div className="group relative w-full h-[150px] overflow-hidden">
+        <p className="m-auto w-max">Bonjour</p>
         <Image
           src={complexe}
           alt="Logo"
           fill
           placeholder="blur"
           sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-          className="object-cover object-center transition-transform duration-300 ease-out will-change-transform group-hover:scale-105 group-hover:rotate-[0.5deg]"
+          className="object-cover object-center opacity-100 transition-all duration-300 ease-out will-change-transform group-hover:opacity-0 group-hover:scale-105 group-hover:rotate-[0.5deg] group-hover:pointer-events-none"
         />
-        <div className="pointer-events-none absolute inset-0 bg-black/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       </div>
     ),
-    contenu: <p>Présentation du tag </p>,
     fichiers: <p>Lien des fichiers</p>,
-    corriges: <p>Lien des corrigés</p>,
+    quizz: <Questionnaire />,
     cloud: <Cloud />,
   };
 
-  const isAvatar = activeTabKey === "avatar";
+  const iscontenu = activeTabKey === "contenu";
   return (
     <>
       <Card
         title={titre}
-        style={{ width: "80%" }}
+        style={{ width: "100%" }}
         tabList={tabListNoTitle}
         activeTabKey={activeTabKey}
         onTabChange={onTabChange}
         className={` shadow-md hover:shadow-xl transition-shadow duration-200`}
-
-        
         tabProps={{ size: "middle" }}
-        bodyStyle={isAvatar ? { padding: 1 } : undefined}
+        bodyStyle={iscontenu ? { padding: 1 } : undefined}
       >
         {contentListNoTitle[activeTabKey]}
       </Card>
@@ -57,4 +54,4 @@ const App = ({ titre }) => {
   );
 };
 
-export default App;
+export default CardBlock;
