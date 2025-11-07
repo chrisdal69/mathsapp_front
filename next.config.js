@@ -2,7 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: [],
+    remotePatterns: [
+      new URL("https://storage.googleapis.com/mathsapp/images/**"),
+    ],
   },
 };
 
