@@ -31,7 +31,7 @@ import {
 } from "@ant-design/icons";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { clearAuth } from "../reducers/authSlice";
+import { clearAuth } from "../../reducers/authSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -41,10 +41,9 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
 
-const Cloud = () => {
+const CloudBlock = () => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
-  const [colorMessage, setColorMessage] = useState("text-red-300");
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
 
@@ -82,6 +81,8 @@ const Cloud = () => {
     document.head.appendChild(style);
     return () => style.remove(); // Nettoyage lors du démontage
   }, []);
+
+
   useEffect(() => {
     if (isAuthenticated) onRecup();
   }, [isAuthenticated, user]);
@@ -566,4 +567,4 @@ const Cloud = () => {
   );
 };
 
-export default Cloud;
+export default CloudBlock;

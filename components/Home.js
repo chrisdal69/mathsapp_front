@@ -1,7 +1,6 @@
 import React from "react";
 import { Layout, Menu, theme } from "antd";
 const { Content } = Layout;
-import MyForm from "./DragAndDropUpload";
 import EnTete from "./EnTete";
 import Card from "./Card";
 

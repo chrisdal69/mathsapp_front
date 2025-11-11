@@ -1,45 +1,17 @@
-"use client";
-
 import { useRef, useState } from "react";
 import { Radio, Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
-const questions = [
-  {
-    id: "q1",
-    question: "Quel est cet animal ?",
-    type: "single",
-    image: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg",
-    options: ["Un chien", "Un chat", "Un lapin"],
-    correct: "Un chat",
-  },
-  {
-    id: "q2",
-    question: "Quel est cet objet ?",
-    type: "single",
-    image: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg",
-    options: ["Un chien", "Un chat", "Un lapin"],
-    correct: "Un chat",
-  },
-  {
-    id: "q3",
-    question: "Quel est cet objet ?",
-    type: "single",
-    image: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg",
-    options: ["Un chien", "Un chat", "Un lapin"],
-    correct: "Un chat",
-  },
-];
-
-export default function Quiz() {
+export default function Quizz({ questions }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
 
   // Échelle de progression dynamique (points rapprochés)
-  const DOT = 6; // diamètre du point (px)
-  const GAP = 6; // espace entre points (px)
+  const DOT = 10; // diamètre du point (px)
+  const GAP = 20; // espace entre points (px)
   const trackWidth = questions.length * DOT + (questions.length - 1) * GAP;
 
   const handleSelect = (qid, value) => {
@@ -54,12 +26,45 @@ export default function Quiz() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          alignItems: "center",
           width: "100%",
         }}
       >
         {/* Échelle de progression */}
-        <div style={{ width: "100%", display: "flex", justifyContent: "center", marginBottom: 4 }}>
-          <div style={{ position: "relative", width: trackWidth, height: 12 }}>
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 4,
+          }}
+        >
+          {current > 0 && (
+            <Button
+              type="default"
+              shape="circle"
+              onClick={() => carouselRef.current?.prev()}
+              style={{
+                position: "relative",
+                top: "3px",
+                marginRight: "20px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Précédent"
+            >
+              <ChevronLeft size={18} />
+            </Button>
+          )}
+          <div
+            style={{
+              position: "relative",
+              width: trackWidth,
+              height: 12,
+            }}
+          >
             <div
               style={{
                 position: "absolute",
@@ -71,11 +76,22 @@ export default function Quiz() {
                 transform: "translateY(-50%)",
               }}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                height: "100%",
+              }}
+            >
               {questions.map((q, idx) => {
                 const answered = Boolean(answers[q.id]);
                 const isCurrent = idx === current;
-                const bg = isCurrent ? "#595959" : answered ? "#52c41a" : "#d9d9d9";
+                const bg = isCurrent
+                  ? "#595959"
+                  : answered
+                  ? "#52c41a"
+                  : "#d9d9d9";
                 return (
                   <div
                     key={q.id}
@@ -96,6 +112,25 @@ export default function Quiz() {
               })}
             </div>
           </div>
+          {current < questions.length - 1 && (
+            <Button
+              type="default"
+              shape="circle"
+              onClick={() => carouselRef.current?.next()}
+              style={{
+                position: "relative",
+                top: "3px",
+                marginLeft: "20px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Suivant"
+            >
+              <ChevronRight size={18} />
+            </Button>
+          )}
         </div>
 
         {/* Carrousel de questions */}
@@ -109,7 +144,10 @@ export default function Quiz() {
           className="max-w-xs sm:max-w-2xl"
         >
           {questions.map((q) => (
-            <div key={q.id} style={{ display: "flex", justifyContent: "center" }}>
+            <div
+              key={q.id}
+              style={{ display: "flex", justifyContent: "center" }}
+            >
               <Card
                 style={{
                   margin: "4px auto",
@@ -128,58 +166,22 @@ export default function Quiz() {
                         boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                       }}
                     >
-                      <img
+                      <Image
                         src={q.image}
                         alt=""
-                        width="150"
+                        width="400"
+                        height="400"
                         style={{
                           display: "block",
                           margin: 0,
                           transition: "transform 200ms ease",
-                          transform: hovered === q.id ? "scale(1.04)" : "scale(1)",
+                          transform:
+                            hovered === q.id ? "scale(1.04)" : "scale(1)",
                         }}
                         onMouseEnter={() => setHovered(q.id)}
                         onMouseLeave={() => setHovered(null)}
                       />
                     </div>
-                  )}
-                  {current > 0 && (
-                    <Button
-                      type="default"
-                      shape="circle"
-                      onClick={() => carouselRef.current?.prev()}
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: 8,
-                        zIndex: 2,
-                        background: "#fff",
-                        transform: "translateY(-50%)",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      }}
-                      aria-label="Précédent"
-                    >
-                      <ChevronLeft size={18} />
-                    </Button>
-                  )}
-                  {current < questions.length - 1 && (
-                    <Button
-                      type="default"
-                      shape="circle"
-                      onClick={() => carouselRef.current?.next()}
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        right: 8,
-                        zIndex: 2,
-                        background: "#fff",
-                        transform: "translateY(-50%)",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      }}
-                      aria-label="Suivant"
-                    >
-                      <ChevronRight size={18} />
-                    </Button>
                   )}
                 </div>
 
@@ -187,7 +189,7 @@ export default function Quiz() {
                   style={{
                     marginBottom: 10,
                     color: answers[q.id]
-                      ? answers[q.id] === q.correct
+                      ? answers[q.id] === q.options[q.correct]
                         ? "#52c41a"
                         : "#ff4d4f"
                       : undefined,
@@ -207,17 +209,25 @@ export default function Quiz() {
                     flexWrap: "wrap",
                   }}
                 >
-                  {q.options.map((opt) => {
+                  {q.options.map((opt, i) => {
                     const sel = answers[q.id] === opt;
-                    const isOk = sel && answers[q.id] === q.correct;
-                    const isErr = sel && answers[q.id] !== q.correct;
-                    const borderColor = isOk ? "#52c41a" : isErr ? "#ff4d4f" : "transparent";
+                    const isOk = sel && answers[q.id] === q.options[q.correct];
+                    const isErr = sel && answers[q.id] !== q.options[q.correct];
+                    const borderColor = isOk
+                      ? "#52c41a"
+                      : isErr
+                      ? "#ff4d4f"
+                      : "transparent";
                     const bg = isOk
                       ? "rgba(82,196,26,0.12)"
                       : isErr
                       ? "rgba(255,77,79,0.12)"
                       : "transparent";
-                    const textColor = isOk ? "#52c41a" : isErr ? "#ff4d4f" : undefined;
+                    const textColor = isOk
+                      ? "#52c41a"
+                      : isErr
+                      ? "#ff4d4f"
+                      : undefined;
                     return (
                       <div
                         key={opt}

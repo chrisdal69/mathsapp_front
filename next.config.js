@@ -4,6 +4,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       new URL("https://storage.googleapis.com/mathsapp/images/**"),
+      new URL("https://upload.wikimedia.org/wikipedia/**"),
     ],
   },
 };
