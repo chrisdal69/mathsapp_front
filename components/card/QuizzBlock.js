@@ -52,7 +52,7 @@ export default function Quizz({ questions }) {
                 background: "#fff",
                 transform: "translateY(-50%)",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-              }}
+              }} 
               aria-label="Précédent"
             >
               <ChevronLeft size={18} />
