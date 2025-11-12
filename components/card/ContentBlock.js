@@ -36,10 +36,10 @@ export default function Contenu({ plan , presentation ,image}) {
   
 
   return (
-    <div className="group relative w-full min-h-[150px] overflow-hidden">
+    <div className="group relative w-full min-h-[150px] ">
       <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5">
         {typing && (
-          <div className="break-words w-full min-w-0">{typedText}</div>
+          <div className="break-words w-full min-w-0 ">{typedText}</div>
         )}
       </div>
 

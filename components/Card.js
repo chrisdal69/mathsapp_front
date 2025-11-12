@@ -59,13 +59,23 @@ const CardBlock = (data) => {
         tabList={tabList}
         activeTabKey={activeTabKey}
         onTabChange={onTabChange}
-        className={` shadow-md hover:shadow-xl transition-shadow duration-200`}
+        className={` shadow-md hover:shadow-xl transition-shadow duration-200 `}
         tabProps={{ size: "middle" }}
-        bodyStyle={iscontenu ? { padding: 1 } : isvideo ? { padding: 0 } : undefined}
+        styles={
+          iscontenu
+            ? { body: { padding: 1 } }
+            : isvideo
+            ? { body: { padding: 0 } }
+            : undefined
+        }
       >
-        <CardBodyHeightTransition>
-          {contentList[activeTabKey]}
-        </CardBodyHeightTransition>
+        {iscontenu ? (
+          contentList[activeTabKey]
+        ) : (
+          <CardBodyHeightTransition>
+            {contentList[activeTabKey]}
+          </CardBodyHeightTransition>
+        )}
       </Card>
     </>
   );

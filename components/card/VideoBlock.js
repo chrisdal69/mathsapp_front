@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { Button, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 function isFalsyString(v) {
   if (typeof v !== "string") return !v;
@@ -82,6 +83,12 @@ export default function Video({
   };
 
   const processedUrls = useMemo(() => urls.map(processEmbedUrl), [urls]);
+  const [loaded, setLoaded] = useState([]);
+
+  useEffect(() => {
+    // reset loaded flags when url list changes
+    setLoaded(Array(processedUrls.length).fill(false));
+  }, [processedUrls]);
 
   const pauseAt = (index) => {
     const iframe = iframeRefs.current[index];
@@ -217,6 +224,21 @@ export default function Video({
         {processedUrls.map((url, idx) => (
           <div key={idx} className="vb-slide" style={{ display: "flex", justifyContent: "center", width: "100%", padding: 0, margin: 0 }}>
             <div className="vb-inner" style={{ position: "relative", width: "100%", paddingTop: `${paddingTop}%`, margin: 0 }}>
+              {!loaded[idx] && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(255,255,255,0.85)",
+                    zIndex: 2,
+                  }}
+                >
+                  <ClimbingBoxLoader color="#8b5cf6" size={12} />
+                </div>
+              )}
               <iframe
                 ref={(el) => (iframeRefs.current[idx] = el)}
                 src={url}
@@ -225,6 +247,13 @@ export default function Video({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
+                onLoad={() => {
+                  setLoaded((prev) => {
+                    const next = prev.slice();
+                    next[idx] = true;
+                    return next;
+                  });
+                }}
                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
               />
             </div>
