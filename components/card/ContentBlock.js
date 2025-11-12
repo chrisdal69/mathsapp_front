@@ -10,7 +10,7 @@ export default function Contenu({ plan , presentation }) {
     const numberedPlan = plan.map((elt, idx) => `${idx + 1}. ${elt}`);
     const lines = [...presentation, "", ...numberedPlan];
     return lines.join("\n");
-  }, []);
+  }, [plan, presentation]);
 
   useEffect(() => {
     let timer;
@@ -43,18 +43,18 @@ export default function Contenu({ plan , presentation }) {
         )}
       </div>
 
-      {!typing &&<Image
+      <Image
         src="https://storage.googleapis.com/mathsapp/images/complexe.jpg"
         alt="Logo"
         fill
         placeholder="blur"
         blurDataURL="https://storage.googleapis.com/mathsapp/images/complexeBlur.jpg"
         sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-        className={`object-cover object-center` }
-      />}
+        className={`object-cover object-center transition-opacity duration-300 ease-out ${typing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      />
 
       <div
-        className="absolute inset-0 w-full h-full z-10"
+        className="absolute inset-0 w-full h-full z-10 cursor-pointer"
         onMouseEnter={() => setTyping(true)}
         onMouseLeave={() => setTyping(false)}
         onTouchStart={() => setTyping(true)}
