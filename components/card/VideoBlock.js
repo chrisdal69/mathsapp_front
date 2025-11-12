@@ -236,7 +236,7 @@ export default function Video({
                     zIndex: 2,
                   }}
                 >
-                  <ClimbingBoxLoader color="#8b5cf6" size={12} />
+                  <ClimbingBoxLoader color="#6C6C6C" size={11} />
                 </div>
               )}
               <iframe
