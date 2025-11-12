@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 export default function Contenu({ plan , presentation }) {
   const [typing, setTyping] = useState(false);
   const [typedText, setTypedText] = useState("");
-  const containerRef = useRef(null);
-  const hasAutoStartedRef = useRef(false);
+  
 
   const combinedText = useMemo(() => {
     const numberedPlan = plan.map((elt, idx) => `${idx + 1}. ${elt}`);
@@ -34,23 +33,10 @@ export default function Contenu({ plan , presentation }) {
     };
   }, [typing, combinedText]);
 
-  // Auto-start typing once when the block first enters the viewport
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!containerRef.current || !("IntersectionObserver" in window)) return;
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries[0];
-      if (entry && entry.isIntersecting && !hasAutoStartedRef.current) {
-        hasAutoStartedRef.current = true;
-        setTyping(true);
-      }
-    }, { threshold: 0.2 });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
+  
 
   return (
-    <div ref={containerRef} className="group relative w-full min-h-[150px] overflow-hidden">
+    <div className="group relative w-full min-h-[150px] overflow-hidden">
       <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5">
         {typing && (
           <div className="break-words w-full min-w-0">{typedText}</div>
