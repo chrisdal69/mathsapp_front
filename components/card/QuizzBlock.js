@@ -9,6 +9,16 @@ export default function Quizz({ questions }) {
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
 
+  const handlePrev = () => {
+    setCurrent((c) => Math.max(0, c - 1));
+    carouselRef.current?.prev();
+  };
+
+  const handleNext = () => {
+    setCurrent((c) => Math.min(questions.length - 1, c + 1));
+    carouselRef.current?.next();
+  };
+
   // Échelle de progression dynamique (points rapprochés)
   const DOT = 10; // diamètre du point (px)
   const GAP = 20; // espace entre points (px)
@@ -31,6 +41,7 @@ export default function Quizz({ questions }) {
         }}
       >
         {/* Échelle de progression */}
+
         <div
           style={{
             width: "100%",
@@ -43,7 +54,7 @@ export default function Quizz({ questions }) {
             <Button
               type="default"
               shape="circle"
-              onClick={() => carouselRef.current?.prev()}
+              onClick={handlePrev}
               style={{
                 position: "relative",
                 top: "3px",
@@ -96,7 +107,7 @@ export default function Quizz({ questions }) {
                   <div
                     key={q.id}
                     role="button"
-                    onClick={() => carouselRef.current?.goTo(idx)}
+                    onClick={() => { setCurrent(idx); carouselRef.current?.goTo(idx); }}
                     style={{
                       width: DOT,
                       height: DOT,
@@ -116,7 +127,7 @@ export default function Quizz({ questions }) {
             <Button
               type="default"
               shape="circle"
-              onClick={() => carouselRef.current?.next()}
+              onClick={handleNext}
               style={{
                 position: "relative",
                 top: "3px",
@@ -140,6 +151,7 @@ export default function Quizz({ questions }) {
           swipe
           draggable
           infinite={false}
+          beforeChange={(_, to) => setCurrent(to)}
           afterChange={(i) => setCurrent(i)}
           adaptiveHeight
           className="max-w-xs sm:max-w-2xl"

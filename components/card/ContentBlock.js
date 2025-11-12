@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-export default function Contenu({ plan , presentation }) {
+export default function Contenu({ plan , presentation ,image}) {
   const [typing, setTyping] = useState(false);
   const [typedText, setTypedText] = useState("");
   
@@ -44,7 +44,7 @@ export default function Contenu({ plan , presentation }) {
       </div>
 
       <Image
-        src="https://storage.googleapis.com/mathsapp/images/complexe.jpg"
+        src={image}
         alt="Logo"
         fill
         placeholder="blur"
