@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React, { useState , useEffect } from "react";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -51,6 +52,7 @@ export default function Login(props) {
         credentials: "include",
       });
 
+
       const response = await res.json();
       console.log("response de login.js ", res, response);
 
@@ -74,7 +76,7 @@ export default function Login(props) {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white">
+    <div className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white relative" aria-busy={isSubmitting}>
       <h2 className="text-2xl font-semibold text-center mb-6">Se loguer</h2>
 
       {serverMessage && (
@@ -159,6 +161,12 @@ export default function Login(props) {
           Inscription
         </Link>
       </div>
+
+      {isSubmitting && (
+        <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+          <ClimbingBoxLoader color="#6C6C6C" size={11} speedMultiplier={1} />
+        </div>
+      )}
     </div>
   );
 }
