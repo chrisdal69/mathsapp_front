@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Layout, Menu, theme } from "antd";
 const { Content } = Layout;
 import EnTete from "./EnTete";
@@ -251,6 +251,8 @@ const App = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+  const [reset1, setReset1] = useState(0);
+  const [reset2, setReset2] = useState(0);
   return (
     <Layout>
       <Content>
@@ -261,11 +263,24 @@ const App = () => {
             padding: 15,
             borderRadius: borderRadiusLG,
             marginTop: 0,
+            
           }}
           className="flex flex-col  gap-y-10 items-center"
         >
-          <Card {...data3} />
-          <Card {...data4} />
+          <div className="w-full">
+            <Card
+              {...data3}
+              resetSignal={reset1}
+              onTabChangeExternal={() => setReset2((v) => v + 1)}
+            />
+          </div>
+          <div className="w-full">
+            <Card
+              {...data4}
+              resetSignal={reset2}
+              onTabChangeExternal={() => setReset1((v) => v + 1)}
+            />
+          </div>
         </div>
       </Content>
     </Layout>
