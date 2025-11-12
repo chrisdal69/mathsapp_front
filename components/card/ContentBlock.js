@@ -50,9 +50,7 @@ export default function Contenu({ plan , presentation }) {
         placeholder="blur"
         blurDataURL="https://storage.googleapis.com/mathsapp/images/complexeBlur.jpg"
         sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-        className={`object-cover object-center opacity-100 transition-all duration-300 ease-out will-change-transform 
-        ${typing ? "opacity-0 scale-105 rotate-[0.5deg] pointer-events-none" : ""} 
-        group-hover:opacity-0 group-hover:scale-105 group-hover:rotate-[0.5deg] group-hover:pointer-events-none`}
+        className={`object-cover object-center` }
       />}
 
       <div
