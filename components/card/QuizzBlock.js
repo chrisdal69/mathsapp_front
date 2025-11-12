@@ -141,6 +141,7 @@ export default function Quizz({ questions }) {
           draggable
           infinite={false}
           afterChange={(i) => setCurrent(i)}
+          adaptiveHeight
           className="max-w-xs sm:max-w-2xl"
         >
           {questions.map((q) => (
@@ -154,9 +155,10 @@ export default function Quizz({ questions }) {
                   width: "100%",
                   maxWidth: "100%",
                   textAlign: "center",
+                  padding:"0px"
                 }}
               >
-                <div style={{ position: "relative", marginBottom: 10 }}>
+                <div style={{ position: "relative", marginBottom: 0 }}>
                   {q.image && (
                     <div
                       style={{
@@ -188,6 +190,7 @@ export default function Quizz({ questions }) {
                 <p
                   style={{
                     marginBottom: 10,
+                    fontWeight:"bold",
                     color: answers[q.id]
                       ? answers[q.id] === q.options[q.correct]
                         ? "#52c41a"
@@ -204,7 +207,7 @@ export default function Quizz({ questions }) {
                   style={{
                     display: "flex",
                     flexDirection: "row",
-                    gap: 12,
+                    gap: 2,
                     justifyContent: "center",
                     flexWrap: "wrap",
                   }}

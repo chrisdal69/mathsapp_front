@@ -4,10 +4,6 @@ const { Content } = Layout;
 import EnTete from "./EnTete";
 import Card from "./Card";
 
-const props1 = {
-  num: 1,
-  titre: "Nombres complexes et dictionnaires",
-};
 
 const App = () => {
   const {
@@ -26,12 +22,8 @@ const App = () => {
           }}
           className="flex flex-col  gap-y-20 items-center"
         >
-          <Card {...props1}  />
-          <Card {...props1}  />
-          <Card {...props1}  />
-          <Card {...props1}  />
-          <Card {...props1} />
-          <Card {...props1}  />
+          <Card   />
+         
         </div>
       </Content>
     </Layout>

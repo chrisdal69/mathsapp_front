@@ -1,7 +1,8 @@
 import React from "react";
 import { Layout, theme } from "antd";
-const { Content } = Layout;
+import Card from "../components/Card";
 
+const { Content } = Layout;
 
 export default function PythonPage() {
   const {
@@ -9,17 +10,18 @@ export default function PythonPage() {
   } = theme.useToken();
   return (
     <Layout>
-      <Content style={{ padding: "0 48px" }}>
+      <Content>
         <div
           style={{
             background: colorBgContainer,
-            minHeight: 280,
-            padding: 24,
+            minHeight: 20,
+            padding: 15,
             borderRadius: borderRadiusLG,
-            marginTop: "20px",
+            marginTop: 0,
           }}
+          className="flex flex-col  gap-y-20 items-center"
         >
-          PYTHON
+          <Card />
         </div>
       </Content>
     </Layout>

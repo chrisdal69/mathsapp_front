@@ -23,20 +23,12 @@ de réaliser des calculs algébriques sur des NOMBRES COMPLEXES.`,
   ],
   fichiers: [
     {
-      txt: "Activité complexe et dic0tionnaire ",
-      href: "https://storage.googleapis.com/mathsapp/python/tp3ComplexesDic.pdf",
+      txt: "Activité complexe et dictionnaire ",
+      href: "https://storage.googleapis.com/mathsapp/python/tp3/tp3ComplexesDic.pdf",
     },
     {
-      txt: "En format word",
-      href: "https://storage.googleapis.com/mathsapp/python/coursFctsAffineCorrige.docx",
-    },
-    {
-      txt: "Corrigé ",
-      href: "https://storage.googleapis.com/mathsapp/python/stats.py",
-    },
-    {
-      txt: "Données",
-      href: "https://storage.googleapis.com/mathsapp/python/js.zip",
+      txt: "Même fichier en format word",
+      href: "https://storage.googleapis.com/mathsapp/python/tp3/tp3ComplexesDic.docx",
     },
   ],
   questions: [
