@@ -50,6 +50,7 @@ const CardBlock = (data) => {
     contentList.cloud = <CloudBlock />;
   }
   const iscontenu = activeTabKey === "contenu";
+  const isvideo = activeTabKey === "video";
   return (
     <>
       <Card
@@ -60,7 +61,7 @@ const CardBlock = (data) => {
         onTabChange={onTabChange}
         className={` shadow-md hover:shadow-xl transition-shadow duration-200`}
         tabProps={{ size: "middle" }}
-        bodyStyle={iscontenu ? { padding: 1 } : undefined}
+        bodyStyle={iscontenu ? { padding: 1 } : isvideo ? { padding: 0 } : undefined}
       >
         <CardBodyHeightTransition>
           {contentList[activeTabKey]}

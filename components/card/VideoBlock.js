@@ -37,7 +37,7 @@ export default function Video({
   video,
   ratio = "16:9",
   className,
-  maxWidth = "960px",
+  maxWidth = "800px",
   title = "Video",
 }) {
   const urls = useMemo(() => {
@@ -103,7 +103,7 @@ export default function Video({
   };
 
   return (
-    <div className={className} style={{ width: "100%", maxWidth, margin: "0 auto" }}>
+    <div className={`vb-wrap ${className || ""}`} style={{ width: "100%", maxWidth, margin: "0 auto" }}>
       <div
         style={{
           width: "100%",
@@ -120,7 +120,7 @@ export default function Video({
             onClick={handlePrev}
             style={{
               position: "relative",
-              top: 2,
+              top: 14,
               marginRight: 20,
               zIndex: 2,
               background: "#fff",
@@ -187,7 +187,7 @@ export default function Video({
             onClick={handleNext}
             style={{
               position: "relative",
-              top: 2,
+              top: 14,
               marginLeft: 20,
               zIndex: 2,
               background: "#fff",
@@ -215,8 +215,8 @@ export default function Video({
         adaptiveHeight
       >
         {processedUrls.map((url, idx) => (
-          <div key={idx} style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-            <div style={{ position: "relative", width: "100%", paddingTop: `${paddingTop}%` }}>
+          <div key={idx} className="vb-slide" style={{ display: "flex", justifyContent: "center", width: "100%", padding: 0, margin: 0 }}>
+            <div className="vb-inner" style={{ position: "relative", width: "100%", paddingTop: `${paddingTop}%`, margin: 0 }}>
               <iframe
                 ref={(el) => (iframeRefs.current[idx] = el)}
                 src={url}
@@ -231,6 +231,18 @@ export default function Video({
           </div>
         ))}
       </Carousel>
+      <style jsx>{`
+        @media (max-width: 640px) {
+          .vb-wrap { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
+          .vb-slide { justify-content: flex-start !important; padding: 0 !important; margin: 0 !important; }
+          .vb-inner { width: 100% !important; }
+          :global(.ant-carousel .slick-list) { margin: 0 !important; padding: 0 !important; }
+          :global(.ant-carousel .slick-track) { margin: 0 !important; }
+          :global(.ant-carousel .slick-slide) { padding: 0 !important; }
+          :global(.ant-carousel .slick-slide > div) { padding: 0 !important; margin: 0 !important; }
+          :global(.ant-carousel .slick-slide > div > div) { padding: 0 !important; margin: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }
