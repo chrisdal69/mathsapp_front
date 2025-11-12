@@ -48,6 +48,7 @@ export default function Quizz({ questions }) {
             display: "flex",
             justifyContent: "center",
             marginBottom: 4,
+            marginTop:14
           }}
         >
           {current > 0 && (

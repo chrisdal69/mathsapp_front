@@ -118,6 +118,7 @@ export default function Video({
           justifyContent: "center",
           alignItems: "center",
           marginBottom: 8,
+          marginTop:14
         }}
       >
         {current > 0 && (
