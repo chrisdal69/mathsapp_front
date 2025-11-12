@@ -56,11 +56,10 @@ export default function Contenu({ plan , presentation }) {
       />
 
       <div
-        className="absolute top-0 left-0 w-full h-[150px] z-10"
+        className="absolute inset-0 w-full h-full z-10"
         onMouseEnter={() => setTyping(true)}
         onMouseLeave={() => setTyping(false)}
-        onTouchStart={() => setTyping((prev) => !prev)}
-        onClick={() => setTyping((prev) => !prev)}
+        onTouchStart={() => setTyping(true)}
       />
     </div>
   );
