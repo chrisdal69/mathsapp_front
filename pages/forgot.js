@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -81,6 +82,7 @@ export default function ForgotWizard() {
   });
 
   const newPassword = watch("newPassword", "");
+  const busy = isLoading || isSubmitting;
 
   // ✅ Vérifie la robustesse du mot de passe
   useEffect(() => {
@@ -219,7 +221,7 @@ export default function ForgotWizard() {
   );
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6">
+    <div className="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6 relative" aria-busy={isLoading || isSubmitting}>
       {/* Barre de progression */}
       <div className="flex justify-between mb-6">
         {steps.map((label, idx) => (
@@ -262,6 +264,7 @@ export default function ForgotWizard() {
                 type="email"
                 {...register("email")}
                 className="w-full border rounded px-3 py-2"
+                disabled={busy}
               />
               {errors.email && (
                 <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -269,7 +272,7 @@ export default function ForgotWizard() {
             </div>
             <button
               type="submit"
-              disabled={!isValid || isSubmitting || isLoading}
+              disabled={!isValid || busy}
               className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
             >
               {isLoading ? "Envoi..." : "Envoyer le code"}
@@ -305,6 +308,7 @@ export default function ForgotWizard() {
               placeholder="Code"
               {...register("code")}
               className="border rounded px-4 py-2 text-center tracking-widest w-40 mx-auto"
+              disabled={busy}
             />
             {errors.code && (
               <p className="text-sm text-red-600">{errors.code.message}</p>
@@ -313,7 +317,7 @@ export default function ForgotWizard() {
             <div className="space-y-2 mt-4">
               <button
                 type="submit"
-                disabled={!isValid || isSubmitting}
+                disabled={!isValid || busy}
                 className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700"
               >
                 Valider le code
@@ -321,7 +325,7 @@ export default function ForgotWizard() {
               <button
                 type="button"
                 onClick={handleResendCode}
-                disabled={isLoading}
+                disabled={busy}
                 className="w-full py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               >
                 Renvoyer le code
@@ -333,6 +337,7 @@ export default function ForgotWizard() {
                   setStep(1);
                   setMessage("");
                 }}
+                disabled={busy}
                 className="w-full py-2 flex items-center justify-center gap-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 mt-2"
               >
                 <ArrowLeft size={16} /> Retour
@@ -364,11 +369,13 @@ export default function ForgotWizard() {
                   type={passwordVisible ? "text" : "password"}
                   {...register("newPassword")}
                   className="w-full border rounded px-3 py-2 pr-10"
+                  disabled={busy}
                 />
                 <button
                   type="button"
                   onClick={() => setPasswordVisible(!passwordVisible)}
                   className="absolute right-3 top-2 text-gray-500"
+                  disabled={busy}
                 >
                   {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -391,11 +398,13 @@ export default function ForgotWizard() {
                   type={confirmVisible ? "text" : "password"}
                   {...register("confirmPassword")}
                   className="w-full border rounded px-3 py-2 pr-10"
+                  disabled={busy}
                 />
                 <button
                   type="button"
                   onClick={() => setConfirmVisible(!confirmVisible)}
                   className="absolute right-3 top-2 text-gray-500"
+                  disabled={busy}
                 >
                   {confirmVisible ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -409,7 +418,7 @@ export default function ForgotWizard() {
 
             <button
               type="submit"
-              disabled={!isValid || isSubmitting || isLoading}
+              disabled={!isValid || busy}
               className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-300"
             >
               {isLoading ? "Mise à jour..." : "Changer le mot de passe"}
@@ -450,6 +459,12 @@ export default function ForgotWizard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {(isLoading || isSubmitting) && (
+        <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+          <ClimbingBoxLoader color="#6C6C6C" size={11} speedMultiplier={1} />
+        </div>
+      )}
     </div>
   );
 }

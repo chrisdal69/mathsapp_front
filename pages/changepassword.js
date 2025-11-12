@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -60,6 +61,7 @@ export default function ChangePassword() {
   });
 
   const newPassword = watch("newPassword", "");
+  const busy = isLoading || isSubmitting;
 
   // ✅ Vérifie en direct la robustesse
   useEffect(() => {
@@ -166,7 +168,7 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6">
+    <div className="max-w-md mx-auto mt-10 bg-white shadow-lg rounded-xl p-6 relative" aria-busy={busy}>
       <h2 className="text-2xl font-semibold text-center mb-6">
         Changer le mot de passe
       </h2>
@@ -183,17 +185,19 @@ export default function ChangePassword() {
             Nouveau mot de passe
           </label>
           <div className="relative">
-            <input
-              id="newPassword"
-              type={passwordVisible ? "text" : "password"}
-              {...register("newPassword")}
-              className="w-full border rounded px-3 py-2 pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setPasswordVisible(!passwordVisible)}
-              className="absolute right-3 top-2 text-gray-500"
-            >
+          <input
+            id="newPassword"
+            type={passwordVisible ? "text" : "password"}
+            {...register("newPassword")}
+            className="w-full border rounded px-3 py-2 pr-10"
+            disabled={busy}
+          />
+          <button
+            type="button"
+            onClick={() => setPasswordVisible(!passwordVisible)}
+            className="absolute right-3 top-2 text-gray-500"
+            disabled={busy}
+          >
               {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -217,17 +221,19 @@ export default function ChangePassword() {
             Confirmer le nouveau mot de passe
           </label>
           <div className="relative">
-            <input
-              id="confirmPassword"
-              type={confirmVisible ? "text" : "password"}
-              {...register("confirmPassword")}
-              className="w-full border rounded px-3 py-2 pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setConfirmVisible(!confirmVisible)}
-              className="absolute right-3 top-2 text-gray-500"
-            >
+          <input
+            id="confirmPassword"
+            type={confirmVisible ? "text" : "password"}
+            {...register("confirmPassword")}
+            className="w-full border rounded px-3 py-2 pr-10"
+            disabled={busy}
+          />
+          <button
+            type="button"
+            onClick={() => setConfirmVisible(!confirmVisible)}
+            className="absolute right-3 top-2 text-gray-500"
+            disabled={busy}
+          >
               {confirmVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
@@ -240,7 +246,7 @@ export default function ChangePassword() {
 
         <button
           type="submit"
-          disabled={!isValid || isSubmitting || isLoading}
+          disabled={!isValid || busy}
           className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300"
         >
           {isLoading ? "Mise à jour..." : "Changer le mot de passe"}
@@ -249,12 +255,20 @@ export default function ChangePassword() {
         <div className="text-center mt-4">
           <Link
             href="/"
-            className="text-sm text-blue-600 hover:underline"
+            className={`text-sm ${busy ? "text-gray-400 pointer-events-none" : "text-blue-600 hover:underline"}`}
+            aria-disabled={busy}
+            onClick={(e) => { if (busy) e.preventDefault(); }}
           >
             Retour Page Maths
           </Link>
         </div>
       </form>
+
+      {busy && (
+        <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+          <ClimbingBoxLoader color="#6C6C6C" size={11} speedMultiplier={1} />
+        </div>
+      )}
     </div>
   );
 }

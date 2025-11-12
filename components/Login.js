@@ -36,6 +36,7 @@ export default function Login(props) {
     mode: "onChange",
     defaultValues: { email: "", password: "" },
   });
+  const busy = isSubmitting;
   useEffect(() => {
     if (props.isOpen) {
       reset({ email: "", password: "" });
@@ -99,6 +100,7 @@ export default function Login(props) {
             className={`mt-1 block w-full rounded-lg border px-3 py-2 ${
               errors.email ? "border-red-500" : "border-gray-300"
             }`}
+            disabled={busy}
           />
           {errors.email && (
             <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
@@ -121,19 +123,22 @@ export default function Login(props) {
               className={`mt-1 block w-full rounded-lg border px-3 py-2 pr-10 ${
                 errors.password ? "border-red-500" : "border-gray-300"
               }`}
+              disabled={busy}
             />
             <button
               type="button"
               onClick={() => setPasswordVisible(!passwordVisible)}
               className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+              disabled={busy}
             >
               {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
             <div className="mt-2 text-right">
               <Link
                 href="/forgot"
-                className="text-sm text-blue-600 hover:underline"
-                onClick={() => props.close()}
+                className={`text-sm ${busy ? "text-gray-400 pointer-events-none" : "text-blue-600 hover:underline"}`}
+                aria-disabled={busy}
+                onClick={(e) => { if (busy) { e.preventDefault(); return; } props.close(); }}
               >
                 Mot de passe oublié ?
               </Link>
@@ -144,7 +149,7 @@ export default function Login(props) {
         {/* BUTTON */}
         <button
           type="submit"
-          disabled={!isValid || isSubmitting}
+          disabled={!isValid || busy}
           className="w-full py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:bg-gray-300"
         >
           {isSubmitting ? "Connexion..." : "Se loguer"}
@@ -155,8 +160,9 @@ export default function Login(props) {
         <span className="text-sm text-gray-600">Pas encore inscrit ? </span>
         <Link
           href="/signup"
-          className="text-sm font-medium text-blue-600 hover:underline"
-          onClick={() => props.close()}
+          className={`text-sm font-medium ${busy ? "text-gray-400 pointer-events-none" : "text-blue-600 hover:underline"}`}
+          aria-disabled={busy}
+          onClick={(e) => { if (busy) { e.preventDefault(); return; } props.close(); }}
         >
           Inscription
         </Link>

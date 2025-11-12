@@ -10,8 +10,8 @@ import {
   Popover,
   Select,
   Image,
-  Spin,
 } from "antd";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import {
   InboxOutlined,
   DeleteOutlined,
@@ -367,7 +367,7 @@ const CloudBlock = () => {
   }, [filesCloud, searchTerm, fileType, sortOrder]);
 
   return (
-    <>
+    <div className="relative" aria-busy={upload}>
       {!isAuthenticated && (
         <h1 className="text-3xl text-center p-4">
           Il faut d'abord se loguer pour pouvoir uploader
@@ -382,7 +382,7 @@ const CloudBlock = () => {
             valuePropName="fileList"
             getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
           >
-            <Dragger multiple beforeUpload={() => false}>
+            <Dragger multiple beforeUpload={() => false} disabled={upload}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
@@ -394,12 +394,10 @@ const CloudBlock = () => {
           </Form.Item>
 
           <div className="flex flex-wrap justify-around gap-2 mb-6">
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" disabled={upload}>
               Envoyer
             </Button>
-            {upload && <Spin size="large" />}
-            
-            <Button htmlType="button" onClick={onReset}>
+            <Button htmlType="button" onClick={onReset} disabled={upload}>
               Reset
             </Button>
           </div>
@@ -412,12 +410,14 @@ const CloudBlock = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               allowClear
               style={{ width: 220 }}
+              disabled={upload}
             />
             <Select
               value={fileType}
               onChange={setFileType}
               style={{ width: 200 }}
               suffixIcon={<FilterOutlined />}
+              disabled={upload}
             >
               <Option value="all">Tous les types</Option>
               <Option value="image">Images</Option>
@@ -563,7 +563,12 @@ const CloudBlock = () => {
           </div>
         </Form>
       )}
-    </>
+      {upload && (
+        <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+          <ClimbingBoxLoader color="#2563eb" size={18} speedMultiplier={1} />
+        </div>
+      )}
+    </div>
   );
 };
 
