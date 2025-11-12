@@ -43,7 +43,7 @@ export default function Contenu({ plan , presentation }) {
         )}
       </div>
 
-      <Image
+      {!typing &&<Image
         src="https://storage.googleapis.com/mathsapp/images/complexe.jpg"
         alt="Logo"
         fill
@@ -53,7 +53,7 @@ export default function Contenu({ plan , presentation }) {
         className={`object-cover object-center opacity-100 transition-all duration-300 ease-out will-change-transform 
         ${typing ? "opacity-0 scale-105 rotate-[0.5deg] pointer-events-none" : ""} 
         group-hover:opacity-0 group-hover:scale-105 group-hover:rotate-[0.5deg] group-hover:pointer-events-none`}
-      />
+      />}
 
       <div
         className="absolute inset-0 w-full h-full z-10"
