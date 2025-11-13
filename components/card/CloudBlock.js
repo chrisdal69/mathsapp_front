@@ -36,7 +36,7 @@ import { clearAuth } from "../../reducers/authSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
-
+const CLOUD_SCROLL_HEIGHT = 200;
 const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
@@ -82,7 +82,6 @@ const CloudBlock = () => {
     return () => style.remove(); // Nettoyage lors du démontage
   }, []);
 
-
   useEffect(() => {
     if (isAuthenticated) onRecup();
   }, [isAuthenticated, user]);
@@ -102,42 +101,42 @@ const CloudBlock = () => {
       formData.append("fichiers", fileWrapper.originFileObj);
     });
 
-  try {
-    const res = await fetch(`${urlFetch}/upload`, {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
-    let data = {};
     try {
-      data = await res.json();
-    } catch (_) {}
+      const res = await fetch(`${urlFetch}/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
 
-    if (res.status === 401 || res.status === 403) {
-      setUpload(false);
-      message.error(data.message || "erreur d’autorisation"); 
-      setTimeout(() => {
+      if (res.status === 401 || res.status === 403) {
+        setUpload(false);
+        message.error(data.message || "erreur d’autorisation");
+        setTimeout(() => {
+          form.resetFields();
+          dispatch(clearAuth());
+        }, 3000);
+        return;
+      }
+
+      if (!res.ok || data.result === false) {
+        const msg = data.error || data.message || "Erreur lors de l’upload";
+        console.error("Upload error:", msg);
+        setUpload(false);
+        message.error(msg);
         form.resetFields();
-        dispatch(clearAuth());
-      }, 3000);
-      return;
-    }
+        return;
+      }
 
-    if (!res.ok || data.result === false) {
-      const msg = data.error || data.message || "Erreur lors de l’upload";
-      console.error("Upload error:", msg);
-      setUpload(false);
-      message.error(msg);
-      form.resetFields();
-      return;
-    }
-
-    if (data.result) {
-      await onRecup();
-      form.resetFields();
-      setUpload(false);
-      message.success("Fichiers uploadés avec succès !");
-    }
+      if (data.result) {
+        await onRecup();
+        form.resetFields();
+        setUpload(false);
+        message.success("Fichiers uploadés avec succès !");
+      }
     } catch (err) {
       console.error("Erreur upload:", err);
       setUpload(false);
@@ -160,7 +159,7 @@ const CloudBlock = () => {
       });
       const data = await res.json();
       setFilesCloud(data);
-      console.log(data) 
+      console.log(data);
     } catch (err) {
       console.error("Erreur upload:", err);
     }
@@ -204,14 +203,14 @@ const CloudBlock = () => {
   };
 
   const handleConfirmRename = async (file) => {
-    console.log("handleConfirmRename : ",file.name,newName);
+    console.log("handleConfirmRename : ", file.name, newName);
     try {
       const res = await fetch(`${urlFetch}/upload/rename`, {
         method: "POST",
         body: JSON.stringify({
           parent: "ciel1",
           repertoire: "tp1",
-          oldName: file.name.split('/').pop(),
+          oldName: file.name.split("/").pop(),
           newName,
         }),
         headers: { "Content-Type": "application/json" },
@@ -448,11 +447,12 @@ const CloudBlock = () => {
           {/* 📂 Liste avec scroll */}
           <div
             style={{
-              maxHeight: "200px",
+              //height: `${CLOUD_SCROLL_HEIGHT}px`,
+              maxHeight: `${CLOUD_SCROLL_HEIGHT}px`,
               overflowY: "auto",
               border: "1px solid #f0f0f0",
               borderRadius: "6px",
-              padding: "4px 12px 4px 4px", // ✅ espace à droite
+              padding: "4px 12px 4px 4px",
             }}
             className="custom-scrollbar"
           >
