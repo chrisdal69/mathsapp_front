@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card } from "antd";
 import ContentBlock from "./card/ContentBlock";
@@ -15,15 +15,15 @@ const CardBlock = (data) => {
       data.onTabChangeExternal(key);
     }
   };
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
-  useEffect(()=>{
-    !isAuthenticated && activeTabKey==="cloud" && setActiveTabKey("contenu");
-  },[isAuthenticated])
+  useEffect(() => {
+    !isAuthenticated && activeTabKey === "cloud" && setActiveTabKey("contenu");
+  }, [isAuthenticated, activeTabKey]);
 
   // Reset to "contenu" when parent sends a reset signal (used to reset other cards)
   useEffect(() => {
-    if (data && Object.prototype.hasOwnProperty.call(data, 'resetSignal')) {
+    if (data && Object.prototype.hasOwnProperty.call(data, "resetSignal")) {
       setActiveTabKey("contenu");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,86 +49,30 @@ const CardBlock = (data) => {
   if (isAuthenticated) {
     contentList.cloud = <CloudBlock />;
   }
+
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
+
   return (
-    <>
-      <Card
-        title={data.titre}
-        style={{ width: "100%" }}
-        tabList={tabList}
-        activeTabKey={activeTabKey}
-        onTabChange={onTabChange}
-        className={` shadow-md hover:shadow-xl transition-shadow duration-200 `}
-        tabProps={{ size: "middle" }}
-        styles={
-          iscontenu
-            ? { body: { padding: 1 } }
-            : isvideo
-            ? { body: { padding: 0 } }
-            : undefined
-        }
-      >
-        {iscontenu ? (
-          contentList[activeTabKey]
-        ) : (
-          <CardBodyHeightTransition>
-            {contentList[activeTabKey]}
-          </CardBodyHeightTransition>
-        )}
-      </Card>
-    </>
+    <Card
+      title={data.titre}
+      style={{ width: "100%" }}
+      tabList={tabList}
+      activeTabKey={activeTabKey}
+      onTabChange={onTabChange}
+      className="shadow-md hover:shadow-xl transition-shadow duration-200"
+      tabProps={{ size: "middle" }}
+      styles={
+        iscontenu
+          ? { body: { padding: 1 } }
+          : isvideo
+          ? { body: { padding: 0 } }
+          : undefined
+      }
+    >
+      {contentList[activeTabKey]}
+    </Card>
   );
 };
 
 export default CardBlock;
-
-function CardBodyHeightTransition({ children }) {
-  const containerRef = useRef(null);
-  const prevHeightRef = useRef(0);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const newHeight = el.scrollHeight;
-    const prev = prevHeightRef.current;
-
-    // First render: set auto
-    if (!prev) {
-      el.style.height = `${newHeight}px`;
-      // allow layout then set to auto for natural height
-      requestAnimationFrame(() => {
-        el.style.transition = "height 1000ms ease";
-        el.style.height = `${newHeight}px`;
-      });
-      prevHeightRef.current = newHeight;
-      return;
-    }
-
-    // Lock to previous height, then transition to new height
-    el.style.transition = "none";
-    el.style.height = `${prev}px`;
-    // Force reflow
-    void el.offsetHeight;
-    requestAnimationFrame(() => {
-      el.style.transition = "height 1000ms ease";
-      el.style.height = `${newHeight}px`;
-    });
-    prevHeightRef.current = newHeight;
-
-    const onEnd = (e) => {
-      if (e.propertyName === "height") {
-        // After transition, let it be auto so internal content can expand/collapse naturally
-        el.style.transition = "";
-        el.style.height = "auto";
-      }
-    };
-    el.addEventListener("transitionend", onEnd, { once: true });
-  });
-
-  return (
-    <div ref={containerRef} style={{ overflow: "hidden", height: "auto" }}>
-      {children}
-    </div>
-  );
-}
