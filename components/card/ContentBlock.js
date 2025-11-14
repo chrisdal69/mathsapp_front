@@ -48,7 +48,7 @@ export default function Contenu({ plan , presentation ,image}) {
         alt="Logo"
         fill
         placeholder="blur"
-        blurDataURL="https://storage.googleapis.com/mathsapp/images/complexeBlur.jpg"
+        blurDataURL="https://storage.googleapis.com/mathsapp/ciel1/tag3/complexeBlur.jpg"
         sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
         className={`object-cover object-center transition-opacity duration-300 ease-out ${typing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       />

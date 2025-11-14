@@ -41,7 +41,7 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
 
-const CloudBlock = () => {
+const CloudBlock = ({num}) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -94,8 +94,8 @@ const CloudBlock = () => {
       message.error("Aucun fichier sélectionné");
       return;
     }
-    formData.append("parent", "ciel1");
-    formData.append("repertoire", "tp1");
+    formData.append("parent", "cloud");
+    formData.append("repertoire", `tag${num}`);
 
     values.files?.forEach((fileWrapper) => {
       formData.append("fichiers", fileWrapper.originFileObj);
@@ -149,8 +149,8 @@ const CloudBlock = () => {
 
   const onRecup = async () => {
     const formData = new FormData();
-    formData.append("parent", "ciel1");
-    formData.append("repertoire", "tp1");
+    formData.append("parent", "cloud");
+    formData.append("repertoire", `tag${num}`);
     try {
       const res = await fetch(`${urlFetch}/upload/recup`, {
         method: "POST",
@@ -170,8 +170,8 @@ const CloudBlock = () => {
       const res = await fetch(`${urlFetch}/upload/delete`, {
         method: "POST",
         body: JSON.stringify({
-          parent: "ciel1",
-          repertoire: "tp1",
+          parent: "cloud",
+          repertoire: `tag${num}`,
           file: fileName,
         }),
         headers: { "Content-Type": "application/json" },
@@ -208,8 +208,8 @@ const CloudBlock = () => {
       const res = await fetch(`${urlFetch}/upload/rename`, {
         method: "POST",
         body: JSON.stringify({
-          parent: "ciel1",
-          repertoire: "tp1",
+          parent: "cloud",
+          repertoire: `tag${num}`,
           oldName: file.name.split("/").pop(),
           newName,
         }),

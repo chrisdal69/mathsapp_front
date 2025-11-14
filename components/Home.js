@@ -7,7 +7,7 @@ import Card from "./Card";
 const data3 = {
   num: 3,
   cloud: false,
-  image: "https://storage.googleapis.com/mathsapp/images/complexe.jpg",
+  image: "https://storage.googleapis.com/mathsapp/ciel1/tag3/complexe.jpg",
   titre: "Nombres complexes - Forme algébrique",
   presentation: [
     `Le gros intérêt d’un nombre complexe est qu’il peut contenir dans une même entité, 2 informations : la partie réelle et la partie imaginaire ou le module et l’argument.`,
@@ -119,7 +119,7 @@ const data4 = {
   num: 4,
   cloud: false,
   image:
-    "https://storage.googleapis.com/mathsapp/images/exponential_form_complex_1500x400.jpg",
+    "https://storage.googleapis.com/mathsapp/ciel1/tag4/exponential_form_complex_1500x400.jpg",
   titre: "Nombres complexes - Forme exponentielle",
   presentation: [
     `La forme exponentielle d'un nombre complexe est largement utilisée en ingénierie et en sciences.`,

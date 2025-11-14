@@ -47,7 +47,7 @@ const CardBlock = (data) => {
   }
 
   if (isAuthenticated) {
-    contentList.cloud = <CloudBlock />;
+    contentList.cloud = <CloudBlock {...data}/>;
   }
 
   const iscontenu = activeTabKey === "contenu";
