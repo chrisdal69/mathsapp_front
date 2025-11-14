@@ -33,6 +33,14 @@ const data3 = {
       txt: "Même fichier en format word",
       href: "https://storage.googleapis.com/mathsapp/ciel1/tag3/coursNombresComplexes.docx",
     },
+        {
+      txt: "Exercices supplémentaires sur la multiplication en forme algébrique",
+      href: "https://storage.googleapis.com/mathsapp/ciel1/tag3/multiplicationAlgebriqueCorrige.pdf",
+    },
+    {
+      txt: "Exercices supplémentaires sur la division en forme algébrique",
+      href: "https://storage.googleapis.com/mathsapp/ciel1/tag3/divisionAlgebriqueCorrige.pdf",
+    },
   ],
   questions: [
     {
