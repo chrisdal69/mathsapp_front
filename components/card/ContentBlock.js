@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-export default function Contenu({ plan , presentation ,image}) {
+export default function Contenu({num,repertoire, plan , presentation ,bg}) {
   const [typing, setTyping] = useState(false);
   const [typedText, setTypedText] = useState("");
   
-
+  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
   const combinedText = useMemo(() => {
     const numberedPlan = plan.map((elt, idx) => `${idx + 1}. ${elt}`);
     const lines = [...presentation, "", ...numberedPlan];
@@ -44,7 +44,7 @@ export default function Contenu({ plan , presentation ,image}) {
       </div>
 
       <Image
-        src={image}
+        src={`${racine}${bg}`}
         alt="Logo"
         fill
         placeholder="blur"

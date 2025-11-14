@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-export default function FilesBlock({ fichiers }) {
+export default function FilesBlock({ num,repertoire,fichiers }) {
 
   // Icônes officielles via Simple Icons CDN (tracés officiels)
   const BrandImg = ({ src, alt, title, className, fallback }) => {
@@ -162,11 +162,13 @@ export default function FilesBlock({ fichiers }) {
       </svg>
     );
   };
+  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
 
   const tab = (fichiers || []).map((elt, idx) => {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
-    const href = elt.href || "#";
+    const href = racine+elt.href || "#";
+
     const extFromHref = href.includes(".")
       ? href.split(".").pop().toLowerCase()
       : "";

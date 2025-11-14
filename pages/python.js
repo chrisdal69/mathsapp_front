@@ -1,91 +1,61 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Layout, theme } from "antd";
 import Card from "../components/Card";
+import { useDispatch, useSelector } from "react-redux";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+import { setCardsPython } from "../reducers/cardsPythonSlice";
+
+const NODE_ENV = process.env.NODE_ENV;
+const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
+const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 const { Content } = Layout;
-
-const data = {
-  num: 3,
-  cloud: true,
-  image:
-    "https://storage.googleapis.com/mathsapp/python/tag3/white_chalkboard_complex_1500x250.jpg",
-  titre: "Nombres complexes et dictionnaires",
-  presentation: [
-    `On découvre ici une nouvelle structure de données python : les DICTIONNAIRES. 
-    Ils permettent de stocker des données dans une structure différente des listes pythons.`,
-    `On se sert ensuite de cette nouvelle structure pour créer des fonctions qui permettront 
-de réaliser des calculs algébriques sur des NOMBRES COMPLEXES.`,
-  ],
-  plan: [
-    `Point cours : les dictionnaires en langage python`,
-    `Application pour s'approprier les dictionnaires`,
-    `Application sur les nombres complexes : introduction`,
-    `Application sur les nombres complexes : travail à faire`,
-  ],
-  fichiers: [
-    {
-      txt: "Activité complexe et dictionnaire ",
-      href: "https://storage.googleapis.com/mathsapp/python/tag3/tp3ComplexesDic.pdf",
-    },
-    {
-      txt: "Même fichier en format word",
-      href: "https://storage.googleapis.com/mathsapp/python/tag3/tp3ComplexesDic.docx",
-    },
-
-  ],
-  questions: [
-    {
-      id: "q1",
-      question: "Que s'affiche-t-il dans la console ?",
-      type: "single",
-      image: "https://storage.googleapis.com/mathsapp/python/tag3/imagesQuizz/im1.jpg",
-      options: [
-        "{'voiture': 'véhicule à quatre roues', 'tricycle': 'véhicule à trois roues'}",
-        "{'voiture': 'véhicule à quatre roues'}",
-      ],
-      correct: 0,
-    },
-    {
-      id: "q2",
-      question: "Que s'affiche-t-il dans la console ?",
-      type: "single",
-      image: "https://storage.googleapis.com/mathsapp/python/tag3/imagesQuizz/im2.jpg",
-      options: ["Un message d'erreur", "Ce dictionnaire a 3 clés"],
-      correct: 1,
-    },
-
-    {
-      id: "q3",
-      question: "Que s'affiche-t-il dans la console ?",
-      type: "single",
-      image: "https://storage.googleapis.com/mathsapp/python/tag3/imagesQuizz/im3.jpg",
-      options: ["Message d'erreur", "Rien ne s'affiche", 4],
-      correct: 2,
-    },
-    {
-      id: "q4",
-      question: "Que s'affiche-t-il dans la console ?",
-      type: "single",
-      image: "https://storage.googleapis.com/mathsapp/python/tag3/imagesQuizz/im4.jpg",
-      options: ["voiture 4 vélo 2 ", "Message d'erreur"],
-      correct: 0,
-    },
-    {
-      id: "q5",
-      question: "Que s'affiche-t-il dans la console ?",
-      type: "single",
-      image: "https://storage.googleapis.com/mathsapp/python/tag3/imagesQuizz/im5.jpg",
-      options: ["Message d'erreur", "loups", "chiens"],
-      correct: 1,
-    },
-  ],
-  video: ["https://www.youtube.com/embed/a10AeJ_o-44?si=sDXBu8MA9SifO1NJ"],
-};
 
 export default function PythonPage() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const dispatch = useDispatch();
+  const data = useSelector((state) => state.cardsPython.data);
+  const cards = Array.isArray(data?.result) ? data.result : [];
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchCards = async () => {
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const response = await fetch(`${urlFetch}/cards/python`);
+        const payload = await response.json();
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          dispatch(setCardsPython(payload));
+        } else {
+          setErrorMessage(payload?.error || "Erreur lors du chargement des cartes.");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setErrorMessage("Erreur serveur.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCards();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, urlFetch]);
+
   return (
     <Layout>
       <Content>
@@ -97,9 +67,30 @@ export default function PythonPage() {
             borderRadius: borderRadiusLG,
             marginTop: 0,
           }}
-          className="flex flex-col  gap-y-20 items-center"
+          className="flex flex-col gap-y-20 items-center"
         >
-          <Card {...data} />
+          {loading && (
+            <div className="flex flex-col items-center py-10">
+              <ClimbingBoxLoader color="#6C6C6C" size={12} />
+              <p className="mt-4 text-sm text-gray-500">Chargement des cartes...</p>
+            </div>
+          )}
+
+          {!loading && errorMessage && (
+            <p className="text-red-500 text-sm">{errorMessage}</p>
+          )}
+
+          {!loading &&
+            !errorMessage &&
+            cards.map((card, idx) => (
+              <div className="w-full" key={card._id || card.num || idx}>
+                <Card {...card} />
+              </div>
+            ))}
+
+          {!loading && !errorMessage && !cards.length && (
+            <p className="text-gray-500 text-sm">Aucune carte à afficher.</p>
+          )}
         </div>
       </Content>
     </Layout>

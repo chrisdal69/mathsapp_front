@@ -6,25 +6,37 @@ import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 function isFalsyString(v) {
   if (typeof v !== "string") return !v;
   const s = v.trim().toLowerCase();
-  return s === "" || s === "false" || s === "0" || s === "null" || s === "undefined";
+  return (
+    s === "" || s === "false" || s === "0" || s === "null" || s === "undefined"
+  );
 }
 
 function ensureParam(url, key, value) {
   try {
-    const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "https://example.com");
+    const u = new URL(
+      url,
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://example.com"
+    );
     if (!u.searchParams.has(key)) u.searchParams.set(key, value);
     return u.toString();
   } catch {
     // Fallback for relative/invalid URLs
     const join = url.includes("?") ? "&" : "?";
-    return `${url}${join}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+    return `${url}${join}${encodeURIComponent(key)}=${encodeURIComponent(
+      value
+    )}`;
   }
 }
 
 function processEmbedUrl(url) {
   if (!url) return url;
   const lower = String(url).toLowerCase();
-  if (lower.includes("youtube.com/embed/") || lower.includes("youtube-nocookie.com/embed/")) {
+  if (
+    lower.includes("youtube.com/embed/") ||
+    lower.includes("youtube-nocookie.com/embed/")
+  ) {
     return ensureParam(url, "enablejsapi", "1");
   }
   // Dailymotion may require api param; attempt to enable
@@ -49,7 +61,6 @@ export default function Video({
     }
     return [];
   }, [video]);
-
   // Aucun URL exploitable => hauteur nulle
   if (!urls.length) {
     return (
@@ -62,7 +73,8 @@ export default function Video({
   }
 
   const [w, h] = (ratio || "16:9").split(":").map(Number);
-  const paddingTop = Number.isFinite(w) && Number.isFinite(h) && h > 0 ? (h / w) * 100 : 56.25;
+  const paddingTop =
+    Number.isFinite(w) && Number.isFinite(h) && h > 0 ? (h / w) * 100 : 56.25;
 
   // Carrousel pour plusieurs vidéos + barre de progression
   const carouselRef = useRef(null);
@@ -92,11 +104,17 @@ export default function Video({
 
   const pauseAt = (index) => {
     const iframe = iframeRefs.current[index];
-    const url = processedUrls[index];
+
+    //const url = processedUrls[index];
+    const url = processedUrls[index].href;
+
     if (!iframe || !iframe.contentWindow || !url) return;
     const lower = url.toLowerCase();
     try {
-      if (lower.includes("youtube.com") || lower.includes("youtube-nocookie.com")) {
+      if (
+        lower.includes("youtube.com") ||
+        lower.includes("youtube-nocookie.com")
+      ) {
         iframe.contentWindow.postMessage(
           JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
           "*"
@@ -110,7 +128,10 @@ export default function Video({
   };
 
   return (
-    <div className={`vb-wrap ${className || ""}`} style={{ width: "100%", maxWidth, margin: "0 auto" }}>
+    <div
+      className={`vb-wrap ${className || ""}`}
+      style={{ width: "100%", maxWidth, margin: "0 auto" }}
+    >
       <div
         style={{
           width: "100%",
@@ -118,7 +139,7 @@ export default function Video({
           justifyContent: "center",
           alignItems: "center",
           marginBottom: 8,
-          marginTop:14
+          marginTop: 14,
         }}
       >
         {current > 0 && (
@@ -223,8 +244,27 @@ export default function Video({
         adaptiveHeight
       >
         {processedUrls.map((url, idx) => (
-          <div key={idx} className="vb-slide" style={{ display: "flex", justifyContent: "center", width: "100%", padding: 0, margin: 0 }}>
-            <div className="vb-inner" style={{ position: "relative", width: "100%", paddingTop: `${paddingTop}%`, margin: 0 }}>
+          <div
+            key={idx}
+            className="vb-slide"
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              width: "100%",
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            <p className="text-center mb-2">{url.txt}</p>
+            <div
+              className="vb-inner"
+              style={{
+                position: "relative",
+                width: "100%",
+                paddingTop: `${paddingTop}%`,
+                margin: 0,
+              }}
+            >
               {!loaded[idx] && (
                 <div
                   style={{
@@ -242,7 +282,7 @@ export default function Video({
               )}
               <iframe
                 ref={(el) => (iframeRefs.current[idx] = el)}
-                src={url}
+                src={url.href}
                 title={`${title} ${idx + 1}`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -255,7 +295,13 @@ export default function Video({
                     return next;
                   });
                 }}
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: 0,
+                }}
               />
             </div>
           </div>
@@ -263,14 +309,37 @@ export default function Video({
       </Carousel>
       <style jsx>{`
         @media (max-width: 640px) {
-          .vb-wrap { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; }
-          .vb-slide { justify-content: flex-start !important; padding: 0 !important; margin: 0 !important; }
-          .vb-inner { width: 100% !important; }
-          :global(.ant-carousel .slick-list) { margin: 0 !important; padding: 0 !important; }
-          :global(.ant-carousel .slick-track) { margin: 0 !important; }
-          :global(.ant-carousel .slick-slide) { padding: 0 !important; }
-          :global(.ant-carousel .slick-slide > div) { padding: 0 !important; margin: 0 !important; }
-          :global(.ant-carousel .slick-slide > div > div) { padding: 0 !important; margin: 0 !important; }
+          .vb-wrap {
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+          }
+          .vb-slide {
+            justify-content: flex-start !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .vb-inner {
+            width: 100% !important;
+          }
+          :global(.ant-carousel .slick-list) {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          :global(.ant-carousel .slick-track) {
+            margin: 0 !important;
+          }
+          :global(.ant-carousel .slick-slide) {
+            padding: 0 !important;
+          }
+          :global(.ant-carousel .slick-slide > div) {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          :global(.ant-carousel .slick-slide > div > div) {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
         }
       `}</style>
     </div>

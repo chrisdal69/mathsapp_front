@@ -3,11 +3,12 @@ import { Radio, Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-export default function Quizz({ questions }) {
+export default function Quizz({ num , repertoire, quizz }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
+  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
@@ -15,14 +16,14 @@ export default function Quizz({ questions }) {
   };
 
   const handleNext = () => {
-    setCurrent((c) => Math.min(questions.length - 1, c + 1));
+    setCurrent((c) => Math.min(quizz.length - 1, c + 1));
     carouselRef.current?.next();
   };
 
   // Échelle de progression dynamique (points rapprochés)
   const DOT = 10; // diamètre du point (px)
   const GAP = 20; // espace entre points (px)
-  const trackWidth = questions.length * DOT + (questions.length - 1) * GAP;
+  const trackWidth = quizz.length * DOT + (quizz.length - 1) * GAP;
 
   const handleSelect = (qid, value) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }));
@@ -96,7 +97,7 @@ export default function Quizz({ questions }) {
                 height: "100%",
               }}
             >
-              {questions.map((q, idx) => {
+              {quizz.map((q, idx) => {
                 const answered = Boolean(answers[q.id]);
                 const isCurrent = idx === current;
                 const bg = isCurrent
@@ -124,7 +125,7 @@ export default function Quizz({ questions }) {
               })}
             </div>
           </div>
-          {current < questions.length - 1 && (
+          {current < quizz.length - 1 && (
             <Button
               type="default"
               shape="circle"
@@ -157,7 +158,7 @@ export default function Quizz({ questions }) {
           adaptiveHeight
           className="max-w-xs sm:max-w-2xl"
         >
-          {questions.map((q) => (
+          {quizz.map((q) => (
             <div
               key={q.id}
               style={{ display: "flex", justifyContent: "center" }}
@@ -182,7 +183,7 @@ export default function Quizz({ questions }) {
                       }}
                     >
                       <Image
-                        src={q.image}
+                        src={racine+q.image}
                         alt=""
                         width="400"
                         height="400"
