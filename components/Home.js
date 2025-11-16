@@ -26,7 +26,10 @@ const App = () => {
   useEffect(() => {
     setResetSignals((prev) => {
       const next = cards.map((_, idx) => prev[idx] ?? 0);
-      if (next.length === prev.length && next.every((val, idx) => val === prev[idx])) {
+      if (
+        next.length === prev.length &&
+        next.every((val, idx) => val === prev[idx])
+      ) {
         return prev;
       }
       return next;
@@ -34,6 +37,10 @@ const App = () => {
   }, [cards]);
 
   useEffect(() => {
+    if (!Array.isArray(data) || data.length !== 0) {
+      return; // le store contient déjà autre chose, on ne refetch pas
+    }
+
     let cancelled = false;
 
     const fetchCards = async () => {
@@ -47,7 +54,9 @@ const App = () => {
         if (response.ok) {
           dispatch(setCardsMaths(payload));
         } else {
-          setErrorMessage(payload?.error || "Erreur lors du chargement des cartes.");
+          setErrorMessage(
+            payload?.error || "Erreur lors du chargement des cartes."
+          );
         }
       } catch (err) {
         if (!cancelled) {
@@ -64,7 +73,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, urlFetch]);
+  }, [data, dispatch, urlFetch]);
 
   const handleExternalTabChange = (index) => {
     setResetSignals((prev) => {
@@ -89,7 +98,9 @@ const App = () => {
           {loading && (
             <div className="flex flex-col items-center py-10">
               <ClimbingBoxLoader color="#6C6C6C" size={12} />
-              <p className="mt-4 text-sm text-gray-500">Chargement des cartes...</p>
+              <p className="mt-4 text-sm text-gray-500">
+                Chargement des cartes...
+              </p>
             </div>
           )}
 

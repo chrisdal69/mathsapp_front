@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
-export default function Contenu({num,repertoire, plan , presentation ,bg}) {
+export default function Contenu({ num, repertoire, plan, presentation, bg }) {
   const [typing, setTyping] = useState(false);
   const [typedText, setTypedText] = useState("");
-  
-  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+
+  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
   const combinedText = useMemo(() => {
     const numberedPlan = plan.map((elt, idx) => `${idx + 1}. ${elt}`);
     const lines = [...presentation, "", ...numberedPlan];
@@ -33,7 +33,13 @@ export default function Contenu({num,repertoire, plan , presentation ,bg}) {
     };
   }, [typing, combinedText]);
 
-  
+  const toBlurFile = (filename) => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+
+  const blurBg = useMemo(() => toBlurFile(bg), [bg]);
 
   return (
     <div className="group relative w-full min-h-[150px] ">
@@ -48,9 +54,11 @@ export default function Contenu({num,repertoire, plan , presentation ,bg}) {
         alt="Logo"
         fill
         placeholder="blur"
-        blurDataURL="https://storage.googleapis.com/mathsapp/ciel1/tag3/complexeBlur.jpg"
+        blurDataURL={`${racine}${blurBg}`}
         sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-        className={`object-cover object-center transition-opacity duration-300 ease-out ${typing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className={`object-cover object-center transition-opacity duration-300 ease-out ${
+          typing ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
       />
 
       <div

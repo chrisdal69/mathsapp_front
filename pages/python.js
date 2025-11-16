@@ -23,6 +23,10 @@ export default function PythonPage() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
+    if (!Array.isArray(data) || data.length !== 0) {
+      return; // store déjà rempli → pas de refetch
+    }
+
     let cancelled = false;
 
     const fetchCards = async () => {
@@ -37,7 +41,9 @@ export default function PythonPage() {
         if (response.ok) {
           dispatch(setCardsPython(payload));
         } else {
-          setErrorMessage(payload?.error || "Erreur lors du chargement des cartes.");
+          setErrorMessage(
+            payload?.error || "Erreur lors du chargement des cartes."
+          );
         }
       } catch (err) {
         if (!cancelled) {
@@ -54,7 +60,7 @@ export default function PythonPage() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, urlFetch]);
+  }, [data, dispatch, urlFetch]);
 
   return (
     <Layout>
@@ -72,7 +78,9 @@ export default function PythonPage() {
           {loading && (
             <div className="flex flex-col items-center py-10">
               <ClimbingBoxLoader color="#6C6C6C" size={12} />
-              <p className="mt-4 text-sm text-gray-500">Chargement des cartes...</p>
+              <p className="mt-4 text-sm text-gray-500">
+                Chargement des cartes...
+              </p>
             </div>
           )}
 
