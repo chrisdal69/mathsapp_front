@@ -186,7 +186,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
           className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
         >
           <span className="shrink-0 text-lg leading-none">{icon}</span>
-          <span className="break-all whitespace-normal">{name}</span>
+          <span className="truncate">{name}</span>
           {ext && (
             <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>
           )}

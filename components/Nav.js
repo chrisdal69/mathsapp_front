@@ -13,31 +13,29 @@ export default function Nav() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const isAdmin = isAuthenticated && user?.role === "admin";
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  
   const pathToKey = {
     "/": "1",
+    "/admin": "1",
     "/python": "2",
+    "/admin/python": "2",
     "/signup": "3",
     "/forgot": "3",
     "/changepassword": "3",
   };
 
   const selectedKey = pathToKey[router.pathname] || "1";
-
+  const mathsHref = isAdmin ? "/admin" : "/";
+  const pythonHref = isAdmin ? "/admin/python" : "/python";
   const items = [
-    { key: "1", label: <Link href="/">Maths</Link> },
-    { key: "2", label: <Link href="/python">Python</Link> },
-    {
-      key: "3",
-      icon: <UserOutlined />,
-       label:  <Modal /> ,
-    },
+    { key: "1", label: <Link href={mathsHref}>Maths</Link> },
+    { key: "2", label: <Link href={pythonHref}>Python</Link> },
+    { key: "3", icon: <UserOutlined />, label: <Modal /> },
   ];
-
   return (
     <Header style={{ display: "flex", alignItems: "center" }}>
       <Menu

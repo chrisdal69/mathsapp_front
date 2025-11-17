@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuthenticated, clearAuth } from "../reducers/authSlice";
+import { setCardsMaths } from "../reducers/cardsMathsSlice";
+
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
@@ -11,7 +13,8 @@ export default function Account(props) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.auth.user);
+  const { isAuthenticated, user } = useSelector((s) => s.auth);
+  const isAdmin = isAuthenticated && user?.role === "admin";
 
   const handleLogout = async () => {
     try {
@@ -23,8 +26,8 @@ export default function Account(props) {
         const response = await res.json();
         setMessage(response.message);
         dispatch(clearAuth());
-        //setTimeout(() =>props.close(), 1000);
-        console.log("✅ Déconnexion réussie", response);
+        isAdmin && dispatch(setCardsMaths([]));
+        console.log("✅ Déconnexion réussie ", response , isAdmin);
         props.close();
       } else {
         setMessage("Erreur lors de la déconnexion.");

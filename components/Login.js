@@ -1,5 +1,5 @@
 import Link from "next/link";
-import React, { useState , useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -53,21 +53,31 @@ export default function Login(props) {
         credentials: "include",
       });
 
-
       const response = await res.json();
       console.log("response de login.js ", res, response);
 
       if (res.ok) {
-        console.log("✅ Connexion réussie", response);
         dispatch(
           setAuthenticated({
             email: response.email,
             nom: response.nom,
             prenom: response.prenom,
+            role: response.role,
           })
         );
         reset({ email: "", password: "" });
         props.close();
+
+        const fromPath = router.asPath;
+
+        const target = (() => {
+          if (response.role !== "admin")
+            return fromPath === "/python" ? "/python" : "/";
+          if (fromPath === "/python") return "/admin/python";
+          return "/admin";
+        })();
+
+        router.push(target);
       } else {
         setServerMessage(response.message || "Erreur de connexion.");
       }
@@ -77,7 +87,10 @@ export default function Login(props) {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white relative" aria-busy={isSubmitting}>
+    <div
+      className="max-w-md mx-auto mt-10 rounded-xl shadow-lg p-6 bg-white relative"
+      aria-busy={isSubmitting}
+    >
       <h2 className="text-2xl font-semibold text-center mb-6">Se loguer</h2>
 
       {serverMessage && (
@@ -136,9 +149,19 @@ export default function Login(props) {
             <div className="mt-2 text-right">
               <Link
                 href="/forgot"
-                className={`text-sm ${busy ? "text-gray-400 pointer-events-none" : "text-blue-600 hover:underline"}`}
+                className={`text-sm ${
+                  busy
+                    ? "text-gray-400 pointer-events-none"
+                    : "text-blue-600 hover:underline"
+                }`}
                 aria-disabled={busy}
-                onClick={(e) => { if (busy) { e.preventDefault(); return; } props.close(); }}
+                onClick={(e) => {
+                  if (busy) {
+                    e.preventDefault();
+                    return;
+                  }
+                  props.close();
+                }}
               >
                 Mot de passe oublié ?
               </Link>
@@ -160,9 +183,19 @@ export default function Login(props) {
         <span className="text-sm text-gray-600">Pas encore inscrit ? </span>
         <Link
           href="/signup"
-          className={`text-sm font-medium ${busy ? "text-gray-400 pointer-events-none" : "text-blue-600 hover:underline"}`}
+          className={`text-sm font-medium ${
+            busy
+              ? "text-gray-400 pointer-events-none"
+              : "text-blue-600 hover:underline"
+          }`}
           aria-disabled={busy}
-          onClick={(e) => { if (busy) { e.preventDefault(); return; } props.close(); }}
+          onClick={(e) => {
+            if (busy) {
+              e.preventDefault();
+              return;
+            }
+            props.close();
+          }}
         >
           Inscription
         </Link>
