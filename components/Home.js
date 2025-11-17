@@ -17,7 +17,8 @@ const App = () => {
 
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
-  const cards = Array.isArray(data?.result) ? data.result : [];
+  const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
+  const cards = cardsFiltre.filter((obj) => obj.repertoire === 'ciel1');
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -47,7 +48,7 @@ const App = () => {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const response = await fetch(`${urlFetch}/cards/ciel1`);
+        const response = await fetch(`${urlFetch}/cards`);
         const payload = await response.json();
         if (cancelled) return;
 

@@ -3,7 +3,10 @@ import { Layout, theme } from "antd";
 import Card from "../components/Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
-import { setCardsPython } from "../reducers/cardsPythonSlice";
+import { setCardsMaths } from "../reducers/cardsMathsSlice";
+
+
+
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -17,8 +20,10 @@ export default function PythonPage() {
   } = theme.useToken();
 
   const dispatch = useDispatch();
-  const data = useSelector((state) => state.cardsPython.data);
-  const cards = Array.isArray(data?.result) ? data.result : [];
+  const data = useSelector((state) => state.cardsMaths.data);
+  const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
+  const cards = cardsFiltre.filter((obj) => obj.repertoire === "python");
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -33,13 +38,13 @@ export default function PythonPage() {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const response = await fetch(`${urlFetch}/cards/python`);
+        const response = await fetch(`${urlFetch}/cards`);
         const payload = await response.json();
 
         if (cancelled) return;
 
         if (response.ok) {
-          dispatch(setCardsPython(payload));
+          dispatch(setCardsMaths(payload));
         } else {
           setErrorMessage(
             payload?.error || "Erreur lors du chargement des cartes."
