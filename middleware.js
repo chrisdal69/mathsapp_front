@@ -5,6 +5,8 @@ const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
 
 
 export async function middleware(req) {
+  console.log("target dans middelware.js : ", req.cookies.get("jwt")?.value);
+
   if (!req.nextUrl.pathname.startsWith("/admin")) return NextResponse.next();
   const cookie = req.cookies.get("jwt")?.value;
   if (!cookie) return NextResponse.redirect(new URL("/", req.url));

@@ -36,6 +36,8 @@ export default function Nav() {
     { key: "2", label: <Link href={pythonHref}>Python</Link> },
     { key: "3", icon: <UserOutlined />, label: <Modal /> },
   ];
+  console.log("target dans Nav.js : ", mathsHref);
+
   return (
     <Header style={{ display: "flex", alignItems: "center" }}>
       <Menu
