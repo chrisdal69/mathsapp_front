@@ -76,7 +76,7 @@ export default function Login(props) {
           if (fromPath === "/python") return "/admin/python";
           return "/admin";
         })();
-
+        console.log("target dans Login.js : ",target)
         router.push(target);
       } else {
         setServerMessage(response.message || "Erreur de connexion.");
