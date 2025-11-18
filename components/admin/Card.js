@@ -1,16 +1,108 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Card } from "antd";
+import { Card, Button, Input, Popover, Space, message } from "antd";
+import { EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import ContentBlock from "./card/ContentBlock";
 import FilesBlock from "./card/FilesBlock";
 //import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
+import { setCardsMaths } from "../../reducers/cardsMathsSlice";
+
+const NODE_ENV = process.env.NODE_ENV;
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
 const CardBlock = (data) => {
   const [activeTabKey, setActiveTabKey] = useState("contenu");
   const [localTitle, setLocalTitle] = useState(data.titre);
+  const [titlePopoverOpen, setTitlePopoverOpen] = useState(false);
+  const [pendingTitle, setPendingTitle] = useState(data.titre || "");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
+  const dispatch = useDispatch();
+  const cardsData = useSelector((state) => state.cardsMaths.data);
+
+  useEffect(() => {
+    setLocalTitle(data.titre);
+    setPendingTitle(data.titre || "");
+  }, [data.titre]);
+
+  const updateCardsStore = (newTitle, updatedCard) => {
+    if (!cardsData || !Array.isArray(cardsData.result)) {
+      return;
+    }
+    const targetId = updatedCard?._id || data?._id || data?.id;
+    const targetNum =
+      typeof updatedCard?.num !== "undefined" ? updatedCard.num : data?.num;
+
+    const nextResult = cardsData.result.map((card) => {
+      const matchById = targetId && card._id === targetId;
+      const matchByNum =
+        !targetId &&
+        typeof targetNum !== "undefined" &&
+        typeof card.num !== "undefined" &&
+        card.num === targetNum;
+      if (matchById || matchByNum) {
+        return { ...card, titre: newTitle };
+      }
+      return card;
+    });
+
+    dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
+  };
+
+  const handleSaveTitle = async () => {
+    const trimmedTitle = (pendingTitle || "").trim();
+    if (!trimmedTitle) {
+      message.error("Le titre ne peut pas être vide.");
+      return;
+    }
+
+    const cardId = data?._id || data?.id;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    if ((localTitle || "").trim() === trimmedTitle) {
+      setTitlePopoverOpen(false);
+      return;
+    }
+
+    setIsSavingTitle(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/title`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ titre: trimmedTitle }),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Impossible de mettre à jour le titre."
+        );
+      }
+
+      const updatedCard = payload?.result;
+      const nextTitle = updatedCard?.titre || trimmedTitle;
+      setLocalTitle(nextTitle);
+      setPendingTitle(nextTitle);
+      setTitlePopoverOpen(false);
+      updateCardsStore(nextTitle, updatedCard);
+      message.success("Titre mis à jour.");
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du titre :", error);
+      message.error(error.message || "Erreur lors de la mise à jour du titre.");
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
 
   const onTabChange = (key) => {
     setActiveTabKey(key);
@@ -18,7 +110,6 @@ const CardBlock = (data) => {
       data.onTabChangeExternal(key);
     }
   };
-  const { isAuthenticated } = useSelector((state) => state.auth);
 
   // useEffect(() => {
   //   !isAuthenticated && activeTabKey === "cloud" && setActiveTabKey("contenu");
@@ -60,20 +151,56 @@ const CardBlock = (data) => {
     <Card
       title={localTitle}
       extra={
-        <div className="flex items-center gap-2 border-1 w-100">
-          <label
-            htmlFor={`card-title-${data._id}`}
-            className="text-xs text-gray-500"
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 uppercase tracking-wide">
+            Titre
+          </span>
+          <Popover
+            placement="bottomRight"
+            trigger="click"
+            open={titlePopoverOpen}
+            onOpenChange={(visible) => {
+              setTitlePopoverOpen(visible);
+              if (visible) {
+                setPendingTitle(localTitle || "");
+              }
+            }}
+            content={
+              <Space align="start">
+                <Input.TextArea
+                  value={pendingTitle}
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                  autoFocus
+                  maxLength={200}
+                  placeholder="Nouveau titre"
+                  onChange={(e) => setPendingTitle(e.target.value)}
+                />
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<CheckOutlined />}
+                  loading={isSavingTitle}
+                  onClick={handleSaveTitle}
+                />
+                <Button
+                  size="small"
+                  icon={<CloseOutlined />}
+                  disabled={isSavingTitle}
+                  onClick={() => {
+                    setTitlePopoverOpen(false);
+                    setPendingTitle(localTitle || "");
+                  }}
+                />
+              </Space>
+            }
           >
-            Modifier
-          </label>
-          <textarea
-            id={`card-title-${data._id}`}
-            type="text"
-            value={localTitle}
-            onChange={(e) => setLocalTitle(e.target.value)}
-            className="border rounded px-2 py-1 text-sm w-full"
-          />
+            <Button
+              icon={<EditOutlined />}
+              size="small"
+              type="default"
+              className="flex items-center"
+            />
+          </Popover>
         </div>
       }
       style={{ width: "100%" }}
