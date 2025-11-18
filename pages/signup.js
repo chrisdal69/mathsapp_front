@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
-const urlFetch = NODE_ENV === "production" ? URL_BACK : "http://localhost:3000";
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
 // ✅ Validation schéma
 const schema = yup.object().shape({
