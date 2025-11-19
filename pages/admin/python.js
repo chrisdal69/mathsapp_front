@@ -87,7 +87,6 @@ export default function PythonPage() {
           }}
           className="flex flex-col gap-y-20 items-center"
         >
-          <p>Python admin</p>
 
           {loading && (
             <div className="flex flex-col items-center py-10">

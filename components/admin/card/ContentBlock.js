@@ -135,6 +135,9 @@ export default function Contenu({
   const getInsertIndex = (type) => {
     const list = getListForType(type);
     const pos = insertPositions[type];
+    if (pos === "start") {
+      return 0;
+    }
     if (list.length === 0 || pos === "end" || typeof pos === "undefined") {
       return list.length;
     }
@@ -426,11 +429,12 @@ export default function Contenu({
     const list = getListForType(type);
     const config = listConfigs[type];
     const insertionOptions = [
-      { value: "end", label: "Fin (après le dernier)" },
+      { value: "start", label: "Début (avant le premier)" },
       ...list.map((_, idx) => ({
         value: idx,
         label: `Après ${config.label.toLowerCase()} ${idx + 1}`,
       })),
+      { value: "end", label: "Fin (après le dernier)" },
     ];
     return (
       <section key={type} className="mb-6 rounded-lg bg-white/60 p-1 md:p-4 shadow-sm">

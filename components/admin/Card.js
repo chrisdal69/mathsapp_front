@@ -4,7 +4,7 @@ import { Card, Button, Input, Popover, Space, message } from "antd";
 import { EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import ContentBlock from "./card/ContentBlock";
 import FilesBlock from "./card/FilesBlock";
-//import CloudBlock from "./card/CloudBlock";
+import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
@@ -21,6 +21,7 @@ const CardBlock = (data) => {
 
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
     setLocalTitle(data.titre);
@@ -111,9 +112,9 @@ const CardBlock = (data) => {
     }
   };
 
-  // useEffect(() => {
-  //   !isAuthenticated && activeTabKey === "cloud" && setActiveTabKey("contenu");
-  // }, [isAuthenticated, activeTabKey]);
+  useEffect(() => {
+    !isAuthenticated && activeTabKey === "cloud" && setActiveTabKey("contenu");
+  }, [isAuthenticated, activeTabKey]);
 
   // Reset to "contenu" when parent sends a reset signal (used to reset other cards)
   useEffect(() => {
@@ -127,7 +128,7 @@ const CardBlock = (data) => {
     { key: "contenu", label: "Contenu" },
     { key: "fichiers", label: "Fichiers" },
     { key: "quizz", label: "Quizz" },
-    //isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
+    isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
     data.video && { key: "video", label: "Vidéos" },
   ];
   const contentList = {
@@ -140,9 +141,9 @@ const CardBlock = (data) => {
     contentList.video = <VideoBlock {...data} />;
   }
 
-  // if (isAuthenticated) {
-  //   contentList.cloud = <CloudBlock {...data}/>;
-  // }
+  if (isAuthenticated) {
+    contentList.cloud = <CloudBlock {...data}/>;
+  }
 
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";

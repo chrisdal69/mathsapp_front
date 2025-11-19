@@ -28,10 +28,11 @@ import {
   FilterOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { clearAuth } from "../../reducers/authSlice";
+import { clearAuth } from "../../../reducers/authSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -46,6 +47,7 @@ const CloudBlock = ({num}) => {
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
+  const [zipLoading, setZipLoading] = useState(false);
 
   // Filtres / tri
   const [searchTerm, setSearchTerm] = useState("");
@@ -145,14 +147,13 @@ const CloudBlock = ({num}) => {
     }
   };
 
-  const onReset = () => form.resetFields();
 
   const onRecup = async () => {
     const formData = new FormData();
     formData.append("parent", "cloud");
     formData.append("repertoire", `tag${num}`);
     try {
-      const res = await fetch(`${urlFetch}/upload/recup`, {
+      const res = await fetch(`${urlFetch}/upload/recupA`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -167,7 +168,7 @@ const CloudBlock = ({num}) => {
 
   const handleDelete = async (fileName) => {
     try {
-      const res = await fetch(`${urlFetch}/upload/delete`, {
+      const res = await fetch(`${urlFetch}/upload/deleteA`, {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
@@ -205,7 +206,7 @@ const CloudBlock = ({num}) => {
   const handleConfirmRename = async (file) => {
     console.log("handleConfirmRename : ", file.name, newName);
     try {
-      const res = await fetch(`${urlFetch}/upload/rename`, {
+      const res = await fetch(`${urlFetch}/upload/renameA`, {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
@@ -228,6 +229,48 @@ const CloudBlock = ({num}) => {
       message.error("Erreur de communication avec le serveur");
     }
     setRenameVisible(null);
+  };
+
+  const handleDownloadZip = async () => {
+    if (!filesCloud.length || zipLoading) return;
+    setZipLoading(true);
+    try {
+      const res = await fetch(`${urlFetch}/upload/downloadZipA`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          parent: "cloud",
+          repertoire: `tag${num}`,
+        }),
+      });
+      if (!res.ok) {
+        let errorMessage = "Impossible de générer l'archive ZIP";
+        try {
+          const data = await res.json();
+          errorMessage = data?.message || errorMessage;
+        } catch (_) {
+          const text = await res.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `tag${num}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      message.success("Archive ZIP téléchargée");
+    } catch (err) {
+      console.error("Erreur download zip:", err);
+      message.error(err?.message || "Erreur lors du téléchargement ZIP");
+    } finally {
+      setZipLoading(false);
+    }
   };
 
   /** 🔍 Type de fichier */
@@ -355,6 +398,10 @@ const CloudBlock = ({num}) => {
     if (fileType !== "all") {
       result = result.filter((f) => getFileType(f) === fileType);
     }
+    result = result.filter((f) => {
+      const fileName = f.name?.split("/").pop() ?? "";
+      return fileName.trim() !== "";
+    });
     result = [...result].sort((a, b) => {
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
@@ -375,32 +422,7 @@ const CloudBlock = ({num}) => {
 
       {isAuthenticated && (
         <Form form={form} onFinish={onFinish} className="upload-form">
-          <Form.Item
-            label="Drag & Drop"
-            name="files"
-            valuePropName="fileList"
-            getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
-          >
-            <Dragger multiple beforeUpload={() => false} disabled={upload}>
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">
-                Cliquez ou glissez-déposez des fichiers ici
-              </p>
-              <p className="ant-upload-hint">Supporte l’upload multiple</p>
-            </Dragger>
-          </Form.Item>
-
-          <div className="flex flex-wrap justify-around gap-2 mb-6">
-            <Button type="primary" htmlType="submit" disabled={upload}>
-              Envoyer
-            </Button>
-            <Button htmlType="button" onClick={onReset} disabled={upload}>
-              Reset
-            </Button>
-          </div>
-
+         
           {/* 🎛️ Filtres */}
           <div className="mb-6 flex flex-wrap gap-3 items-center justify-center md:justify-start">
             <Input
@@ -442,12 +464,19 @@ const CloudBlock = ({num}) => {
             >
               {sortOrder === "asc" ? "A → Z" : "Z → A"}
             </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadZip}
+              loading={zipLoading}
+              disabled={!filesCloud.length || upload}
+            >
+              Télécharger le ZIP
+            </Button>
           </div>
 
           {/* 📂 Liste avec scroll */}
           <div
             style={{
-              //height: `${CLOUD_SCROLL_HEIGHT}px`,
               maxHeight: `${CLOUD_SCROLL_HEIGHT}px`,
               overflowY: "auto",
               border: "1px solid #f0f0f0",
@@ -461,7 +490,6 @@ const CloudBlock = ({num}) => {
               dataSource={filteredFiles}
               locale={{ emptyText: "Aucun fichier trouvé" }}
               renderItem={(file, index) => {
-                const shortName = file.name.split("/").pop().split("___").pop();
                 const fullName = file.name.split("/").pop();
                 const isRenameOpen = renameVisible === index;
                 const isDeleteOpen = deleteVisible === index;
@@ -471,7 +499,7 @@ const CloudBlock = ({num}) => {
                     <div className="flex items-center gap-2">
                       {getFilePreview(file)}
                       <a href={file.url} target="_blank" rel="noreferrer">
-                        <Text className="file-name">{shortName}</Text>
+                        <Text className="file-name">{fullName}</Text>
                       </a>
                     </div>
 
