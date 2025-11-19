@@ -44,7 +44,7 @@ const App = () => {
     let cancelled = false;
 
     const fetchCards = async () => {
-      //setLoading(true);
+      setLoading(true);
       setErrorMessage(null);
       try {
         const response = await fetch(`${urlFetch}/cards`);
