@@ -89,14 +89,11 @@ const App = () => {
           style={{
             background: colorBgContainer,
             minHeight: 20,
-            padding: 15,
             borderRadius: borderRadiusLG,
             marginTop: 0,
           }}
-          className="flex flex-col gap-y-10 items-center"
+          className="flex flex-col gap-y-10 items-center p-1 md:p-4"
         >
-          <p>Home admin</p>
-
           {loading && (
             <div className="flex flex-col items-center py-10">
               <ClimbingBoxLoader color="#6C6C6C" size={12} />
