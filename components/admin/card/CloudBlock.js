@@ -29,6 +29,8 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
   DownloadOutlined,
+  ExpandAltOutlined,
+  CompressOutlined,
 } from "@ant-design/icons";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -48,6 +50,10 @@ const CloudBlock = ({num}) => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
   const [zipLoading, setZipLoading] = useState(false);
+  const [scrollExpanded, setScrollExpanded] = useState(false);
+  const [listContentHeight, setListContentHeight] = useState(
+    CLOUD_SCROLL_HEIGHT
+  );
 
   // Filtres / tri
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +67,7 @@ const CloudBlock = ({num}) => {
 
   const dispatch = useDispatch();
   const deleteTimer = useRef(null);
+  const listContainerRef = useRef(null);
   useEffect(() => {
     // Exécuté uniquement côté client
     const style = document.createElement("style");
@@ -412,6 +419,20 @@ const CloudBlock = ({num}) => {
     return result;
   }, [filesCloud, searchTerm, fileType, sortOrder]);
 
+  useEffect(() => {
+    const updateHeight = () => {
+      if (listContainerRef.current) {
+        const scrollHeight = listContainerRef.current.scrollHeight || 0;
+        setListContentHeight(
+          Math.max(scrollHeight, CLOUD_SCROLL_HEIGHT)
+        );
+      }
+    };
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, [filteredFiles]);
+
   return (
     <div className="relative" aria-busy={upload}>
       {!isAuthenticated && (
@@ -472,16 +493,27 @@ const CloudBlock = ({num}) => {
             >
               Télécharger le ZIP
             </Button>
+            <Button
+              icon={
+                scrollExpanded ? <CompressOutlined /> : <ExpandAltOutlined />
+              }
+              onClick={() => setScrollExpanded((prev) => !prev)}
+              disabled={!filteredFiles.length}
+            >
+              {scrollExpanded ? "Réduire la liste" : "Agrandir la liste"}
+            </Button>
           </div>
 
           {/* 📂 Liste avec scroll */}
           <div
+            ref={listContainerRef}
             style={{
-              maxHeight: `${CLOUD_SCROLL_HEIGHT}px`,
-              overflowY: "auto",
+              maxHeight: `${scrollExpanded ? listContentHeight : CLOUD_SCROLL_HEIGHT}px`,
+              overflowY: scrollExpanded ? "visible" : "auto",
               border: "1px solid #f0f0f0",
               borderRadius: "6px",
               padding: "4px 12px 4px 4px",
+              transition: "max-height 0.6s ease",
             }}
             className="custom-scrollbar"
           >
