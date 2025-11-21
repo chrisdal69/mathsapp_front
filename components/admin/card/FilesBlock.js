@@ -1,12 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Button, Input, message } from "antd";
+import { PlusOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
+import { useDispatch, useSelector } from "react-redux";
+import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 
-export default function FilesBlock({ num,repertoire,fichiers }) {
+const NODE_ENV = process.env.NODE_ENV;
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
-  // Icônes officielles via Simple Icons CDN (tracés officiels)
+export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
+  const dispatch = useDispatch();
+  const cardsData = useSelector((state) => state.cardsMaths.data);
+
+  const [localFiles, setLocalFiles] = useState(
+    Array.isArray(fichiers) ? fichiers : []
+  );
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [description, setDescription] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
+  const cardId = _id || id;
+
+  useEffect(() => {
+    setLocalFiles(Array.isArray(fichiers) ? fichiers : []);
+  }, [fichiers]);
+
+  // Icones officielles via Simple Icons CDN (logos officiels)
   const BrandImg = ({ src, alt, title, className, fallback }) => {
     const [err, setErr] = useState(false);
-    if (err && fallback)
+    if (err && fallback) {
       return typeof fallback === "function" ? fallback() : fallback;
+    }
     return (
       <img
         src={src}
@@ -101,7 +125,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
       );
     }
     if (e === "zip" || e === "rar" || e === "7z") {
-      // Dossier avec fermeture éclair (inline SVG, lisible sur fond clair)
+      // Dossier avec fermeture eclair (inline SVG, lisible sur fond clair)
       return (
         <svg
           viewBox="0 0 24 24"
@@ -115,7 +139,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
             fill="#F59E0B"
           />
           <path d="M3 9h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" fill="#FBBF24" />
-          {/* Fermeture éclair */}
+          {/* Fermeture eclair */}
           <rect x="11" y="6" width="2" height="2" rx="0.5" fill="#374151" />
           <rect x="11" y="9" width="2" height="2" rx="0.5" fill="#374151" />
           <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#374151" />
@@ -148,7 +172,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
         </svg>
       );
     }
-    // Fallback générique
+    // Fallback generique
     return (
       <svg
         viewBox="0 0 24 24"
@@ -162,12 +186,123 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
       </svg>
     );
   };
-  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
 
-  const tab = (fichiers || []).map((elt, idx) => {
+  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+
+  const syncCardsStore = (updatedCard, fallbackFiles) => {
+    if (!cardsData || !Array.isArray(cardsData.result)) {
+      return;
+    }
+
+    const targetId = updatedCard?._id || updatedCard?.id || cardId;
+    const targetNum =
+      typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const patch = updatedCard || { fichiers: fallbackFiles };
+
+    const nextResult = cardsData.result.map((card) => {
+      const matchById =
+        targetId && (card._id === targetId || card.id === targetId);
+      const matchByNum =
+        !matchById &&
+        typeof targetNum !== "undefined" &&
+        typeof card.num !== "undefined" &&
+        card.num === targetNum;
+      return matchById || matchByNum ? { ...card, ...patch } : card;
+    });
+
+    dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
+  };
+
+  const resetForm = () => {
+    setDescription("");
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event?.target?.files?.[0];
+    setSelectedFile(file || null);
+  };
+
+  const handleAddFile = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    if (!repertoire) {
+      message.error("Repertoire manquant.");
+      return;
+    }
+    const normalizedNum = Number(num);
+    if (!Number.isFinite(normalizedNum)) {
+      message.error("Numero de tag invalide.");
+      return;
+    }
+
+    const trimmedDescription = (description || "").trim();
+    if (!trimmedDescription) {
+      message.error("Le descriptif est obligatoire.");
+      return;
+    }
+
+    if (!selectedFile) {
+      message.error("Veuillez selectionner un fichier.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("description", trimmedDescription);
+    formData.append("repertoire", repertoire);
+    formData.append("num", `${normalizedNum}`);
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Impossible d'ajouter le fichier.");
+      }
+
+      const updatedCard = payload?.result;
+      const nextFiles = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : [
+            ...localFiles,
+            {
+              txt: trimmedDescription,
+              href: payload?.fileName || selectedFile.name,
+            },
+          ];
+
+      setLocalFiles(nextFiles);
+      syncCardsStore(updatedCard, nextFiles);
+      message.success("Fichier ajoute.");
+      resetForm();
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du fichier :", error);
+      message.error(error.message || "Erreur lors de l'ajout du fichier.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const tab = (localFiles || []).map((elt, idx) => {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
-    const href = racine+elt.href || "#";
+    const href = elt?.href ? `${racine}${elt.href}` : "#";
 
     const extFromHref = href.includes(".")
       ? href.split(".").pop().toLowerCase()
@@ -179,6 +314,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
     return (
       <li key={`${name}-${idx}`} className="flex items-center gap-2 py-1">
+        <span>{`Fichier ${idx+1} : `} </span>
         <a
           href={href}
           target="_blank"
@@ -195,17 +331,77 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
     );
   });
 
-return (
-      <div className="p-2">
-        {tab && tab.length > 0 ? (
-          <ul className="list-none m-0 p-0 divide-y divide-gray-100">
-            {tab}
-          </ul>
-        ) : (
-          <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
-        )}
+  return (
+    <div className="p-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="m-0 text-sm font-semibold text-gray-800">Fichiers</p>
+        <Button
+          size="small"
+          type={isFormOpen ? "default" : "primary"}
+          icon={<PlusOutlined />}
+          onClick={() => setIsFormOpen((prev) => !prev)}
+          disabled={isSubmitting}
+        >
+          {isFormOpen ? "Fermer" : "Nouveau fichier"}
+        </Button>
       </div>
-    )
 
+      {isFormOpen && (
+        <div className="mb-4 rounded border border-dashed border-gray-300 bg-white/60 p-3 shadow-sm">
+          <div className="flex flex-col gap-3">
+            <Input
+              placeholder="Descriptif du fichier"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={200}
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="text-sm"
+                onChange={handleFileChange}
+              />
+              {selectedFile && (
+                <span className="text-xs text-gray-600">
+                  Fichier : {selectedFile.name}
+                </span>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => {
+                  resetForm();
+                  setIsFormOpen(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="small"
+                type="primary"
+                icon={<UploadOutlined />}
+                loading={isSubmitting}
+                onClick={handleAddFile}
+              >
+                Ajouter
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {tab && tab.length > 0 ? (
+        <ul className="list-none m-0 p-0 divide-y divide-gray-100">
+          {tab}
+        </ul>
+      ) : (
+        <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
+      )}
+    </div>
+  );
 }
+
