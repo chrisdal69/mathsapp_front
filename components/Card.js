@@ -32,27 +32,29 @@ const CardBlock = (data) => {
   const tabList = [
     { key: "contenu", label: "Contenu" },
     { key: "fichiers", label: "Fichiers" },
-    { key: "quizz", label: "Quizz" },
+    (data.evalQuizz === 'non' || isAuthenticated && data.evalQuizz === "oui") &&{ key: "quizz", label: "Quizz" },
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
     data.video && { key: "video", label: "Vidéos" },
   ];
+ 
   const contentList = {
     contenu: <ContentBlock {...data} />,
     fichiers: <FilesBlock {...data} />,
-    quizz: <Quizz {...data} />,
   };
-
   if (data.video) {
     contentList.video = <VideoBlock {...data} />;
   }
-
   if (isAuthenticated) {
     contentList.cloud = <CloudBlock {...data}/>;
   }
-
+ if (data.evalQuizz === 'non' || isAuthenticated && data.evalQuizz === "oui") {
+    contentList.quizz = <Quizz {...data} />;
+  }
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
 
+
+  
   return (
     <Card
       title={data.titre}

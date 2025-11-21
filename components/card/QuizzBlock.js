@@ -3,7 +3,7 @@ import { Radio, Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-export default function Quizz({ num , repertoire, quizz }) {
+export default function Quizz({ num , repertoire, quizz , evalQuizz }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
