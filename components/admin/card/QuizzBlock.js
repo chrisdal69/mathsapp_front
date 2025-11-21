@@ -205,11 +205,7 @@ export default function Quizz({ num , repertoire, quizz }) {
                   style={{
                     marginBottom: 10,
                     fontWeight:"bold",
-                    color: answers[q.id]
-                      ? answers[q.id] === q.options[q.correct]
-                        ? "#52c41a"
-                        : "#ff4d4f"
-                      : undefined,
+                    color: undefined,
                   }}
                 >
                   {q.question}
@@ -226,38 +222,19 @@ export default function Quizz({ num , repertoire, quizz }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  {q.options.map((opt, i) => {
+                  {q.options.map((opt) => {
                     const sel = answers[q.id] === opt;
-                    const isOk = sel && answers[q.id] === q.options[q.correct];
-                    const isErr = sel && answers[q.id] !== q.options[q.correct];
-                    const borderColor = isOk
-                      ? "#52c41a"
-                      : isErr
-                      ? "#ff4d4f"
-                      : "transparent";
-                    const bg = isOk
-                      ? "rgba(82,196,26,0.12)"
-                      : isErr
-                      ? "rgba(255,77,79,0.12)"
-                      : "transparent";
-                    const textColor = isOk
-                      ? "#52c41a"
-                      : isErr
-                      ? "#ff4d4f"
-                      : undefined;
                     return (
                       <div
                         key={opt}
                         style={{
                           padding: "4px 8px",
                           borderRadius: 8,
-                          border: `1px solid ${borderColor}`,
-                          backgroundColor: bg,
+                          border: "1px solid transparent",
+                          backgroundColor: sel ? "rgba(0,0,0,0.05)" : "transparent",
                         }}
                       >
-                        <Radio value={opt} style={{ color: textColor }}>
-                          {opt}
-                        </Radio>
+                        <Radio value={opt}>{opt}</Radio>
                       </div>
                     );
                   })}

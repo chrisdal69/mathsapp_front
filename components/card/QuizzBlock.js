@@ -1,17 +1,23 @@
 import { useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 
-import { Radio, Button, Card, Carousel } from "antd";
+import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
+const NODE_ENV = process.env.NODE_ENV;
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+
+export default function Quizz({ num, repertoire, quizz, evalQuizz, _id, id }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const cardId = _id || id;
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
@@ -23,18 +29,67 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
     carouselRef.current?.next();
   };
 
-  // Échelle de progression dynamique (points rapprochés)
-  const DOT = 10; // diamètre du point (px)
+  // Echelle de progression dynamique (points rapproches)
+  const DOT = 10; // diametre du point (px)
   const GAP = 20; // espace entre points (px)
   const trackWidth = quizz.length * DOT + (quizz.length - 1) * GAP;
+
+  const reponsesArray = quizz.map((q) => answers[q.id]);
+  const allAnswered = reponsesArray.every((r) => r !== undefined);
 
   const handleSelect = (qid, value) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
 
+  const handleSubmit = async () => {
+    if (!cardId) {
+      messageApi.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    const reponses = quizz.map((q) => answers[q.id]);
+    const missing = reponses.findIndex((r) => r === undefined);
+    if (missing !== -1) {
+      messageApi.warning(
+        "Merci de repondre a toutes les questions avant d'envoyer."
+      );
+      setCurrent(missing);
+      carouselRef.current?.goTo(missing);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${urlFetch}/quizzs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ cardId, reponses }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        messageApi.error(
+          payload?.message || "Enregistrement des reponses impossible."
+        );
+        return;
+      }
+      messageApi.success("Reponses enregistrees.");
+    } catch (error) {
+      messageApi.error("Erreur lors de l'envoi des reponses.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const canAccess =
+    evalQuizz === "non" || (evalQuizz === "oui" && isAuthenticated);
+
   return (
     <div>
-      {evalQuizz === "non" || (isAuthenticated && evalQuizz === "oui") ? (
+      {contextHolder}
+      {evalQuizz === "attente" ? (
+        <p>Quizz en attente de validation.</p>
+      ) : canAccess ? (
         <div
           style={{
             display: "flex",
@@ -45,7 +100,7 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
             width: "100%",
           }}
         >
-          {/* Échelle de progression */}
+          {/* Echelle de progression */}
 
           <div
             style={{
@@ -70,7 +125,7 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                   transform: "translateY(-50%)",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
-                aria-label="Précédent"
+                aria-label="Precedent"
               >
                 <ChevronLeft size={18} />
               </Button>
@@ -102,12 +157,13 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                 }}
               >
                 {quizz.map((q, idx) => {
-                  const answered = Boolean(answers[q.id]);
+                  const answered = answers[q.id] !== undefined;
                   const isCurrent = idx === current;
+                  const size = answered ? DOT + 4 : DOT;
                   const bg = isCurrent
                     ? "#595959"
                     : answered
-                    ? "#52c41a"
+                    ? "#1890ff"
                     : "#d9d9d9";
                   return (
                     <div
@@ -118,15 +174,15 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                         carouselRef.current?.goTo(idx);
                       }}
                       style={{
-                        width: DOT,
-                        height: DOT,
+                        width: size,
+                        height: size,
                         borderRadius: "50%",
                         backgroundColor: bg,
                         border: "1px solid #bfbfbf",
                         boxSizing: "border-box",
                         cursor: "pointer",
                       }}
-                      aria-label={`Aller à la question ${idx + 1}`}
+                      aria-label={`Aller a la question ${idx + 1}`}
                     />
                   );
                 })}
@@ -212,11 +268,14 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                     style={{
                       marginBottom: 10,
                       fontWeight: "bold",
-                      color: answers[q.id]
-                        ? answers[q.id] === q.options[q.correct]
-                          ? "#52c41a"
-                          : "#ff4d4f"
-                        : undefined,
+                      color:
+                        evalQuizz === "non" &&
+                        Number.isInteger(q.correct) &&
+                        answers[q.id] !== undefined
+                          ? answers[q.id] === q.correct
+                            ? "#52c41a"
+                            : "#ff4d4f"
+                          : undefined,
                     }}
                   >
                     {q.question}
@@ -234,11 +293,13 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                     }}
                   >
                     {q.options.map((opt, i) => {
-                      const sel = answers[q.id] === opt;
+                      const sel = answers[q.id] === i;
+                      const showFeedback =
+                        evalQuizz === "non" && Number.isInteger(q.correct);
                       const isOk =
-                        sel && answers[q.id] === q.options[q.correct];
+                        showFeedback && sel && answers[q.id] === q.correct;
                       const isErr =
-                        sel && answers[q.id] !== q.options[q.correct];
+                        showFeedback && sel && answers[q.id] !== q.correct;
                       const borderColor = isOk
                         ? "#52c41a"
                         : isErr
@@ -248,6 +309,8 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                         ? "rgba(82,196,26,0.12)"
                         : isErr
                         ? "rgba(255,77,79,0.12)"
+                        : sel
+                        ? "rgba(0,0,0,0.05)"
                         : "transparent";
                       const textColor = isOk
                         ? "#52c41a"
@@ -264,7 +327,7 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
                             backgroundColor: bg,
                           }}
                         >
-                          <Radio value={opt} style={{ color: textColor }}>
+                          <Radio value={i} style={{ color: textColor }}>
                             {opt}
                           </Radio>
                         </div>
@@ -275,9 +338,21 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
               </div>
             ))}
           </Carousel>
+          {evalQuizz === "oui" && (
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <Button
+                type="primary"
+                onClick={handleSubmit}
+                loading={submitting}
+                disabled={submitting || !allAnswered}
+              >
+                Envoyer mes reponses
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
-        <p>Il faut être connecté</p>
+        <p>Il faut etre connecte pour acceder au quizz.</p>
       )}
     </div>
   );
