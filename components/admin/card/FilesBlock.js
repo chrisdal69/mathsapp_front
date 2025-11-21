@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Input, Select, message } from "antd";
-import { PlusOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import { Button, Input, Popconfirm, Select, Upload, message } from "antd";
+import {
+  PlusOutlined,
+  UploadOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -28,6 +35,7 @@ const ALLOWED_EXTENSIONS = [
   ".svg",
   ".webp",
 ];
+const { Dragger } = Upload;
 
 export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const dispatch = useDispatch();
@@ -39,9 +47,10 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileList, setFileList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [insertPosition, setInsertPosition] = useState("end");
-  const fileInputRef = useRef(null);
+  const [deletingKey, setDeletingKey] = useState("");
   const cardId = _id || id;
 
   useEffect(() => {
@@ -67,7 +76,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
   const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
     const e = (ext || "").toLowerCase();
-    // Python: logo bicolore officiel local
     if (e === "py") {
       return (
         <img
@@ -78,7 +86,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         />
       );
     }
-    // Word: logo officiel local (W 2013-2019)
     if (e === "doc" || e === "docx") {
       return (
         <img
@@ -89,7 +96,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         />
       );
     }
-    // PDF: tente Simple Icons (Acrobat) + fallback inline
     if (e === "pdf") {
       return (
         <BrandImg
@@ -119,7 +125,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         />
       );
     }
-    // Office: Excel / PowerPoint via Simple Icons CDN (couleurs marque)
     if (e === "xls" || e === "xlsx" || e === "csv") {
       return (
         <BrandImg
@@ -148,7 +153,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       );
     }
     if (e === "zip" || e === "rar" || e === "7z") {
-      // Dossier avec fermeture eclair (inline SVG, lisible sur fond clair)
       return (
         <svg
           viewBox="0 0 24 24"
@@ -156,18 +160,15 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           aria-label="Archive"
           className={className}
         >
-          {/* Dossier */}
           <path
             d="M3 7a2 2 0 0 1 2-2h4.5l1.5 2H21a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"
             fill="#F59E0B"
           />
           <path d="M3 9h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" fill="#FBBF24" />
-          {/* Fermeture eclair */}
           <rect x="11" y="6" width="2" height="2" rx="0.5" fill="#374151" />
           <rect x="11" y="9" width="2" height="2" rx="0.5" fill="#374151" />
           <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#374151" />
           <rect x="11" y="15" width="2" height="2" rx="0.5" fill="#374151" />
-          {/* Curseur de zip */}
           <path
             d="M11 17h2v2a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1v-2z"
             fill="#6B7280"
@@ -175,13 +176,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         </svg>
       );
     }
-    if (
-      e === "jpg" ||
-      e === "jpeg" ||
-      e === "png" ||
-      e === "gif" ||
-      e === "svg"
-    ) {
+    if (e === "jpg" || e === "jpeg" || e === "png" || e === "gif" || e === "svg") {
       return (
         <svg
           viewBox="0 0 24 24"
@@ -195,7 +190,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         </svg>
       );
     }
-    // Fallback generique
     return (
       <svg
         viewBox="0 0 24 24"
@@ -216,12 +210,10 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     if (!cardsData || !Array.isArray(cardsData.result)) {
       return;
     }
-
     const targetId = updatedCard?._id || updatedCard?.id || cardId;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const patch = updatedCard || { fichiers: fallbackFiles };
-
     const nextResult = cardsData.result.map((card) => {
       const matchById =
         targetId && (card._id === targetId || card.id === targetId);
@@ -232,48 +224,93 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         card.num === targetNum;
       return matchById || matchByNum ? { ...card, ...patch } : card;
     });
-
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
   };
 
   const resetForm = () => {
     setDescription("");
     setSelectedFile(null);
+    setFileList([]);
     setInsertPosition("end");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
-  const handleFileChange = (event) => {
-    const file = event?.target?.files?.[0];
-    if (!file) {
-      setSelectedFile(null);
-      return;
-    }
+  const handleBeforeUpload = (file) => {
     const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      message.error("Extension non autoris\u00e9e pour ce fichier.");
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      return;
+      message.error("Extension non autorisee pour ce fichier.");
+      return Upload.LIST_IGNORE;
+    }
+    if (file.size && file.size > 10 * 1024 * 1024) {
+      message.error("Fichier trop volumineux (10 Mo max).");
+      return Upload.LIST_IGNORE;
     }
     setSelectedFile(file);
+    setFileList([file]);
+    return false;
+  };
+
+  const handleUploadChange = ({ fileList: newList }) => {
+    if (!newList || newList.length === 0) {
+      setSelectedFile(null);
+      setFileList([]);
+      return;
+    }
+    const last = newList[newList.length - 1]?.originFileObj;
+    setSelectedFile(last || null);
+    setFileList(last ? [newList[newList.length - 1]] : []);
   };
 
   const buildInsertionOptions = () => {
-    const options = [{ value: "start", label: "D\u00e9but (avant le premier)" }];
+    const options = [{ value: "start", label: "Debut (avant le premier)" }];
     localFiles.forEach((file, idx) => {
       const name = file?.txt || file?.href || `fichier ${idx + 1}`;
       options.push({
         value: idx,
-        label: `Apr\u00e8s ${name}`,
+        label: `Apres ${name}`,
       });
     });
-    options.push({ value: "end", label: "Fin (apr\u00e8s le dernier)" });
+    options.push({ value: "end", label: "Fin (apres le dernier)" });
     return options;
+  };
+
+  const handleDeleteFile = async (file, key) => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const href = file?.href;
+    if (!href) {
+      message.error("Fichier invalide.");
+      return;
+    }
+    setDeletingKey(key);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ href }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(payload?.error || "Suppression impossible.");
+      }
+      const updatedCard = payload?.result;
+      const nextFiles = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : (localFiles || []).filter((f) => f?.href !== href);
+      setLocalFiles(nextFiles);
+      syncCardsStore(updatedCard, nextFiles);
+      message.success("Fichier supprime.");
+    } catch (error) {
+      console.error("Erreur suppression fichier", error);
+      message.error(error.message || "Erreur lors de la suppression.");
+    } finally {
+      setDeletingKey("");
+    }
   };
 
   const insertAt = (list, value, position) => {
@@ -310,18 +347,15 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error("Numero de tag invalide.");
       return;
     }
-
     const trimmedDescription = (description || "").trim();
     if (!trimmedDescription) {
       message.error("Le descriptif est obligatoire.");
       return;
     }
-
     if (!selectedFile) {
       message.error("Veuillez selectionner un fichier.");
       return;
     }
-
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("description", trimmedDescription);
@@ -336,16 +370,13 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         credentials: "include",
         body: formData,
       });
-
       let payload = null;
       try {
         payload = await response.json();
       } catch (_) {}
-
       if (!response.ok) {
         throw new Error(payload?.error || "Impossible d'ajouter le fichier.");
       }
-
       const updatedCard = payload?.result;
       const newEntry = {
         txt: trimmedDescription,
@@ -372,6 +403,8 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
     const href = elt?.href ? `${racine}${elt.href}` : "#";
+    const deleteKey = `${elt?.href || name}-${idx}`;
+    const isDeleting = deletingKey === deleteKey;
 
     const extFromHref = href.includes(".")
       ? href.split(".").pop().toLowerCase()
@@ -383,19 +416,39 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
     return (
       <li key={`${name}-${idx}`} className="flex items-center gap-2 py-1">
-        <span>{`Fichier ${idx+1} : `} </span>
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
-        >
-          <span className="shrink-0 text-lg leading-none">{icon}</span>
-          <span className="truncate">{name}</span>
-          {ext && (
-            <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>
-          )}
-        </a>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-w-0 flex-1 items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
+          >
+            <span className="shrink-0 text-lg leading-none">{icon}</span>
+            <span className="break-words whitespace-normal">{name}</span>
+            {ext && (
+              <span className="text-xs text-gray-500">
+                ({ext.toUpperCase()})
+              </span>
+            )}
+          </a>
+        </div>
+        {elt?.href && (
+          <Popconfirm
+            title="Supprimer ce fichier ?"
+            okText="Supprimer"
+            cancelText="Annuler"
+            icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+            okButtonProps={{ loading: isDeleting, danger: true }}
+            onConfirm={() => handleDeleteFile(elt, deleteKey)}
+          >
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              loading={isDeleting}
+            />
+          </Popconfirm>
+        )}
       </li>
     );
   });
@@ -408,66 +461,91 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           size="small"
           type={isFormOpen ? "default" : "primary"}
           icon={<PlusOutlined />}
-          onClick={() => setIsFormOpen((prev) => !prev)}
+          onClick={() =>
+            setIsFormOpen((prev) => {
+              const next = !prev;
+              if (!next) {
+                resetForm();
+              }
+              return next;
+            })
+          }
           disabled={isSubmitting}
         >
           {isFormOpen ? "Fermer" : "Nouveau fichier"}
         </Button>
       </div>
 
-      {isFormOpen && (
-        <div className="mb-4 rounded border border-dashed border-gray-300 bg-white/60 p-3 shadow-sm">
-          <div className="flex flex-col gap-3">
-            <Input
-              placeholder="Descriptif du fichier"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={200}
-            />
-            <Select
-              size="middle"
-              value={insertPosition}
-              onChange={setInsertPosition}
-              options={buildInsertionOptions()}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="text-sm"
-                onChange={handleFileChange}
-              />
-              {selectedFile && (
-                <span className="text-xs text-gray-600">
-                  Fichier : {selectedFile.name}
-                </span>
-              )}
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => {
-                  resetForm();
-                  setIsFormOpen(false);
-                }}
-                disabled={isSubmitting}
-              >
-                Annuler
-              </Button>
-              <Button
-                size="small"
-                type="primary"
-                icon={<UploadOutlined />}
-                loading={isSubmitting}
-                onClick={handleAddFile}
-              >
-                Ajouter
-              </Button>
-            </div>
+      <div
+        className={`mb-4 overflow-hidden rounded border border-dashed border-gray-300 bg-white/60 shadow-sm transition-all duration-1000 ease-in-out ${
+          isFormOpen ? "max-h-[900px] opacity-100 p-3" : "max-h-0 opacity-0 p-0 pointer-events-none"
+        }`}
+        aria-hidden={!isFormOpen}
+      >
+        <div className="relative flex flex-col gap-3">
+          <Input
+            placeholder="Descriptif du fichier"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={200}
+          />
+          <Select
+            size="middle"
+            value={insertPosition}
+            onChange={setInsertPosition}
+            options={buildInsertionOptions()}
+          />
+          <Dragger
+            name="file"
+            multiple={false}
+            beforeUpload={handleBeforeUpload}
+            onChange={handleUploadChange}
+            fileList={fileList}
+            accept={ALLOWED_EXTENSIONS.join(",")}
+            showUploadList={{ showRemoveIcon: true, showPreviewIcon: false }}
+            maxCount={1}
+            onRemove={() => {
+              setSelectedFile(null);
+              setFileList([]);
+            }}
+          >
+            <p className="ant-upload-drag-icon">
+              <UploadOutlined />
+            </p>
+            <p className="ant-upload-text">Glissez-deposez un fichier ou cliquez</p>
+            <p className="ant-upload-hint">
+              Extensions autorisees : {ALLOWED_EXTENSIONS.join(", ")} - 10 Mo max
+            </p>
+          </Dragger>
+          <div className="flex justify-end gap-2">
+            <Button
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={() => {
+                resetForm();
+                setIsFormOpen(false);
+              }}
+              disabled={isSubmitting}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="small"
+              type="primary"
+              icon={<UploadOutlined />}
+              loading={isSubmitting}
+              onClick={handleAddFile}
+            >
+              Ajouter
+            </Button>
           </div>
+          {isSubmitting && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+              <ClimbingBoxLoader color="#2563eb" size={14} speedMultiplier={1} />
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {tab && tab.length > 0 ? (
         <ul className="list-none m-0 p-0 divide-y divide-gray-100">
