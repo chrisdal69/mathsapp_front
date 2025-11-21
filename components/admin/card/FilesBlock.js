@@ -1,11 +1,33 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Input, message } from "antd";
+import { Button, Input, Select, message } from "antd";
 import { PlusOutlined, UploadOutlined, CloseOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+const ALLOWED_EXTENSIONS = [
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".csv",
+  ".txt",
+  ".md",
+  ".py",
+  ".zip",
+  ".rar",
+  ".7z",
+  ".ppt",
+  ".pptx",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".svg",
+  ".webp",
+];
 
 export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const dispatch = useDispatch();
@@ -18,6 +40,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [insertPosition, setInsertPosition] = useState("end");
   const fileInputRef = useRef(null);
   const cardId = _id || id;
 
@@ -216,6 +239,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const resetForm = () => {
     setDescription("");
     setSelectedFile(null);
+    setInsertPosition("end");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -223,7 +247,53 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
   const handleFileChange = (event) => {
     const file = event?.target?.files?.[0];
-    setSelectedFile(file || null);
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      message.error("Extension non autoris\u00e9e pour ce fichier.");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const buildInsertionOptions = () => {
+    const options = [{ value: "start", label: "D\u00e9but (avant le premier)" }];
+    localFiles.forEach((file, idx) => {
+      const name = file?.txt || file?.href || `fichier ${idx + 1}`;
+      options.push({
+        value: idx,
+        label: `Apr\u00e8s ${name}`,
+      });
+    });
+    options.push({ value: "end", label: "Fin (apr\u00e8s le dernier)" });
+    return options;
+  };
+
+  const insertAt = (list, value, position) => {
+    const arr = Array.isArray(list) ? [...list] : [];
+    if (position === "start") {
+      arr.splice(0, 0, value);
+      return arr;
+    }
+    if (position === "end" || typeof position === "undefined" || position === null) {
+      arr.push(value);
+      return arr;
+    }
+    const numeric = Number(position);
+    if (!Number.isNaN(numeric)) {
+      const clamped = Math.max(0, Math.min(arr.length, numeric + 1));
+      arr.splice(clamped, 0, value);
+      return arr;
+    }
+    arr.push(value);
+    return arr;
   };
 
   const handleAddFile = async () => {
@@ -257,6 +327,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     formData.append("description", trimmedDescription);
     formData.append("repertoire", repertoire);
     formData.append("num", `${normalizedNum}`);
+    formData.append("position", insertPosition);
 
     setIsSubmitting(true);
     try {
@@ -276,15 +347,13 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       }
 
       const updatedCard = payload?.result;
+      const newEntry = {
+        txt: trimmedDescription,
+        href: payload?.fileName || selectedFile.name,
+      };
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
-        : [
-            ...localFiles,
-            {
-              txt: trimmedDescription,
-              href: payload?.fileName || selectedFile.name,
-            },
-          ];
+        : insertAt(localFiles, newEntry, insertPosition);
 
       setLocalFiles(nextFiles);
       syncCardsStore(updatedCard, nextFiles);
@@ -355,6 +424,12 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
               onChange={(e) => setDescription(e.target.value)}
               maxLength={200}
             />
+            <Select
+              size="middle"
+              value={insertPosition}
+              onChange={setInsertPosition}
+              options={buildInsertionOptions()}
+            />
             <div className="flex flex-wrap items-center gap-3">
               <input
                 ref={fileInputRef}
@@ -404,4 +479,3 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     </div>
   );
 }
-
