@@ -53,6 +53,7 @@ const App = () => {
 
         if (response.ok) {
           dispatch(setCardsMaths(payload));
+          console.log("payload : ",payload)
         } else {
           setErrorMessage(
             payload?.error || "Erreur lors du chargement des cartes."

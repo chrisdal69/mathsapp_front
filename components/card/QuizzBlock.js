@@ -1,14 +1,17 @@
 import { useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
 import { Radio, Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-export default function Quizz({ num , repertoire, quizz , evalQuizz }) {
+export default function Quizz({ num, repertoire, quizz, evalQuizz }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
-  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
+  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
@@ -31,242 +34,251 @@ export default function Quizz({ num , repertoire, quizz , evalQuizz }) {
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
-        {/* Échelle de progression */}
-
+      {evalQuizz === "non" || (isAuthenticated && evalQuizz === "oui") ? (
         <div
           style={{
-            width: "100%",
             display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
             justifyContent: "center",
-            marginBottom: 4,
-            marginTop:14
+            alignItems: "center",
+            width: "100%",
           }}
         >
-          {current > 0 && (
-            <Button
-              type="default"
-              shape="circle"
-              onClick={handlePrev}
-              style={{
-                position: "relative",
-                top: "3px",
-                marginRight: "20px",
-                zIndex: 2,
-                background: "#fff",
-                transform: "translateY(-50%)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-              }} 
-              aria-label="Précédent"
-            >
-              <ChevronLeft size={18} />
-            </Button>
-          )}
+          {/* Échelle de progression */}
+
           <div
             style={{
-              position: "relative",
-              width: trackWidth,
-              height: 12,
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 4,
+              marginTop: 14,
             }}
           >
+            {current > 0 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handlePrev}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginRight: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Précédent"
+              >
+                <ChevronLeft size={18} />
+              </Button>
+            )}
             <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                top: "50%",
-                height: 1,
-                background: "#e5e5e5",
-                transform: "translateY(-50%)",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
-              {quizz.map((q, idx) => {
-                const answered = Boolean(answers[q.id]);
-                const isCurrent = idx === current;
-                const bg = isCurrent
-                  ? "#595959"
-                  : answered
-                  ? "#52c41a"
-                  : "#d9d9d9";
-                return (
-                  <div
-                    key={q.id}
-                    role="button"
-                    onClick={() => { setCurrent(idx); carouselRef.current?.goTo(idx); }}
-                    style={{
-                      width: DOT,
-                      height: DOT,
-                      borderRadius: "50%",
-                      backgroundColor: bg,
-                      border: "1px solid #bfbfbf",
-                      boxSizing: "border-box",
-                      cursor: "pointer",
-                    }}
-                    aria-label={`Aller à la question ${idx + 1}`}
-                  />
-                );
-              })}
-            </div>
-          </div>
-          {current < quizz.length - 1 && (
-            <Button
-              type="default"
-              shape="circle"
-              onClick={handleNext}
               style={{
                 position: "relative",
-                top: "3px",
-                marginLeft: "20px",
-                zIndex: 2,
-                background: "#fff",
-                transform: "translateY(-50%)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                width: trackWidth,
+                height: 12,
               }}
-              aria-label="Suivant"
             >
-              <ChevronRight size={18} />
-            </Button>
-          )}
-        </div>
-
-        {/* Carrousel de questions */}
-        <Carousel
-          ref={carouselRef}
-          dots
-          swipe
-          draggable
-          infinite={false}
-          beforeChange={(_, to) => setCurrent(to)}
-          afterChange={(i) => setCurrent(i)}
-          adaptiveHeight
-          className="max-w-xs sm:max-w-2xl"
-        >
-          {quizz.map((q) => (
-            <div
-              key={q.id}
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <Card
+              <div
                 style={{
-                  margin: "4px auto",
-                  width: "100%",
-                  maxWidth: "100%",
-                  textAlign: "center",
-                  padding:"0px"
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  top: "50%",
+                  height: 1,
+                  background: "#e5e5e5",
+                  transform: "translateY(-50%)",
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  height: "100%",
                 }}
               >
-                <div style={{ position: "relative", marginBottom: 0 }}>
-                  {q.image && (
+                {quizz.map((q, idx) => {
+                  const answered = Boolean(answers[q.id]);
+                  const isCurrent = idx === current;
+                  const bg = isCurrent
+                    ? "#595959"
+                    : answered
+                    ? "#52c41a"
+                    : "#d9d9d9";
+                  return (
                     <div
-                      style={{
-                        display: "inline-block",
-                        borderRadius: 8,
-                        overflow: "hidden",
-                        boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+                      key={q.id}
+                      role="button"
+                      onClick={() => {
+                        setCurrent(idx);
+                        carouselRef.current?.goTo(idx);
                       }}
-                    >
-                      <Image
-                        src={racine+q.image}
-                        alt=""
-                        width="400"
-                        height="400"
-                        style={{
-                          display: "block",
-                          margin: 0,
-                          transition: "transform 200ms ease",
-                          transform:
-                            hovered === q.id ? "scale(1.04)" : "scale(1)",
-                        }}
-                        onMouseEnter={() => setHovered(q.id)}
-                        onMouseLeave={() => setHovered(null)}
-                      />
-                    </div>
-                  )}
-                </div>
+                      style={{
+                        width: DOT,
+                        height: DOT,
+                        borderRadius: "50%",
+                        backgroundColor: bg,
+                        border: "1px solid #bfbfbf",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Aller à la question ${idx + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            {current < quizz.length - 1 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handleNext}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginLeft: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Suivant"
+              >
+                <ChevronRight size={18} />
+              </Button>
+            )}
+          </div>
 
-                <p
+          {/* Carrousel de questions */}
+          <Carousel
+            ref={carouselRef}
+            dots
+            swipe
+            draggable
+            infinite={false}
+            beforeChange={(_, to) => setCurrent(to)}
+            afterChange={(i) => setCurrent(i)}
+            adaptiveHeight
+            className="max-w-xs sm:max-w-2xl"
+          >
+            {quizz.map((q) => (
+              <div
+                key={q.id}
+                style={{ display: "flex", justifyContent: "center" }}
+              >
+                <Card
                   style={{
-                    marginBottom: 10,
-                    fontWeight:"bold",
-                    color: answers[q.id]
-                      ? answers[q.id] === q.options[q.correct]
-                        ? "#52c41a"
-                        : "#ff4d4f"
-                      : undefined,
+                    margin: "4px auto",
+                    width: "100%",
+                    maxWidth: "100%",
+                    textAlign: "center",
+                    padding: "0px",
                   }}
                 >
-                  {q.question}
-                </p>
-
-                <Radio.Group
-                  value={answers[q.id] ?? null}
-                  onChange={(e) => handleSelect(q.id, e.target.value)}
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    gap: 2,
-                    justifyContent: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {q.options.map((opt, i) => {
-                    const sel = answers[q.id] === opt;
-                    const isOk = sel && answers[q.id] === q.options[q.correct];
-                    const isErr = sel && answers[q.id] !== q.options[q.correct];
-                    const borderColor = isOk
-                      ? "#52c41a"
-                      : isErr
-                      ? "#ff4d4f"
-                      : "transparent";
-                    const bg = isOk
-                      ? "rgba(82,196,26,0.12)"
-                      : isErr
-                      ? "rgba(255,77,79,0.12)"
-                      : "transparent";
-                    const textColor = isOk
-                      ? "#52c41a"
-                      : isErr
-                      ? "#ff4d4f"
-                      : undefined;
-                    return (
+                  <div style={{ position: "relative", marginBottom: 0 }}>
+                    {q.image && (
                       <div
-                        key={opt}
                         style={{
-                          padding: "4px 8px",
+                          display: "inline-block",
                           borderRadius: 8,
-                          border: `1px solid ${borderColor}`,
-                          backgroundColor: bg,
+                          overflow: "hidden",
+                          boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                         }}
                       >
-                        <Radio value={opt} style={{ color: textColor }}>
-                          {opt}
-                        </Radio>
+                        <Image
+                          src={racine + q.image}
+                          alt=""
+                          width="400"
+                          height="400"
+                          style={{
+                            display: "block",
+                            margin: 0,
+                            transition: "transform 200ms ease",
+                            transform:
+                              hovered === q.id ? "scale(1.04)" : "scale(1)",
+                          }}
+                          onMouseEnter={() => setHovered(q.id)}
+                          onMouseLeave={() => setHovered(null)}
+                        />
                       </div>
-                    );
-                  })}
-                </Radio.Group>
-              </Card>
-            </div>
-          ))}
-        </Carousel>
-      </div>
+                    )}
+                  </div>
+
+                  <p
+                    style={{
+                      marginBottom: 10,
+                      fontWeight: "bold",
+                      color: answers[q.id]
+                        ? answers[q.id] === q.options[q.correct]
+                          ? "#52c41a"
+                          : "#ff4d4f"
+                        : undefined,
+                    }}
+                  >
+                    {q.question}
+                  </p>
+
+                  <Radio.Group
+                    value={answers[q.id] ?? null}
+                    onChange={(e) => handleSelect(q.id, e.target.value)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 2,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {q.options.map((opt, i) => {
+                      const sel = answers[q.id] === opt;
+                      const isOk =
+                        sel && answers[q.id] === q.options[q.correct];
+                      const isErr =
+                        sel && answers[q.id] !== q.options[q.correct];
+                      const borderColor = isOk
+                        ? "#52c41a"
+                        : isErr
+                        ? "#ff4d4f"
+                        : "transparent";
+                      const bg = isOk
+                        ? "rgba(82,196,26,0.12)"
+                        : isErr
+                        ? "rgba(255,77,79,0.12)"
+                        : "transparent";
+                      const textColor = isOk
+                        ? "#52c41a"
+                        : isErr
+                        ? "#ff4d4f"
+                        : undefined;
+                      return (
+                        <div
+                          key={opt}
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: 8,
+                            border: `1px solid ${borderColor}`,
+                            backgroundColor: bg,
+                          }}
+                        >
+                          <Radio value={opt} style={{ color: textColor }}>
+                            {opt}
+                          </Radio>
+                        </div>
+                      );
+                    })}
+                  </Radio.Group>
+                </Card>
+              </div>
+            ))}
+          </Carousel>
+        </div>
+      ) : (
+        <p>Il faut être connecté</p>
+      )}
     </div>
   );
 }
