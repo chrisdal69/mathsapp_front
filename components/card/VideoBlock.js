@@ -53,16 +53,26 @@ export default function Video({
   maxWidth = "800px",
   title = "Video",
 }) {
-  const urls = useMemo(() => {
-    if (Array.isArray(video)) {
-      return video
-        .map((u) => (typeof u === "string" ? u.trim() : u))
-        .filter((u) => u && !isFalsyString(String(u)));
-    }
-    return [];
+  const slides = useMemo(() => {
+    if (!Array.isArray(video)) return [];
+    return video
+      .map((entry) => {
+        if (typeof entry === "string") {
+          const href = entry.trim();
+          if (isFalsyString(href)) return null;
+          return { href: processEmbedUrl(href) };
+        }
+        if (entry && typeof entry === "object") {
+          const rawHref = entry.href || entry.url || "";
+          if (isFalsyString(String(rawHref))) return null;
+          return { ...entry, href: processEmbedUrl(rawHref) };
+        }
+        return null;
+      })
+      .filter(Boolean);
   }, [video]);
   // Aucun URL exploitable => hauteur nulle
-  if (!urls.length) {
+  if (!slides.length) {
     return (
       <div
         className={className}
@@ -83,30 +93,29 @@ export default function Video({
 
   const DOT = 10;
   const GAP = 20;
-  const trackWidth = urls.length * DOT + (urls.length - 1) * GAP;
+  const trackWidth = slides.length * DOT + (slides.length - 1) * GAP;
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
     carouselRef.current?.prev();
   };
   const handleNext = () => {
-    setCurrent((c) => Math.min(urls.length - 1, c + 1));
+    setCurrent((c) => Math.min(slides.length - 1, c + 1));
     carouselRef.current?.next();
   };
 
-  const processedUrls = useMemo(() => urls.map(processEmbedUrl), [urls]);
   const [loaded, setLoaded] = useState([]);
 
   useEffect(() => {
     // reset loaded flags when url list changes
-    setLoaded(Array(processedUrls.length).fill(false));
-  }, [processedUrls]);
+    setLoaded(Array(slides.length).fill(false));
+  }, [slides]);
 
   const pauseAt = (index) => {
+    const slide = slides[index];
     const iframe = iframeRefs.current[index];
 
-    //const url = processedUrls[index];
-    const url = processedUrls[index].href;
+    const url = slide?.href;
 
     if (!iframe || !iframe.contentWindow || !url) return;
     const lower = url.toLowerCase();
@@ -182,7 +191,7 @@ export default function Video({
               height: "100%",
             }}
           >
-            {urls.map((_, idx) => {
+            {slides.map((_, idx) => {
               const isCurrent = idx === current;
               const bg = isCurrent ? "#595959" : "#d9d9d9";
               return (
@@ -209,7 +218,7 @@ export default function Video({
           </div>
         </div>
 
-        {current < urls.length - 1 && (
+        {current < slides.length - 1 && (
           <Button
             type="default"
             shape="circle"
@@ -243,69 +252,72 @@ export default function Video({
         afterChange={(i) => setCurrent(i)}
         adaptiveHeight
       >
-        {processedUrls.map((url, idx) => (
-          <div
-            key={idx}
-            className="vb-slide"
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              width: "100%",
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            <p className="text-center mb-2">{url.txt}</p>
+        {slides.map((slide, idx) => {
+          const label = slide.txt || slide.label;
+          return (
             <div
-              className="vb-inner"
+              key={idx}
+              className="vb-slide"
               style={{
-                position: "relative",
+                display: "flex",
+                justifyContent: "center",
                 width: "100%",
-                paddingTop: `${paddingTop}%`,
+                padding: 0,
                 margin: 0,
               }}
             >
-              {!loaded[idx] && (
-                <div
+              {label ? <p className="text-center mb-2">{label}</p> : null}
+              <div
+                className="vb-inner"
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  paddingTop: `${paddingTop}%`,
+                  margin: 0,
+                }}
+              >
+                {!loaded[idx] && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(255,255,255,0.85)",
+                      zIndex: 2,
+                    }}
+                  >
+                    <ClimbingBoxLoader color="#6C6C6C" size={11} />
+                  </div>
+                )}
+                <iframe
+                  ref={(el) => (iframeRefs.current[idx] = el)}
+                  src={slide.href}
+                  title={`${title} ${idx + 1}`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  onLoad={() => {
+                    setLoaded((prev) => {
+                      const next = prev.slice();
+                      next[idx] = true;
+                      return next;
+                    });
+                  }}
                   style={{
                     position: "absolute",
                     inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(255,255,255,0.85)",
-                    zIndex: 2,
+                    width: "100%",
+                    height: "100%",
+                    border: 0,
                   }}
-                >
-                  <ClimbingBoxLoader color="#6C6C6C" size={11} />
-                </div>
-              )}
-              <iframe
-                ref={(el) => (iframeRefs.current[idx] = el)}
-                src={url.href}
-                title={`${title} ${idx + 1}`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-                onLoad={() => {
-                  setLoaded((prev) => {
-                    const next = prev.slice();
-                    next[idx] = true;
-                    return next;
-                  });
-                }}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  border: 0,
-                }}
-              />
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </Carousel>
       <style jsx>{`
         @media (max-width: 640px) {
