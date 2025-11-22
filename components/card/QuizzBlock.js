@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 import { Radio, Button, Card, Carousel, message } from "antd";
@@ -8,12 +8,23 @@ import Image from "next/image";
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
-export default function Quizz({ num, repertoire, quizz, evalQuizz, _id, id }) {
+export default function Quizz({
+  num,
+  repertoire,
+  quizz,
+  evalQuizz,
+  resultatQuizz,
+  _id,
+  id,
+}) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [scoreMessage, setScoreMessage] = useState("");
+  const [historyMessage, setHistoryMessage] = useState("");
+  const [hasHistory, setHasHistory] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -40,6 +51,50 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz, _id, id }) {
   const handleSelect = (qid, value) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
+
+  useEffect(() => {
+    if (evalQuizz !== "oui" || !cardId || !isAuthenticated) return;
+    let cancelled = false;
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(
+          `${urlFetch}/quizzs/historique?cardId=${cardId}`,
+          { credentials: "include" }
+        );
+        const payload = await res.json();
+        if (cancelled) return;
+        if (res.ok && payload?.alreadyDone) {
+          const dateStr = payload.date
+            ? new Date(payload.date).toLocaleString("fr-FR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              })
+            : "";
+          setHistoryMessage(
+            dateStr ? `Quizz déjà soumis le ${dateStr}.` : "Quizz déjà soumis."
+          );
+          if (
+            resultatQuizz &&
+            payload.correctCount !== undefined &&
+            payload.totalQuestions !== undefined
+          ) {
+            setScoreMessage(
+              `${payload.correctCount} reponses correctes sur ${payload.totalQuestions}.`
+            );
+          }
+          setHasHistory(true);
+        }
+      } catch (error) {
+        // en cas d'erreur, on laisse l'utilisateur tenter
+      }
+    };
+
+    fetchHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [evalQuizz, cardId, isAuthenticated, resultatQuizz]);
 
   const handleSubmit = async () => {
     if (!cardId) {
@@ -74,6 +129,31 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz, _id, id }) {
         return;
       }
       messageApi.success("Reponses enregistrees.");
+      if (payload?.alreadyDone && payload.correctCount !== undefined) {
+        setScoreMessage(
+          `Quizz deja traite : ${payload.correctCount} reponses correctes sur ${payload.totalQuestions}.`
+        );
+      } else if (
+        resultatQuizz &&
+        payload?.correctCount !== undefined &&
+        payload?.totalQuestions !== undefined
+      ) {
+        setScoreMessage(
+          `${payload.correctCount} reponses correctes sur ${payload.totalQuestions}.`
+        );
+      } else {
+        setScoreMessage("");
+      }
+      if (payload?.date) {
+        const dateStr = new Date(payload.date).toLocaleString("fr-FR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+        setHistoryMessage(`Quizz soumis le ${dateStr}.`);
+      } else {
+        setHistoryMessage("Quizz soumis.");
+      }
+      setHasHistory(true);
     } catch (error) {
       messageApi.error("Erreur lors de l'envoi des reponses.");
     } finally {
@@ -340,14 +420,22 @@ export default function Quizz({ num, repertoire, quizz, evalQuizz, _id, id }) {
           </Carousel>
           {evalQuizz === "oui" && (
             <div style={{ marginTop: 16, textAlign: "center" }}>
-              <Button
-                type="primary"
-                onClick={handleSubmit}
-                loading={submitting}
-                disabled={submitting || !allAnswered}
-              >
-                Envoyer mes reponses
-              </Button>
+              {!hasHistory && (
+                <Button
+                  type="primary"
+                  onClick={handleSubmit}
+                  loading={submitting}
+                  disabled={submitting || !allAnswered}
+                >
+                  Envoyer mes reponses
+                </Button>
+              )}
+              {historyMessage && (
+                <p style={{ marginTop: 8 }}>{historyMessage}</p>
+              )}
+              {scoreMessage && (
+                <p style={{ marginTop: 4 }}>{scoreMessage}</p>
+              )}
             </div>
           )}
         </div>
