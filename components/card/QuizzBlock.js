@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -25,6 +26,7 @@ export default function Quizz({
   const [scoreMessage, setScoreMessage] = useState("");
   const [historyMessage, setHistoryMessage] = useState("");
   const [hasHistory, setHasHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -58,6 +60,7 @@ export default function Quizz({
 
     const fetchHistory = async () => {
       try {
+        setHistoryLoading(true);
         const res = await fetch(
           `${urlFetch}/quizzs/historique?cardId=${cardId}`,
           { credentials: "include" }
@@ -87,6 +90,10 @@ export default function Quizz({
         }
       } catch (error) {
         // en cas d'erreur, on laisse l'utilisateur tenter
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
       }
     };
 
@@ -163,6 +170,7 @@ export default function Quizz({
 
   const canAccess =
     evalQuizz === "non" || (evalQuizz === "oui" && isAuthenticated);
+  const showOverlay = submitting || historyLoading;
 
   return (
     <div>
@@ -178,8 +186,24 @@ export default function Quizz({
             justifyContent: "center",
             alignItems: "center",
             width: "100%",
+            position: "relative",
           }}
         >
+          {showOverlay && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(255,255,255,0.7)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+              }}
+            >
+              <ClimbingBoxLoader color="#6C6C6C" size={12} />
+            </div>
+          )}
           {/* Echelle de progression */}
 
           <div
@@ -420,7 +444,7 @@ export default function Quizz({
           </Carousel>
           {evalQuizz === "oui" && (
             <div style={{ marginTop: 16, textAlign: "center" }}>
-              {!hasHistory && (
+              {!hasHistory && !historyLoading && (
                 <Button
                   type="primary"
                   onClick={handleSubmit}
