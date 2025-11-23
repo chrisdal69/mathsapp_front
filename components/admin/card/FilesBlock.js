@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Popconfirm, Select, Upload, message } from "antd";
+import { Button, Input, Popconfirm, Popover, Select, Upload, message } from "antd";
 import {
   PlusOutlined,
   UploadOutlined,
   CloseOutlined,
   DeleteOutlined,
   QuestionCircleOutlined,
+  EditOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
@@ -37,13 +39,106 @@ const ALLOWED_EXTENSIONS = [
 ];
 const { Dragger } = Upload;
 
+const BrandImg = ({ src, alt, title, className, fallback }) => {
+  const [err, setErr] = useState(false);
+  if (err && fallback) {
+    return typeof fallback === "function" ? fallback() : fallback;
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      title={title || alt}
+      className={className}
+      onError={() => setErr(true)}
+    />
+  );
+};
+
+const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
+  const e = (ext || "").toLowerCase();
+  if (e === "py") {
+    return <img src="/icons/python.svg" alt="Python" title="Python" className={className} />;
+  }
+  if (e === "doc" || e === "docx") {
+    return <img src="/icons/word.svg" alt="Microsoft Word" title="Microsoft Word" className={className} />;
+  }
+  if (e === "pdf") {
+    return (
+      <BrandImg
+        src={`https://cdn.simpleicons.org/adobeacrobatreader/FF0000`}
+        alt="PDF"
+        className={className}
+        fallback={() => (
+          <svg viewBox="0 0 24 24" role="img" aria-label="PDF" className={className}>
+            <rect x="2" y="2" width="20" height="20" rx="3" fill="#E11D2A" />
+            <text x="12" y="15" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">
+              PDF
+            </text>
+          </svg>
+        )}
+      />
+    );
+  }
+  if (e === "xls" || e === "xlsx" || e === "csv") {
+    return (
+      <BrandImg
+        src={`https://cdn.simpleicons.org/microsoftexcel/107C41`}
+        alt="Microsoft Excel"
+        className={className}
+      />
+    );
+  }
+  if (e === "ppt" || e === "pptx") {
+    return (
+      <BrandImg
+        src={`https://cdn.simpleicons.org/microsoftpowerpoint/D24726`}
+        alt="Microsoft PowerPoint"
+        className={className}
+      />
+    );
+  }
+  if (e === "md") {
+    return (
+      <BrandImg src={`https://cdn.simpleicons.org/markdown/000000`} alt="Markdown" className={className} />
+    );
+  }
+  if (e === "zip" || e === "rar" || e === "7z") {
+    return (
+      <svg viewBox="0 0 24 24" role="img" aria-label="Archive" className={className}>
+        <path d="M3 7a2 2 0 0 1 2-2h4.5l1.5 2H21a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z" fill="#F59E0B" />
+        <path d="M3 9h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" fill="#FBBF24" />
+        <rect x="11" y="6" width="2" height="2" rx="0.5" fill="#374151" />
+        <rect x="11" y="9" width="2" height="2" rx="0.5" fill="#374151" />
+        <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#374151" />
+        <rect x="11" y="15" width="2" height="2" rx="0.5" fill="#374151" />
+        <path d="M11 17h2v2a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1v-2z" fill="#6B7280" />
+      </svg>
+    );
+  }
+  if (e === "jpg" || e === "jpeg" || e === "png" || e === "gif" || e === "svg") {
+    return (
+      <svg viewBox="0 0 24 24" role="img" aria-label="Image" className={className}>
+        <rect x="2" y="2" width="20" height="20" rx="3" fill="#6D28D9" />
+        <circle cx="9" cy="9" r="2" fill="#fff" />
+        <path d="M4 18l5-5 3 3 3-3 5 5H4z" fill="#fff" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" role="img" aria-label="Fichier" className={className}>
+      <rect x="4" y="3" width="14" height="18" rx="2" fill="#9CA3AF" />
+      <path d="M14 3v4a1 1 0 001 1h4" fill="#9CA3AF" />
+      <path d="M14 3l5 5" stroke="#6B7280" strokeWidth="1" />
+    </svg>
+  );
+};
+
 export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
 
-  const [localFiles, setLocalFiles] = useState(
-    Array.isArray(fichiers) ? fichiers : []
-  );
+  const [localFiles, setLocalFiles] = useState(Array.isArray(fichiers) ? fichiers : []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -51,180 +146,36 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [insertPosition, setInsertPosition] = useState("end");
   const [deletingKey, setDeletingKey] = useState("");
+  const [editingKey, setEditingKey] = useState("");
+  const [editingValue, setEditingValue] = useState("");
+  const [editingLoadingKey, setEditingLoadingKey] = useState("");
   const cardId = _id || id;
 
   useEffect(() => {
     setLocalFiles(Array.isArray(fichiers) ? fichiers : []);
   }, [fichiers]);
 
-  // Icones officielles via Simple Icons CDN (logos officiels)
-  const BrandImg = ({ src, alt, title, className, fallback }) => {
-    const [err, setErr] = useState(false);
-    if (err && fallback) {
-      return typeof fallback === "function" ? fallback() : fallback;
-    }
-    return (
-      <img
-        src={src}
-        alt={alt}
-        title={title || alt}
-        className={className}
-        onError={() => setErr(true)}
-      />
-    );
-  };
-
-  const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
-    const e = (ext || "").toLowerCase();
-    if (e === "py") {
-      return (
-        <img
-          src="/icons/python.svg"
-          alt="Python"
-          title="Python"
-          className={className}
-        />
-      );
-    }
-    if (e === "doc" || e === "docx") {
-      return (
-        <img
-          src="/icons/word.svg"
-          alt="Microsoft Word"
-          title="Microsoft Word"
-          className={className}
-        />
-      );
-    }
-    if (e === "pdf") {
-      return (
-        <BrandImg
-          src={`https://cdn.simpleicons.org/adobeacrobatreader/FF0000`}
-          alt="PDF"
-          className={className}
-          fallback={() => (
-            <svg
-              viewBox="0 0 24 24"
-              role="img"
-              aria-label="PDF"
-              className={className}
-            >
-              <rect x="2" y="2" width="20" height="20" rx="3" fill="#E11D2A" />
-              <text
-                x="12"
-                y="15"
-                textAnchor="middle"
-                fontSize="10"
-                fontWeight="700"
-                fill="#fff"
-              >
-                PDF
-              </text>
-            </svg>
-          )}
-        />
-      );
-    }
-    if (e === "xls" || e === "xlsx" || e === "csv") {
-      return (
-        <BrandImg
-          src={`https://cdn.simpleicons.org/microsoftexcel/107C41`}
-          alt="Microsoft Excel"
-          className={className}
-        />
-      );
-    }
-    if (e === "ppt" || e === "pptx") {
-      return (
-        <BrandImg
-          src={`https://cdn.simpleicons.org/microsoftpowerpoint/D24726`}
-          alt="Microsoft PowerPoint"
-          className={className}
-        />
-      );
-    }
-    if (e === "md") {
-      return (
-        <BrandImg
-          src={`https://cdn.simpleicons.org/markdown/000000`}
-          alt="Markdown"
-          className={className}
-        />
-      );
-    }
-    if (e === "zip" || e === "rar" || e === "7z") {
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          role="img"
-          aria-label="Archive"
-          className={className}
-        >
-          <path
-            d="M3 7a2 2 0 0 1 2-2h4.5l1.5 2H21a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"
-            fill="#F59E0B"
-          />
-          <path d="M3 9h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" fill="#FBBF24" />
-          <rect x="11" y="6" width="2" height="2" rx="0.5" fill="#374151" />
-          <rect x="11" y="9" width="2" height="2" rx="0.5" fill="#374151" />
-          <rect x="11" y="12" width="2" height="2" rx="0.5" fill="#374151" />
-          <rect x="11" y="15" width="2" height="2" rx="0.5" fill="#374151" />
-          <path
-            d="M11 17h2v2a1 1 0 0 1-1 1h0a1 1 0 0 1-1-1v-2z"
-            fill="#6B7280"
-          />
-        </svg>
-      );
-    }
-    if (e === "jpg" || e === "jpeg" || e === "png" || e === "gif" || e === "svg") {
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          role="img"
-          aria-label="Image"
-          className={className}
-        >
-          <rect x="2" y="2" width="20" height="20" rx="3" fill="#6D28D9" />
-          <circle cx="9" cy="9" r="2" fill="#fff" />
-          <path d="M4 18l5-5 3 3 3-3 5 5H4z" fill="#fff" />
-        </svg>
-      );
-    }
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        role="img"
-        aria-label="Fichier"
-        className={className}
-      >
-        <rect x="4" y="3" width="14" height="18" rx="2" fill="#9CA3AF" />
-        <path d="M14 3v4a1 1 0 001 1h4" fill="#9CA3AF" />
-        <path d="M14 3l5 5" stroke="#6B7280" strokeWidth="1" />
-      </svg>
-    );
-  };
-
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
 
   const syncCardsStore = (updatedCard, fallbackFiles) => {
-    if (!cardsData || !Array.isArray(cardsData.result)) {
-      return;
-    }
+    if (!cardsData || !Array.isArray(cardsData.result)) return;
     const targetId = updatedCard?._id || updatedCard?.id || cardId;
-    const targetNum =
-      typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const targetNum = typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const targetRepertoire = updatedCard?.repertoire || repertoire;
     const patch = updatedCard || { fichiers: fallbackFiles };
     const nextResult = cardsData.result.map((card) => {
-      const matchById =
-        targetId && (card._id === targetId || card.id === targetId);
-      const matchByNum =
+      const matchById = targetId && (card._id === targetId || card.id === targetId);
+      const matchByComposite =
         !matchById &&
         typeof targetNum !== "undefined" &&
         typeof card.num !== "undefined" &&
-        card.num === targetNum;
-      return matchById || matchByNum ? { ...card, ...patch } : card;
+        card.num === targetNum &&
+        targetRepertoire &&
+        card.repertoire === targetRepertoire;
+      return matchById || matchByComposite ? { ...card, ...patch } : card;
     });
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
+
   };
 
   const resetForm = () => {
@@ -264,10 +215,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const options = [{ value: "start", label: "Debut (avant le premier)" }];
     localFiles.forEach((file, idx) => {
       const name = file?.txt || file?.href || `fichier ${idx + 1}`;
-      options.push({
-        value: idx,
-        label: `Apres ${name}`,
-      });
+      options.push({ value: idx, label: `Apres ${name}` });
     });
     options.push({ value: "end", label: "Fin (apres le dernier)" });
     return options;
@@ -310,6 +258,53 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error(error.message || "Erreur lors de la suppression.");
     } finally {
       setDeletingKey("");
+    }
+  };
+
+  const handleEditFile = async (file, key) => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const href = file?.href;
+    if (!href) {
+      message.error("Fichier invalide.");
+      return;
+    }
+    const trimmed = (editingValue || "").trim();
+    if (!trimmed) {
+      message.error("Le descriptif est obligatoire.");
+      return;
+    }
+    setEditingLoadingKey(key);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ href, txt: trimmed }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(payload?.error || "Mise a jour impossible.");
+      }
+      const updatedCard = payload?.result;
+      const nextFiles = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : (localFiles || []).map((f) => (f?.href === href ? { ...f, txt: trimmed } : f));
+      setLocalFiles(nextFiles);
+      syncCardsStore(updatedCard, nextFiles);
+      message.success("Descriptif mis a jour.");
+      setEditingKey("");
+      setEditingValue("");
+    } catch (error) {
+      console.error("Erreur edition fichier", error);
+      message.error(error.message || "Erreur lors de la mise a jour.");
+    } finally {
+      setEditingLoadingKey("");
     }
   };
 
@@ -356,6 +351,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error("Veuillez selectionner un fichier.");
       return;
     }
+
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("description", trimmedDescription);
@@ -378,10 +374,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         throw new Error(payload?.error || "Impossible d'ajouter le fichier.");
       }
       const updatedCard = payload?.result;
-      const newEntry = {
-        txt: trimmedDescription,
-        href: payload?.fileName || selectedFile.name,
-      };
+      const newEntry = { txt: trimmedDescription, href: payload?.fileName || selectedFile.name };
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
         : insertAt(localFiles, newEntry, insertPosition);
@@ -400,22 +393,19 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   };
 
   const tab = (localFiles || []).map((elt, idx) => {
-    const name =
-      elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
+    const name = elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
     const href = elt?.href ? `${racine}${elt.href}` : "#";
-    const deleteKey = `${elt?.href || name}-${idx}`;
+    const deleteKey = `${elt?.href || idx}`;
     const isDeleting = deletingKey === deleteKey;
+    const isEditingOpen = editingKey === deleteKey;
+    const isEditingLoading = editingLoadingKey === deleteKey;
 
-    const extFromHref = href.includes(".")
-      ? href.split(".").pop().toLowerCase()
-      : "";
-    const extFromName = name.includes(".")
-      ? name.split(".").pop().toLowerCase()
-      : "";
+    const extFromHref = href.includes(".") ? href.split(".").pop().toLowerCase() : "";
+    const extFromName = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
     const ext = (extFromHref || extFromName || "").split(/[?#]/)[0];
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
     return (
-      <li key={`${name}-${idx}`} className="flex items-center gap-2 py-1">
+      <li key={`${elt?.href || idx}`} className="flex items-center gap-2 py-1">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href={href}
@@ -425,13 +415,56 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           >
             <span className="shrink-0 text-lg leading-none">{icon}</span>
             <span className="break-words whitespace-normal">{name}</span>
-            {ext && (
-              <span className="text-xs text-gray-500">
-                ({ext.toUpperCase()})
-              </span>
-            )}
+            {ext && <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>}
           </a>
         </div>
+        {elt?.href && (
+          <Popover
+            trigger="click"
+            open={isEditingOpen}
+            onOpenChange={(visible) => {
+              if (visible) {
+                setEditingKey(deleteKey);
+                setEditingValue(elt?.txt || "");
+              } else if (isEditingOpen) {
+                setEditingKey("");
+                setEditingValue("");
+              }
+            }}
+            content={
+              <div className="flex w-64 flex-col gap-2">
+                <Input
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  placeholder="Modifier le descriptif"
+                  maxLength={200}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setEditingKey("");
+                      setEditingValue("");
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    loading={isEditingLoading}
+                    onClick={() => handleEditFile(elt, deleteKey)}
+                  >
+                    Valider
+                  </Button>
+                </div>
+              </div>
+            }
+          >
+            <Button size="small" icon={<EditOutlined />} />
+          </Popover>
+        )}
         {elt?.href && (
           <Popconfirm
             title="Supprimer ce fichier ?"
@@ -441,12 +474,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             okButtonProps={{ loading: isDeleting, danger: true }}
             onConfirm={() => handleDeleteFile(elt, deleteKey)}
           >
-            <Button
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={isDeleting}
-            />
+            <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting} />
           </Popconfirm>
         )}
       </li>
@@ -548,9 +576,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       </div>
 
       {tab && tab.length > 0 ? (
-        <ul className="list-none m-0 p-0 divide-y divide-gray-100">
-          {tab}
-        </ul>
+        <ul className="list-none m-0 p-0 divide-y divide-gray-100">{tab}</ul>
       ) : (
         <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
       )}
