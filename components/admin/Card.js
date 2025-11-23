@@ -8,6 +8,7 @@ import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
+import { VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from "@ant-design/icons";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -18,6 +19,7 @@ const CardBlock = (data) => {
   const [titlePopoverOpen, setTitlePopoverOpen] = useState(false);
   const [pendingTitle, setPendingTitle] = useState(data.titre || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
@@ -202,6 +204,19 @@ const CardBlock = (data) => {
               className="flex items-center"
             />
           </Popover>
+          <Button
+            size="small"
+            type="default"
+            onClick={() => { setActiveTabKey("contenu"); setIsCollapsed((prev) => !prev); }}
+            title={isCollapsed ? "Déplier" : "Replier"}
+            icon={
+              isCollapsed ? (
+                <VerticalAlignBottomOutlined />
+              ) : (
+                <VerticalAlignTopOutlined />
+              )
+            }
+          />
         </div>
       }
       style={{ width: "100%" }}
@@ -210,12 +225,11 @@ const CardBlock = (data) => {
       onTabChange={onTabChange}
       className="shadow-md hover:shadow-xl transition-shadow duration-200"
       tabProps={{ size: "middle" }}
-      styles={
-        iscontenu
-          ? { body: { padding: 1 } }
-          : isvideo
-          ? { body: { padding: 0 } }
-          : undefined
+      styles={{ body: { padding: 8 } }}
+      bodyStyle={
+        isCollapsed
+          ? { maxHeight: 0, overflow: "hidden", padding: 8, transition: "max-height 1s ease, padding 0.3s ease" }
+          : { maxHeight: 2000, padding: 8, transition: "max-height 1s ease, padding 0.3s ease" }
       }
     >
       {contentList[activeTabKey]}
