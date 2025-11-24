@@ -207,7 +207,7 @@ const CardBlock = (data) => {
           <Button
             size="small"
             type="default"
-            onClick={() => { setActiveTabKey("contenu"); setIsCollapsed((prev) => !prev); }}
+            onClick={() => { if (!isCollapsed) { setActiveTabKey("contenu"); } setIsCollapsed((prev) => !prev); }}
             title={isCollapsed ? "Déplier" : "Replier"}
             icon={
               isCollapsed ? (
