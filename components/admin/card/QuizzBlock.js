@@ -264,16 +264,23 @@ const trackWidth =
     }
   };
 
-  const handleSaveQuestion = async () => {
-    if (!editQuestion.id) return;
-    const value = (editQuestion.value || "").trim();
+  const handleSaveQuestion = async (qid, valueOverride) => {
+    const targetId = qid || editQuestion.id;
+    if (!targetId) return;
+    const fallbackQuestion =
+      quizzList.find((q) => q.id === targetId)?.question || "";
+    const value = (
+      valueOverride ??
+      editQuestion.value ??
+      fallbackQuestion
+    ).trim();
     const next = quizzList.map((q) =>
-      q.id === editQuestion.id ? { ...q, question: value } : q
+      q.id === targetId ? { ...q, question: value } : q
     );
     const ok = await persistQuizz(
       next,
       { successMessage: "Intitule mis a jour." },
-      getActionKey("question", editQuestion.id)
+      getActionKey("question", targetId)
     );
     if (ok) {
       setEditQuestion({ id: null, value: "" });
@@ -695,83 +702,57 @@ const trackWidth =
             adaptiveHeight
             className="w-full"
           >
-            {quizzList.map((q, idx) => (
-              <div
-                key={q.id || idx}
-                style={{ display: "flex", justifyContent: "center", width: "100%" }}
-              >
-                <Card
+            {quizzList.map((q, idx) => {
+              const questionValue =
+                editQuestion.id === q.id ? editQuestion.value : q.question || "";
+              return (
+                <div
+                  key={q.id || idx}
                   style={{
-                    margin: "8px auto",
+                    display: "flex",
+                    justifyContent: "center",
                     width: "100%",
-                    maxWidth: "1100px",
-                    minWidth: "280px",
-                    padding: "8px",
                   }}
-                  title={
-                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                        <span className="font-semibold">
-                          Question {idx + 1} ({q.id || `q${idx + 1}`}) :
-                        </span>
-                        <p className="rounded border border-gray-200 bg-gray-50 p-2 text-sm font-light sm:min-w-[240px] sm:max-w-[600px]">
-                          {q.question || "Aucun intitule defini."}
-                        </p>
-                      </div>
-                      <Popover
-                        trigger="click"
-                        open={editQuestion.id === q.id}
-                        onOpenChange={(visible) => {
-                          if (visible) {
-                            setEditQuestion({ id: q.id, value: q.question || "" });
-                          } else if (editQuestion.id === q.id) {
-                            setEditQuestion({ id: null, value: "" });
-                          }
-                        }}
-                        content={
-                          <div className="w-72 space-y-2">
-                            <Input.TextArea
-                              autoFocus
-                              rows={3}
-                              value={editQuestion.value}
-                              maxLength={500}
-                              onChange={(e) =>
-                                setEditQuestion((prev) => ({
-                                  ...prev,
-                                  value: e.target.value,
-                                }))
-                              }
-                            />
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="small"
-                                icon={<CloseOutlined />}
-                                onClick={() =>
-                                  setEditQuestion({ id: null, value: "" })
-                                }
-                              >
-                                Annuler
-                              </Button>
-                              <Button
-                                size="small"
-                                type="primary"
-                                icon={<CheckOutlined />}
-                                loading={isAction(
-                                  getActionKey("question", q.id)
-                                )}
-                                onClick={handleSaveQuestion}
-                              >
-                                Valider
-                              </Button>
-                            </div>
-                          </div>
-                        }
-                      >
-                        <Button size="small" icon={<EditOutlined />} />
-                      </Popover>
-                    </div>
-                  }
                 >
+                  <Card
+                    style={{
+                      margin: "8px auto",
+                      width: "100%",
+                      maxWidth: "1100px",
+                      minWidth: "280px",
+                      padding: "8px",
+                    }}
+                    title={
+                      <div className="flex w-full flex-col gap-2">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Question {idx + 1} ({q.id || `q${idx + 1}`}) :
+                        </label>
+                        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start sm:gap-3">
+                          <Input.TextArea
+                            autoSize={{ minRows: 2, maxRows: 4 }}
+                            className="!font-normal"
+                            value={questionValue}
+                            maxLength={500}
+                            placeholder="Saisir l'intitule de la question"
+                            onChange={(e) =>
+                              setEditQuestion({ id: q.id, value: e.target.value })
+                            }
+                          />
+                          <Button
+                            type="primary"
+                            icon={<EditOutlined />}
+                            className="sm:self-start sm:shrink-0"
+                            loading={isAction(getActionKey("question", q.id))}
+                            onClick={() =>
+                              handleSaveQuestion(q.id, questionValue)
+                            }
+                          >
+                            Modifier
+                          </Button>
+                        </div>
+                      </div>
+                    }
+                  >
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
                       <div className="space-y-2">
@@ -1052,7 +1033,8 @@ const trackWidth =
                   </div>
                 </Card>
               </div>
-            ))}
+            );
+          })}
           </Carousel>
         </div>
       </div>
