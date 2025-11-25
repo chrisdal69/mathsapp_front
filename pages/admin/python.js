@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Layout, theme } from "antd";
+import React, { useEffect, useState, useCallback } from "react";
+import { Layout, theme, Button, message } from "antd";
 import Card from "../../components/admin/Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
@@ -26,59 +26,79 @@ export default function PythonPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [expandedKey, setExpandedKey] = useState(null);
 
   useEffect(() => {
     if (!isAdmin) {
-      router.replace("/python"); // bloque l'accès aux non-admin
+      router.replace("/python"); // bloque l'acces aux non-admin
     }
   }, [isAdmin, router]);
 
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch(`${urlFetch}/cards/admin`, {
+        credentials: "include",
+      });
+      const payload = await response.json();
+
+      if (response.ok) {
+        dispatch(setCardsMaths({ ...payload, __source: "admin" }));
+      } else {
+        setErrorMessage(
+          payload?.error || "Erreur lors du chargement des cartes."
+        );
+      }
+    } catch (err) {
+      setErrorMessage("Erreur serveur.");
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch, urlFetch]);
+
   useEffect(() => {
-    if (!Array.isArray(data) || data.length !== 0) {
-      return; // store déjà rempli → pas de refetch
+    if (data?.__source === "admin") {
+      return; // payload admin deja present
     }
 
-    let cancelled = false;
-
-    const fetchCards = async () => {
-      setLoading(true);
-      setErrorMessage(null);
-      try {
-
-        const response = await fetch(`${urlFetch}/cards/admin`, {
-          credentials: "include",
-        });
-        const payload = await response.json();
-
-        if (cancelled) return;
-
-        if (response.ok) {
-          dispatch(setCardsMaths(payload));
-        } else {
-          setErrorMessage(
-            payload?.error || "Erreur lors du chargement des cartes."
-          );
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setErrorMessage("Erreur serveur.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
     fetchCards();
-    return () => {
-      cancelled = true;
-    };
-  }, [data, dispatch, urlFetch]);
+  }, [data?.__source, fetchCards]);
 
   const getCardKey = (card, idx) => card?._id || card?.id || card?.num || idx;
+
+  const handleAddCard = async () => {
+    const baseNum = Number(cards?.[0]?.num);
+    const nextNum = Number.isFinite(baseNum) ? baseNum + 1 : cards.length + 1;
+    const repertoire = "python";
+
+    setCreating(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`${urlFetch}/cards/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ num: nextNum, repertoire }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(payload?.error || "Impossible d'ajouter la carte.");
+        return;
+      }
+
+      message.success("Carte ajoutée.");
+      await fetchCards();
+    } catch (err) {
+      setErrorMessage("Erreur lors de l'ajout de la carte.");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <Layout>
@@ -91,8 +111,18 @@ export default function PythonPage() {
             borderRadius: borderRadiusLG,
             marginTop: 0,
           }}
-          className="flex flex-col gap-y-20 items-center"
+          className="flex flex-col gap-y-10 items-center"
         >
+          <div className="w-full flex justify-end">
+            <Button
+              type="primary"
+              onClick={handleAddCard}
+              loading={creating}
+              disabled={loading}
+            >
+              Ajouter une carte
+            </Button>
+          </div>
 
           {loading && (
             <div className="flex flex-col items-center py-10">
