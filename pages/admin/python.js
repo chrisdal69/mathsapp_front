@@ -46,7 +46,10 @@ export default function PythonPage() {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const response = await fetch(`${urlFetch}/cards`);
+
+        const response = await fetch(`${urlFetch}/cards/admin`, {
+          credentials: "include",
+        });
         const payload = await response.json();
 
         if (cancelled) return;

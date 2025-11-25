@@ -61,7 +61,6 @@ export default function Quizz({
     position: "end",
     value: "",
   });
-
   const [actionKey, setActionKey] = useState("");
   const [uploadingImageFor, setUploadingImageFor] = useState("");
 

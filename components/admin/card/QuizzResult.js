@@ -1,0 +1,387 @@
+import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
+
+import { Radio, Button, Card, Carousel, message } from "antd";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+
+const NODE_ENV = process.env.NODE_ENV;
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+
+export default function Quizz({
+  num,
+  repertoire,
+  quizz,
+  evalQuizz,
+  resultatQuizz,
+  _id,
+  id,
+}) {
+  const carouselRef = useRef(null);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [hovered, setHovered] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [scoreMessage, setScoreMessage] = useState("");
+  const [historyMessage, setHistoryMessage] = useState("");
+  const [hasHistory, setHasHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const cardId = _id || id;
+
+  const handlePrev = () => {
+    setCurrent((c) => Math.max(0, c - 1));
+    carouselRef.current?.prev();
+  };
+
+  const handleNext = () => {
+    setCurrent((c) => Math.min(quizz.length - 1, c + 1));
+    carouselRef.current?.next();
+  };
+
+  // Echelle de progression dynamique (points rapproches)
+  const DOT = 10; // diametre du point (px)
+  const GAP = 20; // espace entre points (px)
+  const trackWidth = quizz.length * DOT + (quizz.length - 1) * GAP;
+
+  const reponsesArray = quizz.map((q) => answers[q.id]);
+  const allAnswered = reponsesArray.every((r) => r !== undefined);
+
+  const handleSelect = (qid, value) => {
+    setAnswers((prev) => ({ ...prev, [qid]: value }));
+  };
+
+  useEffect(() => {
+    if (evalQuizz !== "oui" || !cardId || !isAuthenticated) return;
+    let cancelled = false;
+
+    const fetchHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        const res = await fetch(
+          `${urlFetch}/quizzs/historique?cardId=${cardId}`,
+          { credentials: "include" }
+        );
+        const payload = await res.json();
+        if (cancelled) return;
+        if (res.ok && payload?.alreadyDone) {
+          const dateStr = payload.date
+            ? new Date(payload.date).toLocaleString("fr-FR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              })
+            : "";
+          setHistoryMessage(
+            dateStr ? `Quizz déjà soumis le ${dateStr}.` : "Quizz déjà soumis."
+          );
+          if (
+            payload.correctCount !== undefined &&
+            payload.totalQuestions !== undefined
+          ) {
+            setScoreMessage(
+              `${payload.correctCount} reponses correctes sur ${payload.totalQuestions}.`
+            );
+          }
+          setHasHistory(true);
+        }
+      } catch (error) {
+        // en cas d'erreur, on laisse l'utilisateur tenter
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+        }
+      }
+    };
+
+    fetchHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [evalQuizz, cardId, isAuthenticated]);
+
+  const canAccess =
+    evalQuizz === "non" || (evalQuizz === "oui" && isAuthenticated);
+  const showOverlay = submitting || historyLoading;
+
+  return (
+    <div>
+      {contextHolder}
+      {evalQuizz === "attente" ? (
+        <p>Quizz en attente de validation.</p>
+      ) : canAccess ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {showOverlay && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(255,255,255,0.7)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+              }}
+            >
+              <ClimbingBoxLoader color="#6C6C6C" size={12} />
+            </div>
+          )}
+          {/* Echelle de progression */}
+
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 4,
+              marginTop: 14,
+            }}
+          >
+            {current > 0 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handlePrev}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginRight: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Precedent"
+              >
+                <ChevronLeft size={18} />
+              </Button>
+            )}
+            <div
+              style={{
+                position: "relative",
+                width: trackWidth,
+                height: 12,
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  top: "50%",
+                  height: 1,
+                  background: "#e5e5e5",
+                  transform: "translateY(-50%)",
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  height: "100%",
+                }}
+              >
+                {quizz.map((q, idx) => {
+                  const answered = answers[q.id] !== undefined;
+                  const isCurrent = idx === current;
+                  const size = answered ? DOT + 4 : DOT;
+                  const bg = isCurrent
+                    ? "#595959"
+                    : answered
+                    ? "#1890ff"
+                    : "#d9d9d9";
+                  return (
+                    <div
+                      key={q.id}
+                      role="button"
+                      onClick={() => {
+                        setCurrent(idx);
+                        carouselRef.current?.goTo(idx);
+                      }}
+                      style={{
+                        width: size,
+                        height: size,
+                        borderRadius: "50%",
+                        backgroundColor: bg,
+                        border: "1px solid #bfbfbf",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Aller a la question ${idx + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            {current < quizz.length - 1 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handleNext}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginLeft: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Suivant"
+              >
+                <ChevronRight size={18} />
+              </Button>
+            )}
+          </div>
+          <button className="border">Reload les résultats</button>
+          {/* Carrousel de questions */}
+          <Carousel
+            ref={carouselRef}
+            dots
+            swipe
+            draggable
+            infinite={false}
+            beforeChange={(_, to) => setCurrent(to)}
+            afterChange={(i) => setCurrent(i)}
+            adaptiveHeight
+            className="max-w-xs sm:max-w-2xl"
+          >
+            {quizz.map((q) => (
+              <div
+                key={q.id}
+                style={{ display: "flex", justifyContent: "center" }}
+              >
+                <Card
+                  style={{
+                    margin: "4px auto",
+                    width: "100%",
+                    maxWidth: "100%",
+                    textAlign: "center",
+                    padding: "0px",
+                  }}
+                >
+                  <div style={{ position: "relative", marginBottom: 0 }}>
+                    {q.image && (
+                      <div
+                        style={{
+                          display: "inline-block",
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+                        }}
+                      >
+                        <Image
+                          src={racine + q.image}
+                          alt=""
+                          width="400"
+                          height="400"
+                          style={{
+                            display: "block",
+                            margin: 0,
+                            transition: "transform 200ms ease",
+                            transform:
+                              hovered === q.id ? "scale(1.04)" : "scale(1)",
+                          }}
+                          onMouseEnter={() => setHovered(q.id)}
+                          onMouseLeave={() => setHovered(null)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <p
+                    style={{
+                      marginBottom: 10,
+                      fontWeight: "bold",
+                      color:
+                        Number.isInteger(q.correct) &&
+                        answers[q.id] !== undefined
+                          ? answers[q.id] === q.correct
+                            ? "#52c41a"
+                            : "#ff4d4f"
+                          : undefined,
+                    }}
+                  >
+                    {q.question}
+                  </p>
+
+                  <Radio.Group
+                    value={answers[q.id] ?? null}
+                    onChange={(e) => handleSelect(q.id, e.target.value)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 2,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {q.options.map((opt, i) => {
+                      const sel = answers[q.id] === i;
+                      const showFeedback = Number.isInteger(q.correct);
+                      const isOk =
+                        showFeedback && sel && answers[q.id] === q.correct;
+                      const isErr =
+                        showFeedback && sel && answers[q.id] !== q.correct;
+                      const borderColor = isOk
+                        ? "#52c41a"
+                        : isErr
+                        ? "#ff4d4f"
+                        : "transparent";
+                      const bg = isOk
+                        ? "rgba(82,196,26,0.12)"
+                        : isErr
+                        ? "rgba(255,77,79,0.12)"
+                        : sel
+                        ? "rgba(0,0,0,0.05)"
+                        : "transparent";
+                      const textColor = isOk
+                        ? "#52c41a"
+                        : isErr
+                        ? "#ff4d4f"
+                        : undefined;
+                      return (
+                        <div
+                          key={opt}
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: 8,
+                            border: `1px solid ${borderColor}`,
+                            backgroundColor: bg,
+                          }}
+                        >
+                          <Radio value={i} style={{ color: textColor }}>
+                            {opt}
+                          </Radio>
+                        </div>
+                      );
+                    })}
+                  </Radio.Group>
+                </Card>
+                <div>
+                  <p>Nombre de réponses reçues : </p>
+                  <p>Nombre de réponses correctes : </p>
+                </div>
+              </div>
+            ))}
+          </Carousel>
+        </div>
+      ) : (
+        <p>Il faut etre connecte pour acceder au quizz.</p>
+      )}
+    </div>
+  );
+}

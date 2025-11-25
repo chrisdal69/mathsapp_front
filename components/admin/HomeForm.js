@@ -39,8 +39,8 @@ const App = () => {
   }, [cards]);
 
   useEffect(() => {
-    if (!Array.isArray(data) || data.length !== 0) {
-      return; // le store contient déjà autre chose, on ne refetch pas
+    if (data?.__source === "admin") {
+      return; // payload admin deja present
     }
 
     let cancelled = false;
@@ -49,12 +49,14 @@ const App = () => {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const response = await fetch(`${urlFetch}/cards`);
+        const response = await fetch(`${urlFetch}/cards/admin`, {
+          credentials: "include",
+        });
         const payload = await response.json();
         if (cancelled) return;
 
         if (response.ok) {
-          dispatch(setCardsMaths(payload));
+          dispatch(setCardsMaths({ ...payload, __source: "admin" }));
         } else {
           setErrorMessage(
             payload?.error || "Erreur lors du chargement des cartes."
@@ -75,7 +77,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, [data, dispatch, urlFetch]);
+  }, [data?.__source, dispatch, urlFetch]);
 
   const handleExternalTabChange = (index) => {
     setResetSignals((prev) => {

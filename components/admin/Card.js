@@ -7,6 +7,8 @@ import FilesBlock from "./card/FilesBlock";
 import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
+import QuizzResult from "./card/QuizzResult";
+
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
 import { VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from "@ant-design/icons";
 
@@ -147,6 +149,8 @@ const CardBlock = (data) => {
     { key: "contenu", label: "Contenu" },
     { key: "fichiers", label: "Fichiers" },
     { key: "quizz", label: "Quizz" },
+    { key: "quizzResult", label: "Quizz+" },
+
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
     data.video && { key: "video", label: "Vidéos" },
   ];
@@ -154,6 +158,8 @@ const CardBlock = (data) => {
     contenu: <ContentBlock {...data} />,
     fichiers: <FilesBlock {...data} />,
     quizz: <Quizz {...data} />,
+    quizzResult: <QuizzResult {...data} />,
+
   };
 
   if (data.video) {
