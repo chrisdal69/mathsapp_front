@@ -27,7 +27,7 @@ const CardBlock = (data) => {
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const { isAuthenticated } = useSelector((state) => state.auth);
 
-console.log("cardsData du redux dans admin/Card.js : ",cardsData )
+  //console.log("cardsData du redux dans admin/Card.js : ",cardsData )
 
   useEffect(() => {
     setLocalTitle(data.titre);

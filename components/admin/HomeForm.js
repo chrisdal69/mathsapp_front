@@ -16,7 +16,7 @@ const App = () => {
 
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
-  console.log("data : ",data)
+  //console.log("data de la page HomeForm.js : ",data)
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
   const cards = cardsFiltre.filter((obj) => obj.repertoire === "ciel1");
 

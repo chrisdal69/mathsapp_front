@@ -27,6 +27,7 @@ export default function PythonPage() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [expandedKey, setExpandedKey] = useState(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -74,6 +75,8 @@ export default function PythonPage() {
     };
   }, [data, dispatch, urlFetch]);
 
+  const getCardKey = (card, idx) => card?._id || card?.id || card?.num || idx;
+
   return (
     <Layout>
       <Content>
@@ -104,7 +107,14 @@ export default function PythonPage() {
             !errorMessage &&
             cards.map((card, idx) => (
               <div className="w-full" key={card._id || card.num || idx}>
-                <Card {...card} />
+                <Card
+                  {...card}
+                  expanded={getCardKey(card, idx) === expandedKey}
+                  onToggleExpand={(nextExpanded) => {
+                    const key = getCardKey(card, idx);
+                    setExpandedKey(nextExpanded ? key : null);
+                  }}
+                />
               </div>
             ))}
 
