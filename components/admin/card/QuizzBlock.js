@@ -1060,13 +1060,13 @@ const trackWidth =
       {/* Eval / resultat */}
       <div className="mt-6 flex flex-col items-center gap-3">
         <div className="flex flex-col items-center gap-2 rounded border border-gray-200 p-2">
-          <p className="text-sm font-semibold text-gray-700">Mode evaluation</p>
+          <p className="text-sm font-semibold text-gray-700">Mode évaluation</p>
           <Radio.Group
             value={localEvalQuizz}
             onChange={(e) =>
               persistQuizz(undefined, {
                 evalValue: e.target.value,
-                successMessage: "Mode evaluation mis a jour.",
+                successMessage: "Mode évaluation mis a jour.",
               })
             }
             style={{
@@ -1078,13 +1078,13 @@ const trackWidth =
             }}
           >
             <Radio value="non">Mode formatif</Radio>
-            <Radio value="oui">Mode evaluation actif</Radio>
-            <Radio value="attente">Mode evaluation en attente</Radio>
+            <Radio value="oui">Mode évaluation actif</Radio>
+            <Radio value="attente">Mode évaluation en attente</Radio>
           </Radio.Group>
         </div>
 
         <div className="flex flex-col items-center gap-2 rounded border border-gray-200 p-2">
-          <p className="text-sm font-semibold text-gray-700">Resultats quizz</p>
+          <p className="text-sm font-semibold text-gray-700">Résultats quizz</p>
           <Radio.Group
             value={`${localResultatQuizz}`}
             onChange={(e) =>
@@ -1101,8 +1101,8 @@ const trackWidth =
               flexWrap: "wrap",
             }}
           >
-            <Radio value="false">Resultats caches</Radio>
-            <Radio value="true">Resultats publies</Radio>
+            <Radio value="false">Résultats cachés</Radio>
+            <Radio value="true">Résultats publiés</Radio>
           </Radio.Group>
         </div>
       </div>
