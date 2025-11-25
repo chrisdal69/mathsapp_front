@@ -1,15 +1,20 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Button, Carousel } from "antd";
+import { Button, Carousel, Input, Popover, Select, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  CheckOutlined,
+  CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  VideoCameraOutlined,
+} from "@ant-design/icons";
+import { useDispatch, useSelector } from "react-redux";
+import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
-function isFalsyString(v) {
-  if (typeof v !== "string") return !v;
-  const s = v.trim().toLowerCase();
-  return (
-    s === "" || s === "false" || s === "0" || s === "null" || s === "undefined"
-  );
-}
+const NODE_ENV = process.env.NODE_ENV;
+const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
 function ensureParam(url, key, value) {
   try {
@@ -22,7 +27,6 @@ function ensureParam(url, key, value) {
     if (!u.searchParams.has(key)) u.searchParams.set(key, value);
     return u.toString();
   } catch {
-    // Fallback for relative/invalid URLs
     const join = url.includes("?") ? "&" : "?";
     return `${url}${join}${encodeURIComponent(key)}=${encodeURIComponent(
       value
@@ -39,12 +43,63 @@ function processEmbedUrl(url) {
   ) {
     return ensureParam(url, "enablejsapi", "1");
   }
-  // Dailymotion may require api param; attempt to enable
   if (lower.includes("dailymotion.com/embed/")) {
     return ensureParam(url, "api", "postMessage");
   }
   return url;
 }
+
+function toYoutubeEmbed(raw) {
+  const value = (raw || "").trim();
+  if (!value) return "";
+  try {
+    const u = new URL(
+      value,
+      value.startsWith("http") ? undefined : "https://example.com"
+    );
+    const host = (u.hostname || "").replace(/^www\./i, "").toLowerCase();
+    if (host === "youtu.be") {
+      const id = (u.pathname || "").replace(/^\/+/, "").split("/")[0];
+      if (!id) return value;
+      const search = u.searchParams.toString();
+      return `https://www.youtube.com/embed/${id}${search ? `?${search}` : ""}`;
+    }
+    if (host.includes("youtube.com")) {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        if (!id) return value;
+        const params = new URLSearchParams(u.searchParams);
+        params.delete("v");
+        const suffix = params.toString();
+        return `https://www.youtube.com/embed/${id}${suffix ? `?${suffix}` : ""}`;
+      }
+    }
+  } catch (_) {
+    return value;
+  }
+  return value;
+}
+
+const sanitizeVideoList = (value) =>
+  Array.isArray(value)
+    ? value.map((entry) => ({
+        txt: typeof entry?.txt === "string" ? entry.txt : entry?.label || "",
+        href: typeof entry?.href === "string" ? entry.href : entry?.url || "",
+      }))
+    : [];
+
+const resolveInsertIndex = (list, position) => {
+  const length = Array.isArray(list) ? list.length : 0;
+  if (position === "start") return 0;
+  if (position === "end" || typeof position === "undefined" || position === null) {
+    return length;
+  }
+  const numeric = Number(position);
+  if (!Number.isNaN(numeric)) {
+    return Math.max(0, Math.min(length, numeric + 1));
+  }
+  return length;
+};
 
 export default function Video({
   video,
@@ -52,61 +107,122 @@ export default function Video({
   className,
   maxWidth = "800px",
   title = "Video",
+  _id,
+  id,
+  num,
+  repertoire,
 }) {
-  const urls = useMemo(() => {
-    if (Array.isArray(video)) {
-      return video
-        .map((u) => (typeof u === "string" ? u.trim() : u))
-        .filter((u) => u && !isFalsyString(String(u)));
-    }
-    return [];
+  const dispatch = useDispatch();
+  const cardsData = useSelector((state) => state.cardsMaths.data);
+  const cardId = _id || id;
+
+  const [videos, setVideos] = useState(sanitizeVideoList(video));
+  const [current, setCurrent] = useState(0);
+  const [insertPosition, setInsertPosition] = useState("end");
+  const [actionKey, setActionKey] = useState("");
+  const [editField, setEditField] = useState({ index: null, field: null, value: "" });
+  const [addPopoverOpen, setAddPopoverOpen] = useState(false);
+  const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
+  const [loaded, setLoaded] = useState([]);
+  const fallbackTimers = useRef([]);
+
+  useEffect(() => {
+    setVideos(sanitizeVideoList(video));
   }, [video]);
-  // Aucun URL exploitable => hauteur nulle
-  if (!urls.length) {
-    return (
-      <div
-        className={className}
-        style={{ height: 0, padding: 0, margin: 0, overflow: "hidden" }}
-        aria-hidden
-      />
-    );
-  }
+
+  useEffect(() => {
+    if (current >= videos.length && videos.length) {
+      const nextIndex = Math.max(0, videos.length - 1);
+      setCurrent(nextIndex);
+      carouselRef.current?.goTo(nextIndex);
+    }
+  }, [videos.length, current]);
+
+  const slides = useMemo(
+    () =>
+      videos.map((entry) => {
+        const href =
+          typeof entry?.href === "string"
+            ? toYoutubeEmbed(entry.href)
+            : "";
+        return {
+          ...entry,
+          processedHref: href ? processEmbedUrl(href) : "",
+        };
+      }),
+    [videos]
+  );
+
+  useEffect(() => {
+    setLoaded(slides.map((s) => !s.processedHref));
+  }, [slides]);
+
+  useEffect(() => {
+    fallbackTimers.current.forEach((t) => clearTimeout(t));
+    fallbackTimers.current = [];
+    slides.forEach((slide, idx) => {
+      if (!slide.processedHref) return;
+      const timer = setTimeout(() => {
+        setLoaded((prev) => {
+          const next = prev.slice();
+          next[idx] = true;
+          return next;
+        });
+      }, 6000);
+      fallbackTimers.current.push(timer);
+    });
+    return () => {
+      fallbackTimers.current.forEach((t) => clearTimeout(t));
+      fallbackTimers.current = [];
+    };
+  }, [slides]);
+
+  const syncCardsStore = (updatedCard, fallbackVideos) => {
+    if (!cardsData || !Array.isArray(cardsData.result)) return;
+    const targetId = updatedCard?._id || updatedCard?.id || cardId;
+    const targetNum = typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const targetRepertoire = updatedCard?.repertoire || repertoire;
+    const patch = updatedCard || { video: fallbackVideos };
+    const nextResult = cardsData.result.map((card) => {
+      const matchById = targetId && (card._id === targetId || card.id === targetId);
+      const matchByComposite =
+        !matchById &&
+        targetId &&
+        typeof targetNum !== "undefined" &&
+        typeof card.num !== "undefined" &&
+        card.num === targetNum &&
+        targetRepertoire &&
+        card.repertoire === targetRepertoire;
+      return matchById || matchByComposite ? { ...card, ...patch } : card;
+    });
+    dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
+  };
 
   const [w, h] = (ratio || "16:9").split(":").map(Number);
   const paddingTop =
     Number.isFinite(w) && Number.isFinite(h) && h > 0 ? (h / w) * 100 : 56.25;
 
-  // Carrousel pour plusieurs vidéos + barre de progression
   const carouselRef = useRef(null);
   const iframeRefs = useRef([]);
-  const [current, setCurrent] = useState(0);
 
   const DOT = 10;
   const GAP = 20;
-  const trackWidth = urls.length * DOT + (urls.length - 1) * GAP;
+  const trackWidth = slides.length
+    ? slides.length * DOT + Math.max(0, slides.length - 1) * GAP
+    : DOT;
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
     carouselRef.current?.prev();
   };
   const handleNext = () => {
-    setCurrent((c) => Math.min(urls.length - 1, c + 1));
+    setCurrent((c) => Math.min(slides.length - 1, c + 1));
     carouselRef.current?.next();
   };
 
-  const processedUrls = useMemo(() => urls.map(processEmbedUrl), [urls]);
-  const [loaded, setLoaded] = useState([]);
-
-  useEffect(() => {
-    // reset loaded flags when url list changes
-    setLoaded(Array(processedUrls.length).fill(false));
-  }, [processedUrls]);
-
   const pauseAt = (index) => {
     const iframe = iframeRefs.current[index];
-
-    //const url = processedUrls[index];
-    const url = processedUrls[index].href;
+    const url = slides[index]?.processedHref;
 
     if (!iframe || !iframe.contentWindow || !url) return;
     const lower = url.toLowerCase();
@@ -127,6 +243,206 @@ export default function Video({
     } catch {}
   };
 
+  const isAction = (key) => actionKey === key;
+
+  const insertionOptions = useMemo(() => {
+    const options = [{ value: "start", label: "Debut (avant la premiere)" }];
+    slides.forEach((_, idx) => {
+      options.push({ value: idx, label: `Apres la video ${idx + 1}` });
+    });
+    options.push({ value: "end", label: "Fin (apres la derniere)" });
+    return options;
+  }, [slides]);
+
+  const handleAddVideo = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    setActionKey("add");
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ position: insertPosition }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        const errMsg =
+          response.status === 401 || response.status === 403
+            ? "Session expirée, veuillez vous reconnecter."
+            : payload?.error || "Impossible d'ajouter la video.";
+        message.error(errMsg);
+        return;
+      }
+      const updatedCard = payload?.result;
+      const nextVideos = sanitizeVideoList(updatedCard?.video || [...videos]);
+      setVideos(nextVideos);
+      syncCardsStore(updatedCard, nextVideos);
+      const insertedIndex = resolveInsertIndex(nextVideos, insertPosition);
+      const nextIndex = Math.max(0, Math.min(nextVideos.length - 1, insertedIndex));
+      setCurrent(nextIndex);
+      carouselRef.current?.goTo(nextIndex);
+      setInsertPosition("end");
+      setAddPopoverOpen(false);
+      message.success("Video ajoutee.");
+    } catch (error) {
+      console.error("Erreur ajout video", error);
+      message.error(error.message || "Erreur lors de l'ajout.");
+    } finally {
+      setActionKey("");
+    }
+  };
+
+  const handleDeleteVideo = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    if (!videos.length) {
+      return;
+    }
+    const deleteIndex = current;
+    const key = `delete-${deleteIndex}`;
+    setActionKey(key);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/video`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ index: deleteIndex }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        const errMsg =
+          response.status === 401 || response.status === 403
+            ? "Session expirée, veuillez vous reconnecter."
+            : payload?.error || "Impossible de supprimer la video.";
+        message.error(errMsg);
+        return;
+      }
+      const updatedCard = payload?.result;
+      const nextVideos = sanitizeVideoList(updatedCard?.video || []);
+      setVideos(nextVideos);
+      syncCardsStore(updatedCard, nextVideos);
+      const nextIndex = Math.max(0, deleteIndex - 1);
+      setCurrent(nextIndex);
+      carouselRef.current?.goTo(nextIndex);
+      setDeletePopoverOpen(false);
+      message.success("Video supprimee.");
+    } catch (error) {
+      console.error("Erreur suppression video", error);
+      message.error(error.message || "Erreur lors de la suppression.");
+    } finally {
+      setActionKey("");
+    }
+  };
+
+  const handleSaveField = async (index, field) => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const key = `save-${field}-${index}`;
+    setActionKey(key);
+    const value =
+      field === "href" ? toYoutubeEmbed(editField.value) : editField.value;
+    const payload = { index, [field]: value ?? "" };
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/video`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        const errMsg =
+          response.status === 401 || response.status === 403
+            ? "Session expirée, veuillez vous reconnecter."
+            : data?.error || "Impossible de mettre a jour la video.";
+        message.error(errMsg);
+        return;
+      }
+      const updatedCard = data?.result;
+      const nextVideos = sanitizeVideoList(updatedCard?.video || videos);
+      setVideos(nextVideos);
+      syncCardsStore(updatedCard, nextVideos);
+      setEditField({ index: null, field: null, value: "" });
+      message.success("Video mise a jour.");
+    } catch (error) {
+      console.error("Erreur edition video", error);
+      message.error(error.message || "Erreur lors de la mise a jour.");
+    } finally {
+      setActionKey("");
+    }
+  };
+
+  const getFieldValue = (idx, field) =>
+    field === "txt" ? slides[idx]?.txt || "" : slides[idx]?.href || "";
+
+  const fieldPopover = (idx, field, label, placeholder) => {
+    const isOpen = editField.index === idx && editField.field === field;
+    const icon =
+      field === "href" ? <VideoCameraOutlined /> : <EditOutlined />;
+    return (
+      <Popover
+        trigger="click"
+        open={isOpen}
+        onOpenChange={(visible) => {
+          if (visible) {
+            setEditField({ index: idx, field, value: getFieldValue(idx, field) });
+          } else if (isOpen) {
+            setEditField({ index: null, field: null, value: "" });
+          }
+        }}
+        content={
+          <div className="w-72 space-y-2">
+            <Input.TextArea
+              value={editField.value}
+              onChange={(e) =>
+                setEditField((prev) => ({ ...prev, value: e.target.value }))
+              }
+              placeholder={placeholder}
+              maxLength={400}
+              autoSize={{ minRows: 2, maxRows: 4 }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => setEditField({ index: null, field: null, value: "" })}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="small"
+                type="primary"
+                icon={<CheckOutlined />}
+                loading={isAction(`save-${field}-${idx}`)}
+                onClick={() => handleSaveField(idx, field)}
+              >
+                Valider
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        <Button size="small" icon={icon} title={label} />
+      </Popover>
+    );
+  };
+
   return (
     <div
       className={`vb-wrap ${className || ""}`}
@@ -142,7 +458,7 @@ export default function Video({
           marginTop: 14,
         }}
       >
-        {current > 0 && (
+        {current > 0 && slides.length > 0 && (
           <Button
             type="default"
             shape="circle"
@@ -156,7 +472,7 @@ export default function Video({
               transform: "translateY(-50%)",
               boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
             }}
-            aria-label="Précédent"
+            aria-label="Precedent"
           >
             <ChevronLeft size={18} />
           </Button>
@@ -182,7 +498,7 @@ export default function Video({
               height: "100%",
             }}
           >
-            {urls.map((_, idx) => {
+            {slides.map((_, idx) => {
               const isCurrent = idx === current;
               const bg = isCurrent ? "#595959" : "#d9d9d9";
               return (
@@ -202,14 +518,14 @@ export default function Video({
                     boxSizing: "border-box",
                     cursor: "pointer",
                   }}
-                  aria-label={`Aller à la vidéo ${idx + 1}`}
+                  aria-label={`Aller a la video ${idx + 1}`}
                 />
               );
             })}
           </div>
         </div>
 
-        {current < urls.length - 1 && (
+        {current < slides.length - 1 && slides.length > 0 && (
           <Button
             type="default"
             shape="circle"
@@ -230,83 +546,217 @@ export default function Video({
         )}
       </div>
 
-      <Carousel
-        ref={carouselRef}
-        dots
-        swipe
-        draggable
-        infinite={false}
-        beforeChange={(from, to) => {
-          pauseAt(from);
-          setCurrent(to);
-        }}
-        afterChange={(i) => setCurrent(i)}
-        adaptiveHeight
-      >
-        {processedUrls.map((url, idx) => (
-          <div
-            key={idx}
-            className="vb-slide"
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              width: "100%",
-              padding: 0,
-              margin: 0,
-            }}
-          >
-            <p className="text-center mb-2">{url.txt}</p>
+      <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+        <Popover
+          trigger="click"
+          open={addPopoverOpen}
+          onOpenChange={setAddPopoverOpen}
+          content={
+            <div className="w-72 space-y-2">
+              <p className="m-0 text-sm text-gray-700">
+                Choisir l'emplacement de la nouvelle video.
+              </p>
+              <Select
+                className="w-full"
+                value={insertPosition}
+                options={insertionOptions}
+                onChange={setInsertPosition}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="small"
+                  icon={<CloseOutlined />}
+                  onClick={() => {
+                    setInsertPosition("end");
+                    setAddPopoverOpen(false);
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  loading={isAction("add")}
+                  onClick={handleAddVideo}
+                >
+                  Valider
+                </Button>
+              </div>
+            </div>
+          }
+        >
+          <Button type="primary" icon={<PlusOutlined />}>
+            Ajouter une video
+          </Button>
+        </Popover>
+
+        <Popover
+          trigger="click"
+          content={
+            <div className="w-64 space-y-2">
+              <p className="m-0 text-sm text-gray-700">
+                Supprimer completement la video {current + 1} ?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  size="small"
+                  icon={<CloseOutlined />}
+                  onClick={() => setDeletePopoverOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={isAction(`delete-${current}`)}
+                  onClick={handleDeleteVideo}
+                >
+                  Supprimer
+                </Button>
+              </div>
+            </div>
+          }
+          open={deletePopoverOpen}
+          onOpenChange={setDeletePopoverOpen}
+        >
+          <Button danger icon={<DeleteOutlined />} disabled={!slides.length}>
+            Supprimer cette video
+          </Button>
+        </Popover>
+      </div>
+
+      {slides.length ? (
+        <Carousel
+          ref={carouselRef}
+          dots
+          swipe
+          draggable
+          infinite={false}
+          beforeChange={(from, to) => {
+            pauseAt(from);
+            setCurrent(to);
+          }}
+          afterChange={(i) => setCurrent(i)}
+          adaptiveHeight
+        >
+          {slides.map((slide, idx) => (
             <div
-              className="vb-inner"
+              key={idx}
+              className="vb-slide"
               style={{
-                position: "relative",
+                display: "flex",
+                justifyContent: "center",
                 width: "100%",
-                paddingTop: `${paddingTop}%`,
+                padding: 0,
                 margin: 0,
               }}
             >
-              {!loaded[idx] && (
+              <div className="w-full max-w-5xl px-2">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="m-0 flex-1 text-center text-base font-medium">
+                    {slide.txt || "Intitule non renseigne"}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    {fieldPopover(
+                      idx,
+                      "txt",
+                      "Modifier le titre",
+                      "Intitule de la video"
+                    )}
+                    {fieldPopover(
+                      idx,
+                      "href",
+                      "Modifier le lien",
+                      "Lien YouTube (embed)"
+                    )}
+                  </div>
+                </div>
                 <div
+                  className="vb-inner"
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(255,255,255,0.85)",
-                    zIndex: 2,
+                    position: "relative",
+                    width: "100%",
+                    paddingTop: `${paddingTop}%`,
+                    margin: 0,
                   }}
                 >
-                  <ClimbingBoxLoader color="#6C6C6C" size={11} />
+                  {slide.processedHref ? (
+                    <>
+                      {!loaded[idx] && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(255,255,255,0.85)",
+                            zIndex: 2,
+                          }}
+                        >
+                          <ClimbingBoxLoader color="#6C6C6C" size={11} />
+                        </div>
+                      )}
+                      <iframe
+                        ref={(el) => (iframeRefs.current[idx] = el)}
+                        src={slide.processedHref}
+                        title={`${title} ${idx + 1}`}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                        onLoad={() => {
+                          setLoaded((prev) => {
+                            const next = prev.slice();
+                            next[idx] = true;
+                            return next;
+                          });
+                        }}
+                        onError={() => {
+                          setLoaded((prev) => {
+                            const next = prev.slice();
+                            next[idx] = true;
+                            return next;
+                          });
+                        }}
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          width: "100%",
+                          height: "100%",
+                          border: 0,
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "#f5f5f5",
+                        border: "1px dashed #d9d9d9",
+                      }}
+                    >
+                      <p className="m-0 text-sm text-gray-600">
+                        Lien video non renseigne.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-              <iframe
-                ref={(el) => (iframeRefs.current[idx] = el)}
-                src={url.href}
-                title={`${title} ${idx + 1}`}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allowFullScreen
-                onLoad={() => {
-                  setLoaded((prev) => {
-                    const next = prev.slice();
-                    next[idx] = true;
-                    return next;
-                  });
-                }}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  border: 0,
-                }}
-              />
+              </div>
             </div>
-          </div>
-        ))}
-      </Carousel>
+          ))}
+        </Carousel>
+      ) : (
+        <div className="flex justify-center rounded border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+          Aucune video. Utilisez "Ajouter une video" pour creer la premiere entree.
+        </div>
+      )}
       <style jsx>{`
         @media (max-width: 640px) {
           .vb-wrap {
