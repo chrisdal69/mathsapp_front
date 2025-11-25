@@ -28,6 +28,12 @@ export default function Quizz({
   const [hasHistory, setHasHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const [resultStats, setResultStats] = useState({
+    totalSubmissions: 0,
+    correctCounts: [],
+  });
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
   const { isAuthenticated } = useSelector((state) => state.auth);
   const cardId = _id || id;
@@ -54,212 +60,274 @@ export default function Quizz({
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
 
-  useEffect(() => {
-    if (evalQuizz !== "oui" || !cardId || !isAuthenticated) return;
-    let cancelled = false;
+  const showOverlay = submitting || historyLoading || resultsLoading || exportLoading;
+  const totalSubmissions = Number.isFinite(resultStats.totalSubmissions)
+    ? Math.max(0, resultStats.totalSubmissions)
+    : 0;
+  const correctForCurrent =
+    Array.isArray(resultStats.correctCounts) && resultStats.correctCounts.length
+      ? Math.max(0, Number(resultStats.correctCounts[current]) || 0)
+      : 0;
+  const wrongForCurrent = Math.max(0, totalSubmissions - correctForCurrent);
+  const percentCorrect =
+    totalSubmissions > 0
+      ? Math.round((correctForCurrent / totalSubmissions) * 100)
+      : 0;
+  const pieBackground =
+    totalSubmissions > 0
+      ? `conic-gradient(#52c41a ${percentCorrect}%, #ff4d4f ${percentCorrect}% 100%)`
+      : "radial-gradient(circle at center, #e5e5e5 0, #e5e5e5 100%)";
 
-    const fetchHistory = async () => {
-      try {
-        setHistoryLoading(true);
-        const res = await fetch(
-          `${urlFetch}/quizzs/historique?cardId=${cardId}`,
-          { credentials: "include" }
-        );
-        const payload = await res.json();
-        if (cancelled) return;
-        if (res.ok && payload?.alreadyDone) {
-          const dateStr = payload.date
-            ? new Date(payload.date).toLocaleString("fr-FR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              })
-            : "";
-          setHistoryMessage(
-            dateStr ? `Quizz déjà soumis le ${dateStr}.` : "Quizz déjà soumis."
-          );
-          if (
-            payload.correctCount !== undefined &&
-            payload.totalQuestions !== undefined
-          ) {
-            setScoreMessage(
-              `${payload.correctCount} reponses correctes sur ${payload.totalQuestions}.`
-            );
+  const handleReloadResults = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    setResultsLoading(true);
+    try {
+      const res = await fetch(`${urlFetch}/quizzs/${cardId}/results`, {
+        credentials: "include",
+      });
+      const payload = await res.json();
+      if (res.ok) {
+        const rawCounts = Array.isArray(payload?.correctCounts)
+          ? payload.correctCounts
+          : [];
+        const normalizedCounts = Array.from(
+          { length: quizz.length },
+          (_, idx) => {
+            const val = Number(rawCounts[idx]);
+            return Number.isFinite(val) ? val : 0;
           }
-          setHasHistory(true);
-        }
-      } catch (error) {
-        // en cas d'erreur, on laisse l'utilisateur tenter
-      } finally {
-        if (!cancelled) {
-          setHistoryLoading(false);
-        }
+        );
+        setResultStats({
+          totalSubmissions: payload?.totalSubmissions ?? 0,
+          correctCounts: normalizedCounts,
+        });
+      } else {
+        message.error(
+          payload?.error || "Erreur lors du chargement des resultats."
+        );
       }
-    };
+    } catch (err) {
+      message.error("Erreur lors du chargement des resultats.");
+    } finally {
+      setResultsLoading(false);
+    }
+  };
 
-    fetchHistory();
-    return () => {
-      cancelled = true;
-    };
-  }, [evalQuizz, cardId, isAuthenticated]);
+  const handleDownloadResults = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    setExportLoading(true);
+    try {
+      const res = await fetch(`${urlFetch}/quizzs/${cardId}/results/export`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        let payload = null;
+        try {
+          payload = await res.json();
+        } catch (_) {}
+        throw new Error(payload?.error || "Erreur lors du telechargement.");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `quizz_${num}_${repertoire}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error(error.message || "Erreur lors du telechargement.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
-  const canAccess =
-    evalQuizz === "non" || (evalQuizz === "oui" && isAuthenticated);
-  const showOverlay = submitting || historyLoading;
+  useEffect(() => {
+    if (!cardId || !quizz?.length) return;
+    handleReloadResults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardId, quizz?.length]);
+
+  console.log("quizz : ",quizz)
 
   return (
     <div>
       {contextHolder}
-      {evalQuizz === "attente" ? (
-        <p>Quizz en attente de validation.</p>
-      ) : canAccess ? (
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {showOverlay && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(255,255,255,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10,
+            }}
+          >
+            <ClimbingBoxLoader color="#6C6C6C" size={12} />
+          </div>
+        )}
+        {/* Echelle de progression */}
+
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            alignItems: "center",
             width: "100%",
-            position: "relative",
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: 4,
+            marginTop: 14,
           }}
         >
-          {showOverlay && (
+          {current > 0 && (
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handlePrev}
+              style={{
+                position: "relative",
+                top: "3px",
+                marginRight: "20px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Precedent"
+            >
+              <ChevronLeft size={18} />
+            </Button>
+          )}
+          <div
+            style={{
+              position: "relative",
+              width: trackWidth,
+              height: 12,
+            }}
+          >
             <div
               style={{
                 position: "absolute",
-                inset: 0,
-                background: "rgba(255,255,255,0.7)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 10,
+                left: 0,
+                right: 0,
+                top: "50%",
+                height: 1,
+                background: "#e5e5e5",
+                transform: "translateY(-50%)",
               }}
-            >
-              <ClimbingBoxLoader color="#6C6C6C" size={12} />
-            </div>
-          )}
-          {/* Echelle de progression */}
-
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              marginBottom: 4,
-              marginTop: 14,
-            }}
-          >
-            {current > 0 && (
-              <Button
-                type="default"
-                shape="circle"
-                onClick={handlePrev}
-                style={{
-                  position: "relative",
-                  top: "3px",
-                  marginRight: "20px",
-                  zIndex: 2,
-                  background: "#fff",
-                  transform: "translateY(-50%)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                }}
-                aria-label="Precedent"
-              >
-                <ChevronLeft size={18} />
-              </Button>
-            )}
+            />
             <div
               style={{
-                position: "relative",
-                width: trackWidth,
-                height: 12,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                height: "100%",
               }}
             >
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  top: "50%",
-                  height: 1,
-                  background: "#e5e5e5",
-                  transform: "translateY(-50%)",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  height: "100%",
-                }}
-              >
-                {quizz.map((q, idx) => {
-                  const answered = answers[q.id] !== undefined;
-                  const isCurrent = idx === current;
-                  const size = answered ? DOT + 4 : DOT;
-                  const bg = isCurrent
-                    ? "#595959"
-                    : answered
-                    ? "#1890ff"
-                    : "#d9d9d9";
-                  return (
-                    <div
-                      key={q.id}
-                      role="button"
-                      onClick={() => {
-                        setCurrent(idx);
-                        carouselRef.current?.goTo(idx);
-                      }}
-                      style={{
-                        width: size,
-                        height: size,
-                        borderRadius: "50%",
-                        backgroundColor: bg,
-                        border: "1px solid #bfbfbf",
-                        boxSizing: "border-box",
-                        cursor: "pointer",
-                      }}
-                      aria-label={`Aller a la question ${idx + 1}`}
-                    />
-                  );
-                })}
-              </div>
+              {quizz.map((q, idx) => {
+                const answered = answers[q.id] !== undefined;
+                const isCurrent = idx === current;
+                const size = answered ? DOT + 4 : DOT;
+                const bg = isCurrent
+                  ? "#595959"
+                  : answered
+                  ? "#1890ff"
+                  : "#d9d9d9";
+                return (
+                  <div
+                    key={q.id}
+                    role="button"
+                    onClick={() => {
+                      setCurrent(idx);
+                      carouselRef.current?.goTo(idx);
+                    }}
+                    style={{
+                      width: size,
+                      height: size,
+                      borderRadius: "50%",
+                      backgroundColor: bg,
+                      border: "1px solid #bfbfbf",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                    }}
+                    aria-label={`Aller a la question ${idx + 1}`}
+                  />
+                );
+              })}
             </div>
-            {current < quizz.length - 1 && (
-              <Button
-                type="default"
-                shape="circle"
-                onClick={handleNext}
-                style={{
-                  position: "relative",
-                  top: "3px",
-                  marginLeft: "20px",
-                  zIndex: 2,
-                  background: "#fff",
-                  transform: "translateY(-50%)",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                }}
-                aria-label="Suivant"
-              >
-                <ChevronRight size={18} />
-              </Button>
-            )}
           </div>
-          <button className="border">Reload les résultats</button>
-          {/* Carrousel de questions */}
-          <Carousel
-            ref={carouselRef}
-            dots
-            swipe
-            draggable
-            infinite={false}
-            beforeChange={(_, to) => setCurrent(to)}
-            afterChange={(i) => setCurrent(i)}
-            adaptiveHeight
-            className="max-w-xs sm:max-w-2xl"
-          >
-            {quizz.map((q) => (
+          {current < quizz.length - 1 && (
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handleNext}
+              style={{
+                position: "relative",
+                top: "3px",
+                marginLeft: "20px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Suivant"
+            >
+              <ChevronRight size={18} />
+            </Button>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", justifyContent: "center" }}>
+            <Button
+              type="primary"
+              onClick={handleReloadResults}
+              loading={resultsLoading}
+              style={{ backgroundColor: "#1677ff", borderColor: "#1677ff", color: "#fff" }}
+            >
+              Reload les resultats
+            </Button>
+            <Button
+              type="default"
+              onClick={handleDownloadResults}
+              loading={exportLoading}
+            >
+              Fichier resultat
+            </Button>
+          </div>
+        {/* Carrousel de questions */}
+        <Carousel
+          ref={carouselRef}
+          dots
+          swipe
+          draggable
+          infinite={false}
+          beforeChange={(_, to) => setCurrent(to)}
+          afterChange={(i) => setCurrent(i)}
+          adaptiveHeight
+          className="max-w-xs sm:max-w-2xl"
+        >
+          {quizz.map((q) => {
+            const imageName = (q.image || "").trim();
+            const hasImage = !!imageName;
+            return (
               <div
                 key={q.id}
                 style={{ display: "flex", justifyContent: "center" }}
@@ -273,8 +341,8 @@ export default function Quizz({
                     padding: "0px",
                   }}
                 >
-                  <div style={{ position: "relative", marginBottom: 0 }}>
-                    {q.image && (
+                  {hasImage && (
+                    <div style={{ position: "relative", marginBottom: 0 }}>
                       <div
                         style={{
                           display: "inline-block",
@@ -284,7 +352,7 @@ export default function Quizz({
                         }}
                       >
                         <Image
-                          src={racine + q.image}
+                          src={racine + imageName}
                           alt=""
                           width="400"
                           height="400"
@@ -299,8 +367,8 @@ export default function Quizz({
                           onMouseLeave={() => setHovered(null)}
                         />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <p
                     style={{
@@ -371,17 +439,99 @@ export default function Quizz({
                     })}
                   </Radio.Group>
                 </Card>
-                <div>
-                  <p>Nombre de réponses reçues : </p>
-                  <p>Nombre de réponses correctes : </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <p style={{ margin: 0, textAlign: "center" }}>
+                    Note : {correctForCurrent}/{totalSubmissions} —{" "}
+                    {percentCorrect}% de reponses correctes sur {totalSubmissions} recues
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 120,
+                        height: 120,
+                        borderRadius: "50%",
+                        background: pieBackground,
+                        border: "1px solid #d9d9d9",
+                        position: "relative",
+                      }}
+                      aria-label="Diagramme des reponses"
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 24,
+                          borderRadius: "50%",
+                          background: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          color: "#595959",
+                        }}
+                      >
+                        {percentCorrect}%
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#595959" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 12,
+                            height: 12,
+                            borderRadius: 3,
+                            background: "#52c41a",
+                          }}
+                        />
+                        {correctForCurrent} reponses correctes
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 12,
+                            height: 12,
+                            borderRadius: 3,
+                            background: "#ff4d4f",
+                          }}
+                        />
+                        {wrongForCurrent} reponses incorrectes
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </Carousel>
-        </div>
-      ) : (
-        <p>Il faut etre connecte pour acceder au quizz.</p>
-      )}
+            );
+          })}
+        </Carousel>
+      </div>
     </div>
   );
 }
