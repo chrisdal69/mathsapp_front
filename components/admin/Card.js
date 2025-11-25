@@ -19,33 +19,50 @@ const CardBlock = (data) => {
   const [titlePopoverOpen, setTitlePopoverOpen] = useState(false);
   const [pendingTitle, setPendingTitle] = useState(data.titre || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(
+    data.expanded === undefined ? true : !data.expanded
+  );
 
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const { isAuthenticated } = useSelector((state) => state.auth);
+
+console.log("cardsData du redux dans admin/Card.js : ",cardsData )
 
   useEffect(() => {
     setLocalTitle(data.titre);
     setPendingTitle(data.titre || "");
   }, [data.titre]);
 
+  // sync collapse with parent-controlled expanded flag
+  useEffect(() => {
+    if (typeof data.expanded === "boolean") {
+      setIsCollapsed(!data.expanded);
+    }
+  }, [data.expanded]);
+
   const updateCardsStore = (newTitle, updatedCard) => {
     if (!cardsData || !Array.isArray(cardsData.result)) {
       return;
     }
-    const targetId = updatedCard?._id || data?._id || data?.id;
+    const targetId =
+      updatedCard?._id || updatedCard?.id || data?._id || data?.id;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : data?.num;
+    const targetRepertoire = updatedCard?.repertoire || data?.repertoire || null;
 
     const nextResult = cardsData.result.map((card) => {
-      const matchById = targetId && card._id === targetId;
-      const matchByNum =
-        !targetId &&
+      const matchById =
+        targetId && (card._id === targetId || card.id === targetId);
+      const matchByComposite =
+        !matchById &&
+        targetId &&
         typeof targetNum !== "undefined" &&
         typeof card.num !== "undefined" &&
-        card.num === targetNum;
-      if (matchById || matchByNum) {
+        card.num === targetNum &&
+        targetRepertoire &&
+        card.repertoire === targetRepertoire;
+      if (matchById || matchByComposite) {
         return { ...card, titre: newTitle };
       }
       return card;
@@ -207,7 +224,18 @@ const CardBlock = (data) => {
           <Button
             size="small"
             type="default"
-            onClick={() => { if (!isCollapsed) { setActiveTabKey("contenu"); } setIsCollapsed((prev) => !prev); }}
+            onClick={() => {
+              const nextExpanded = isCollapsed;
+              if (typeof data.onToggleExpand === "function") {
+                data.onToggleExpand(nextExpanded);
+              }
+              if (data.expanded === undefined) {
+                if (!isCollapsed) {
+                  setActiveTabKey("contenu");
+                }
+                setIsCollapsed((prev) => !prev);
+              }
+            }}
             title={isCollapsed ? "Déplier" : "Replier"}
             icon={
               isCollapsed ? (

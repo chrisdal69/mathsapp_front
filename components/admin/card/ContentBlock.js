@@ -156,19 +156,23 @@ export default function Contenu({
       updatedCard?._id || updatedCard?.id || _id || id;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const targetRepertoire = updatedCard?.repertoire || repertoire || null;
     const patch = updatedCard || { [typeName]: fallbackList };
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
         targetId &&
         (card._id === targetId || card.id === targetId);
-      const matchByNum =
+      const matchByComposite =
         !matchById &&
+        targetId &&
         typeof targetNum !== "undefined" &&
         typeof card.num !== "undefined" &&
-        card.num === targetNum;
+        card.num === targetNum &&
+        targetRepertoire &&
+        card.repertoire === targetRepertoire;
 
-      return matchById || matchByNum ? { ...card, ...patch } : card;
+      return matchById || matchByComposite ? { ...card, ...patch } : card;
     });
 
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));

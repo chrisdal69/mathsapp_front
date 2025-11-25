@@ -167,6 +167,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       const matchById = targetId && (card._id === targetId || card.id === targetId);
       const matchByComposite =
         !matchById &&
+        targetId &&
         typeof targetNum !== "undefined" &&
         typeof card.num !== "undefined" &&
         card.num === targetNum &&

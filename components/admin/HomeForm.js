@@ -23,6 +23,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [resetSignals, setResetSignals] = useState([]);
+  const [expandedKey, setExpandedKey] = useState(null);
 
   useEffect(() => {
     setResetSignals((prev) => {
@@ -83,6 +84,8 @@ const App = () => {
     });
   };
 
+  const getCardKey = (card, idx) => card?._id || card?.id || card?.num || idx;
+
   return (
     <Layout>
       <Content>
@@ -115,6 +118,11 @@ const App = () => {
                   {...card}
                   resetSignal={resetSignals[idx]}
                   onTabChangeExternal={() => handleExternalTabChange(idx)}
+                  expanded={getCardKey(card, idx) === expandedKey}
+                  onToggleExpand={(nextExpanded) => {
+                    const key = getCardKey(card, idx);
+                    setExpandedKey(nextExpanded ? key : null);
+                  }}
                 />
               </div>
             ))}
