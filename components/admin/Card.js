@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, Button, Input, Popover, Space, message } from "antd";
-import { EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  VerticalAlignBottomOutlined,
+  VerticalAlignTopOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+} from "@ant-design/icons";
 import ContentBlock from "./card/ContentBlock";
 import FilesBlock from "./card/FilesBlock";
 import CloudBlock from "./card/CloudBlock";
@@ -10,7 +18,6 @@ import Quizz from "./card/QuizzBlock";
 import QuizzResult from "./card/QuizzResult";
 
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
-import { VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from "@ant-design/icons";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -21,6 +28,7 @@ const CardBlock = (data) => {
   const [titlePopoverOpen, setTitlePopoverOpen] = useState(false);
   const [pendingTitle, setPendingTitle] = useState(data.titre || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [isTogglingVisible, setIsTogglingVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(
     data.expanded === undefined ? true : !data.expanded
   );
@@ -29,8 +37,7 @@ const CardBlock = (data) => {
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const { isAuthenticated } = useSelector((state) => state.auth);
 
-  //console.log("cardsData du redux dans admin/Card.js : ",cardsData )
-
+  //console.log("visible dans admin/Cards: ",data.visible)
   useEffect(() => {
     setLocalTitle(data.titre);
     setPendingTitle(data.titre || "");
@@ -43,8 +50,8 @@ const CardBlock = (data) => {
     }
   }, [data.expanded]);
 
-  const updateCardsStore = (newTitle, updatedCard) => {
-    if (!cardsData || !Array.isArray(cardsData.result)) {
+  const updateCardsStore = (updatedCard) => {
+    if (!cardsData || !Array.isArray(cardsData.result) || !updatedCard) {
       return;
     }
     const targetId =
@@ -65,7 +72,7 @@ const CardBlock = (data) => {
         targetRepertoire &&
         card.repertoire === targetRepertoire;
       if (matchById || matchByComposite) {
-        return { ...card, titre: newTitle };
+        return { ...card, ...updatedCard };
       }
       return card;
     });
@@ -116,13 +123,70 @@ const CardBlock = (data) => {
       setLocalTitle(nextTitle);
       setPendingTitle(nextTitle);
       setTitlePopoverOpen(false);
-      updateCardsStore(nextTitle, updatedCard);
+      updateCardsStore(
+        updatedCard || {
+          _id: cardId,
+          num: data?.num,
+          repertoire: data?.repertoire,
+          titre: nextTitle,
+        }
+      );
       message.success("Titre mis à jour.");
     } catch (error) {
       console.error("Erreur lors de la mise à jour du titre :", error);
       message.error(error.message || "Erreur lors de la mise à jour du titre.");
     } finally {
       setIsSavingTitle(false);
+    }
+  };
+
+  const handleToggleVisible = async () => {
+    const cardId = data?._id || data?.id;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    const nextVisible = !data?.visible;
+    setIsTogglingVisible(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/visible`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ visible: nextVisible }),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Impossible de mettre a jour la visibilite."
+        );
+      }
+
+      const updatedCard =
+        payload?.result || {
+          _id: cardId,
+          num: data?.num,
+          repertoire: data?.repertoire,
+          visible: nextVisible,
+        };
+
+      updateCardsStore(updatedCard);
+      message.success(
+        nextVisible ? "Carte rendue visible." : "Carte masquee."
+      );
+    } catch (error) {
+      console.error("Erreur lors de la mise a jour de la visibilite :", error);
+      message.error(
+        error.message || "Erreur lors de la mise a jour de la visibilite."
+      );
+    } finally {
+      setIsTogglingVisible(false);
     }
   };
 
@@ -172,6 +236,7 @@ const CardBlock = (data) => {
 
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
+  const isVisible = data?.visible === true;
 
   return (
     <Card
@@ -250,6 +315,14 @@ const CardBlock = (data) => {
                 <VerticalAlignTopOutlined />
               )
             }
+          />
+          <Button
+            size="small"
+            type="default"
+            onClick={handleToggleVisible}
+            title={isVisible ? "Rendre invisible" : "Rendre visible"}
+            loading={isTogglingVisible}
+            icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
           />
         </div>
       }
