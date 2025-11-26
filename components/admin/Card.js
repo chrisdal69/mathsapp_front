@@ -9,6 +9,8 @@ import {
   VerticalAlignTopOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons";
 import ContentBlock from "./card/ContentBlock";
 import FilesBlock from "./card/FilesBlock";
@@ -29,6 +31,7 @@ const CardBlock = (data) => {
   const [pendingTitle, setPendingTitle] = useState(data.titre || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isTogglingVisible, setIsTogglingVisible] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(
     data.expanded === undefined ? true : !data.expanded
   );
@@ -190,6 +193,54 @@ const CardBlock = (data) => {
     }
   };
 
+  const handleMove = async (direction) => {
+    const cardId = data?._id || data?.id;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    if (!["up", "down"].includes(direction)) {
+      return;
+    }
+
+    setIsMoving(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/move`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ direction }),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Impossible de déplacer la carte.");
+      }
+
+      if (payload?.result && Array.isArray(payload.result)) {
+        const updatedSubset = payload.result;
+        const existing = Array.isArray(cardsData?.result) ? cardsData.result : [];
+        const merged = [
+          ...existing.filter((c) => c?.repertoire !== data?.repertoire),
+          ...updatedSubset,
+        ];
+        dispatch(setCardsMaths({ ...cardsData, result: merged }));
+      }
+
+      message.success("Carte déplacée.");
+    } catch (error) {
+      console.error("Erreur lors du déplacement :", error);
+      message.error(error.message || "Erreur lors du déplacement.");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
   const onTabChange = (key) => {
     setActiveTabKey(key);
     if (typeof data.onTabChangeExternal === "function") {
@@ -237,6 +288,17 @@ const CardBlock = (data) => {
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
   const isVisible = data?.visible === true;
+  const cardsList =
+    (cardsData &&
+      Array.isArray(cardsData.result) &&
+      cardsData.result.filter((c) => !data?.repertoire || c?.repertoire === data.repertoire)) ||
+    [];
+  const cardId = data?._id || data?.id;
+  const position = cardsList.findIndex(
+    (c) => (c?._id || c?.id) && (c._id === cardId || c.id === cardId)
+  );
+  const canMoveUp = position > 0;
+  const canMoveDown = position !== -1 && position < cardsList.length - 1;
 
   return (
     <Card
@@ -316,6 +378,26 @@ const CardBlock = (data) => {
               )
             }
           />
+          {canMoveUp && (
+            <Button
+              size="small"
+              type="default"
+              disabled={isMoving}
+              onClick={() => handleMove("up")}
+              title="Monter"
+              icon={<ArrowUpOutlined />}
+            />
+          )}
+          {canMoveDown && (
+            <Button
+              size="small"
+              type="default"
+              disabled={isMoving}
+              onClick={() => handleMove("down")}
+              title="Descendre"
+              icon={<ArrowDownOutlined />}
+            />
+          )}
           <Button
             size="small"
             type="default"
