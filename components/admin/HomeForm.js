@@ -78,8 +78,6 @@ const App = () => {
   const getCardKey = (card, idx) => card?._id || card?.id || card?.num || idx;
 
   const handleAddCard = async () => {
-    const baseNum = Number(cards?.[0]?.num);
-    const nextNum = Number.isFinite(baseNum) ? baseNum + 1 : cards.length + 1;
     const repertoire = (cards?.[0]?.repertoire || "ciel1").trim();
 
     if (!repertoire) {
@@ -95,7 +93,8 @@ const App = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ num: nextNum, repertoire }),
+        body: JSON.stringify({ repertoire }),
+
       });
       const payload = await response.json();
 
