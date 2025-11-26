@@ -32,6 +32,9 @@ const CardBlock = (data) => {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isTogglingVisible, setIsTogglingVisible] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
+  const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
   const [isCollapsed, setIsCollapsed] = useState(
     data.expanded === undefined ? true : !data.expanded
   );
@@ -78,6 +81,32 @@ const CardBlock = (data) => {
         return { ...card, ...updatedCard };
       }
       return card;
+    });
+
+    dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
+  };
+
+  const removeCardFromStore = (target) => {
+    if (!cardsData || !Array.isArray(cardsData.result)) {
+      return;
+    }
+    const targetId = target?._id || target?.id || data?._id || data?.id;
+    const targetNum =
+      typeof target?.num !== "undefined" ? target.num : data?.num;
+    const targetRepertoire = target?.repertoire || data?.repertoire || null;
+
+    const nextResult = cardsData.result.filter((card) => {
+      const matchById =
+        targetId && (card._id === targetId || card.id === targetId);
+      const matchByComposite =
+        !matchById &&
+        targetId &&
+        typeof targetNum !== "undefined" &&
+        typeof card.num !== "undefined" &&
+        card.num === targetNum &&
+        targetRepertoire &&
+        card.repertoire === targetRepertoire;
+      return !(matchById || matchByComposite);
     });
 
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
@@ -193,6 +222,52 @@ const CardBlock = (data) => {
     }
   };
 
+  const handleDelete = async () => {
+    const cardId = data?._id || data?.id;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    if (deleteConfirmValue !== "DELETE") {
+      message.error("Tapez DELETE pour confirmer.");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Suppression impossible.");
+      }
+
+      removeCardFromStore(
+        payload?.result || {
+          _id: cardId,
+          num: data?.num,
+          repertoire: data?.repertoire,
+        }
+      );
+      setDeletePopoverOpen(false);
+      setDeleteConfirmValue("");
+      message.success("Carte supprimée.");
+    } catch (error) {
+      console.error("Erreur lors de la suppression :", error);
+      message.error(error.message || "Erreur lors de la suppression.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleMove = async (direction) => {
     const cardId = data?._id || data?.id;
     if (!cardId) {
@@ -285,8 +360,6 @@ const CardBlock = (data) => {
     contentList.cloud = <CloudBlock {...data}/>;
   }
 
-  const iscontenu = activeTabKey === "contenu";
-  const isvideo = activeTabKey === "video";
   const isVisible = data?.visible === true;
   const cardsList =
     (cardsData &&
@@ -300,84 +373,87 @@ const CardBlock = (data) => {
   const canMoveUp = position > 0;
   const canMoveDown = position !== -1 && position < cardsList.length - 1;
 
+  const titleNode = (
+    <div className="flex items-center gap-2">
+      <Button
+        size="small"
+        type="default"
+        onClick={() => {
+          const nextExpanded = isCollapsed;
+          if (typeof data.onToggleExpand === "function") {
+            data.onToggleExpand(nextExpanded);
+          }
+          if (data.expanded === undefined) {
+            if (!isCollapsed) {
+              setActiveTabKey("contenu");
+            }
+            setIsCollapsed((prev) => !prev);
+          }
+        }}
+        title={isCollapsed ? "Déplier" : "Replier"}
+        icon={
+          isCollapsed ? (
+            <VerticalAlignBottomOutlined />
+          ) : (
+            <VerticalAlignTopOutlined />
+          )
+        }
+      />
+      <Popover
+        placement="bottomRight"
+        trigger="click"
+        open={titlePopoverOpen}
+        onOpenChange={(visible) => {
+          setTitlePopoverOpen(visible);
+          if (visible) {
+            setPendingTitle(localTitle || "");
+          }
+        }}
+        content={
+          <Space align="start">
+            <Input.TextArea
+              value={pendingTitle}
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              autoFocus
+              maxLength={200}
+              placeholder="Nouveau titre"
+              onChange={(e) => setPendingTitle(e.target.value)}
+            />
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckOutlined />}
+              loading={isSavingTitle}
+              onClick={handleSaveTitle}
+            />
+            <Button
+              size="small"
+              icon={<CloseOutlined />}
+              disabled={isSavingTitle}
+              onClick={() => {
+                setTitlePopoverOpen(false);
+                setPendingTitle(localTitle || "");
+              }}
+            />
+          </Space>
+        }
+      >
+        <Button
+          icon={<EditOutlined />}
+          size="small"
+          type="default"
+          className="flex items-center"
+        />
+      </Popover>
+      <span className="font-semibold">{localTitle}</span>
+    </div>
+  );
+
   return (
     <Card
-      title={localTitle}
+      title={titleNode}
       extra={
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 uppercase tracking-wide">
-            Titre
-          </span>
-          <Popover
-            placement="bottomRight"
-            trigger="click"
-            open={titlePopoverOpen}
-            onOpenChange={(visible) => {
-              setTitlePopoverOpen(visible);
-              if (visible) {
-                setPendingTitle(localTitle || "");
-              }
-            }}
-            content={
-              <Space align="start">
-                <Input.TextArea
-                  value={pendingTitle}
-                  autoSize={{ minRows: 2, maxRows: 4 }}
-                  autoFocus
-                  maxLength={200}
-                  placeholder="Nouveau titre"
-                  onChange={(e) => setPendingTitle(e.target.value)}
-                />
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<CheckOutlined />}
-                  loading={isSavingTitle}
-                  onClick={handleSaveTitle}
-                />
-                <Button
-                  size="small"
-                  icon={<CloseOutlined />}
-                  disabled={isSavingTitle}
-                  onClick={() => {
-                    setTitlePopoverOpen(false);
-                    setPendingTitle(localTitle || "");
-                  }}
-                />
-              </Space>
-            }
-          >
-            <Button
-              icon={<EditOutlined />}
-              size="small"
-              type="default"
-              className="flex items-center"
-            />
-          </Popover>
-          <Button
-            size="small"
-            type="default"
-            onClick={() => {
-              const nextExpanded = isCollapsed;
-              if (typeof data.onToggleExpand === "function") {
-                data.onToggleExpand(nextExpanded);
-              }
-              if (data.expanded === undefined) {
-                if (!isCollapsed) {
-                  setActiveTabKey("contenu");
-                }
-                setIsCollapsed((prev) => !prev);
-              }
-            }}
-            title={isCollapsed ? "Déplier" : "Replier"}
-            icon={
-              isCollapsed ? (
-                <VerticalAlignBottomOutlined />
-              ) : (
-                <VerticalAlignTopOutlined />
-              )
-            }
-          />
           {canMoveUp && (
             <Button
               size="small"
@@ -406,6 +482,55 @@ const CardBlock = (data) => {
             loading={isTogglingVisible}
             icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
           />
+          <Popover
+            placement="bottomRight"
+            trigger="click"
+            open={deletePopoverOpen}
+            onOpenChange={(visible) => {
+              setDeletePopoverOpen(visible);
+              if (visible) {
+                setDeleteConfirmValue("");
+              }
+            }}
+            content={
+              <div className="flex flex-col gap-2" style={{ maxWidth: 260 }}>
+                <p className="text-red-600 text-xs">
+                  Cette action supprime la carte et tous ses fichiers du bucket.
+                </p>
+                <Input
+                  size="small"
+                  placeholder="Tapez DELETE"
+                  value={deleteConfirmValue}
+                  onChange={(e) => setDeleteConfirmValue(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setDeletePopoverOpen(false);
+                      setDeleteConfirmValue("");
+                    }}
+                    disabled={isDeleting}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    type="primary"
+                    loading={isDeleting}
+                    onClick={handleDelete}
+                  >
+                    Supprimer
+                  </Button>
+                </div>
+              </div>
+            }
+          >
+            <Button danger size="small" type="primary">
+              Supprimer cette carte
+            </Button>
+          </Popover>
         </div>
       }
       style={{ width: "100%" }}
