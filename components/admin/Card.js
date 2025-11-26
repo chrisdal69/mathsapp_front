@@ -374,7 +374,7 @@ const CardBlock = (data) => {
   const canMoveDown = position !== -1 && position < cardsList.length - 1;
 
   const titleNode = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         size="small"
         type="default"
@@ -453,7 +453,7 @@ const CardBlock = (data) => {
     <Card
       title={titleNode}
       extra={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canMoveUp && (
             <Button
               size="small"
