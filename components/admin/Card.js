@@ -32,6 +32,7 @@ const CardBlock = (data) => {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isTogglingVisible, setIsTogglingVisible] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [moveConfirmDirection, setMoveConfirmDirection] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
   const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
@@ -323,6 +324,39 @@ const CardBlock = (data) => {
     }
   };
 
+  const renderMovePopoverContent = (direction) => {
+    const isUp = direction === "up";
+    return (
+      <div className="flex flex-col gap-2" style={{ maxWidth: 260 }}>
+        <p className="text-sm">
+          {isUp
+            ? "Déplacer la carte vers le haut ?"
+            : "Déplacer la carte vers le bas ?"}
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button
+            size="small"
+            onClick={() => setMoveConfirmDirection(null)}
+            disabled={isMoving}
+          >
+            Annuler
+          </Button>
+          <Button
+            size="small"
+            type="primary"
+            loading={isMoving}
+            onClick={() => {
+              setMoveConfirmDirection(null);
+              handleMove(direction);
+            }}
+          >
+            Valider
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     !isAuthenticated && activeTabKey === "cloud" && setActiveTabKey("contenu");
   }, [isAuthenticated, activeTabKey]);
@@ -455,24 +489,44 @@ const CardBlock = (data) => {
       extra={
         <div className="flex flex-wrap items-center gap-2">
           {canMoveUp && (
-            <Button
-              size="small"
-              type="default"
-              disabled={isMoving}
-              onClick={() => handleMove("up")}
-              title="Monter"
-              icon={<ArrowUpOutlined />}
-            />
+            <Popover
+              placement="bottom"
+              trigger="click"
+              open={moveConfirmDirection === "up"}
+              onOpenChange={(visible) => {
+                if (isMoving) return;
+                setMoveConfirmDirection(visible ? "up" : null);
+              }}
+              content={renderMovePopoverContent("up")}
+            >
+              <Button
+                size="small"
+                type="default"
+                disabled={isMoving}
+                title="Monter"
+                icon={<ArrowUpOutlined />}
+              />
+            </Popover>
           )}
           {canMoveDown && (
-            <Button
-              size="small"
-              type="default"
-              disabled={isMoving}
-              onClick={() => handleMove("down")}
-              title="Descendre"
-              icon={<ArrowDownOutlined />}
-            />
+            <Popover
+              placement="bottom"
+              trigger="click"
+              open={moveConfirmDirection === "down"}
+              onOpenChange={(visible) => {
+                if (isMoving) return;
+                setMoveConfirmDirection(visible ? "down" : null);
+              }}
+              content={renderMovePopoverContent("down")}
+            >
+              <Button
+                size="small"
+                type="default"
+                disabled={isMoving}
+                title="Descendre"
+                icon={<ArrowDownOutlined />}
+              />
+            </Popover>
           )}
           <Button
             size="small"
