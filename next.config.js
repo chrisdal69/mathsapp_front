@@ -15,6 +15,7 @@ const nextConfig = {
       { source: "/users/:path*", destination: `${urlBack}/users/:path*` },
       { source: "/upload/:path*", destination: `${urlBack}/upload/:path*` },
       { source: "/cards/:path*", destination: `${urlBack}/cards/:path*` },
+      { source: "/quizzs/:path*", destination: `${urlBack}/quizzs/:path*` },
     ];
   },
 };
