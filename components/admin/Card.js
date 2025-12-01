@@ -65,7 +65,8 @@ const CardBlock = (data) => {
       updatedCard?._id || updatedCard?.id || data?._id || data?.id;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : data?.num;
-    const targetRepertoire = updatedCard?.repertoire || data?.repertoire || null;
+    const targetRepertoire =
+      updatedCard?.repertoire || data?.repertoire || null;
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
@@ -201,18 +202,15 @@ const CardBlock = (data) => {
         );
       }
 
-      const updatedCard =
-        payload?.result || {
-          _id: cardId,
-          num: data?.num,
-          repertoire: data?.repertoire,
-          visible: nextVisible,
-        };
+      const updatedCard = payload?.result || {
+        _id: cardId,
+        num: data?.num,
+        repertoire: data?.repertoire,
+        visible: nextVisible,
+      };
 
       updateCardsStore(updatedCard);
-      message.success(
-        nextVisible ? "Carte rendue visible." : "Carte masquee."
-      );
+      message.success(nextVisible ? "Carte rendue visible." : "Carte masquee.");
     } catch (error) {
       console.error("Erreur lors de la mise a jour de la visibilite :", error);
       message.error(
@@ -300,7 +298,9 @@ const CardBlock = (data) => {
 
       if (payload?.result && Array.isArray(payload.result)) {
         const updatedSubset = payload.result;
-        const existing = Array.isArray(cardsData?.result) ? cardsData.result : [];
+        const existing = Array.isArray(cardsData?.result)
+          ? cardsData.result
+          : [];
         const merged = [
           ...existing.filter((c) => c?.repertoire !== data?.repertoire),
           ...updatedSubset,
@@ -383,7 +383,6 @@ const CardBlock = (data) => {
     fichiers: <FilesBlock {...data} />,
     quizz: <Quizz {...data} />,
     quizzResult: <QuizzResult {...data} />,
-
   };
 
   if (data.video) {
@@ -391,14 +390,16 @@ const CardBlock = (data) => {
   }
 
   if (isAuthenticated) {
-    contentList.cloud = <CloudBlock {...data}/>;
+    contentList.cloud = <CloudBlock {...data} />;
   }
 
   const isVisible = data?.visible === true;
   const cardsList =
     (cardsData &&
       Array.isArray(cardsData.result) &&
-      cardsData.result.filter((c) => !data?.repertoire || c?.repertoire === data.repertoire)) ||
+      cardsData.result.filter(
+        (c) => !data?.repertoire || c?.repertoire === data.repertoire
+      )) ||
     [];
   const cardId = data?._id || data?.id;
   const position = cardsList.findIndex(
@@ -427,9 +428,21 @@ const CardBlock = (data) => {
         title={isCollapsed ? "Déplier" : "Replier"}
         icon={
           isCollapsed ? (
-            <VerticalAlignBottomOutlined />
+            <VerticalAlignBottomOutlined
+              style={{
+                backgroundColor: "#1677ff",
+                color: "#fff",
+                padding: 4,
+                borderRadius: 4,
+              }}
+            />
           ) : (
-            <VerticalAlignTopOutlined />
+            <VerticalAlignTopOutlined  style={{
+                backgroundColor: "rgba(22,119,255,0.5)",
+                color: "#fff",
+                padding: 4,
+                borderRadius: 4,
+              }} />
           )
         }
       />
@@ -596,8 +609,17 @@ const CardBlock = (data) => {
       styles={{ body: { padding: 8 } }}
       bodyStyle={
         isCollapsed
-          ? { maxHeight: 0, overflow: "hidden", padding: 8, transition: "max-height 1s ease, padding 0.3s ease" }
-          : { maxHeight: 2000, padding: 8, transition: "max-height 1s ease, padding 0.3s ease" }
+          ? {
+              maxHeight: 0,
+              overflow: "hidden",
+              padding: 8,
+              transition: "max-height 1s ease, padding 0.3s ease",
+            }
+          : {
+              maxHeight: 2000,
+              padding: 8,
+              transition: "max-height 1s ease, padding 0.3s ease",
+            }
       }
     >
       {contentList[activeTabKey]}
