@@ -373,7 +373,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         payload = await response.json();
       } catch (_) {}
       if (!response.ok) {
-        throw new Error(payload?.error || "Impossible d'ajouter le fichier.");
+        throw new Error(payload?.error || "Impossible d'ajouter le fichier."); 
       }
       const updatedCard = payload?.result;
       const newEntry = { txt: trimmedDescription, href: payload?.fileName || selectedFile.name };
