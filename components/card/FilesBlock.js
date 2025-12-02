@@ -79,6 +79,39 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
           src={`https://cdn.simpleicons.org/microsoftexcel/107C41`}
           alt="Microsoft Excel"
           className={className}
+          fallback={() => (
+            <svg
+              viewBox="0 0 24 24"
+              role="img"
+              aria-label="Excel"
+              className={className}
+            >
+              <rect x="2" y="3" width="20" height="18" rx="2" fill="#107C41" />
+              <rect
+                x="6"
+                y="6"
+                width="12"
+                height="12"
+                rx="1.5"
+                fill="#fff"
+                opacity="0.15"
+              />
+              <path d="M8 8l5 4-5 4V8z" fill="#fff" />
+              <rect
+                x="4"
+                y="3"
+                width="6"
+                height="18"
+                rx="1"
+                fill="#0B5C30"
+                opacity="0.9"
+              />
+              <path
+                d="M6.2 10.5l1.2 1.8 1.2-1.8h1.3l-1.8 2.7 1.8 2.7H8.6l-1.2-1.8-1.2 1.8H4.7l1.8-2.7-1.8-2.7h1.5z"
+                fill="#fff"
+              />
+            </svg>
+          )}
         />
       );
     }
@@ -145,6 +178,20 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
           <rect x="2" y="2" width="20" height="20" rx="3" fill="#6D28D9" />
           <circle cx="9" cy="9" r="2" fill="#fff" />
           <path d="M4 18l5-5 3 3 3-3 5 5H4z" fill="#fff" />
+        </svg>
+      );
+    }
+    if (e === "mp4") {
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          role="img"
+          aria-label="Video"
+          className={className}
+        >
+          <rect x="2" y="5" width="20" height="14" rx="2" fill="#2563EB" />
+          <rect x="4" y="7" width="12" height="10" rx="1" fill="#1D4ED8" />
+          <path d="M15 9.5l4 2.5-4 2.5v-5z" fill="#BFDBFE" />
         </svg>
       );
     }
