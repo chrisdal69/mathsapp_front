@@ -703,8 +703,16 @@ const trackWidth =
             className="w-full"
           >
             {quizzList.map((q, idx) => {
+              const initialQuestionValue = q.question || "";
               const questionValue =
-                editQuestion.id === q.id ? editQuestion.value : q.question || "";
+                editQuestion.id === q.id
+                  ? editQuestion.value
+                  : initialQuestionValue;
+              const isQuestionEmpty = !questionValue.trim();
+              const hasQuestionChanged = questionValue !== initialQuestionValue;
+              const disableQuestionButton =
+                isQuestionEmpty || !hasQuestionChanged;
+              const questionButtonLabel = isQuestionEmpty ? "Saisir" : "Modifier";
               return (
                 <div
                   key={q.id || idx}
@@ -742,12 +750,16 @@ const trackWidth =
                             type="primary"
                             icon={<EditOutlined />}
                             className="sm:self-start sm:shrink-0"
+                            style={{
+                              opacity: disableQuestionButton ? 0.6 : 1,
+                            }}
                             loading={isAction(getActionKey("question", q.id))}
+                            disabled={disableQuestionButton}
                             onClick={() =>
                               handleSaveQuestion(q.id, questionValue)
                             }
                           >
-                            Modifier
+                            {questionButtonLabel}
                           </Button>
                         </div>
                       </div>
