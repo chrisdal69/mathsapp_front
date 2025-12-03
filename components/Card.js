@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { Card } from "antd";
 import ContentBlock from "./card/ContentBlock";
 import FilesBlock from "./card/FilesBlock";
@@ -31,30 +31,41 @@ const CardBlock = (data) => {
 
   const tabList = [
     { key: "contenu", label: "Contenu" },
-    { key: "fichiers", label: "Fichiers" },
-    (data.evalQuizz === 'non' || isAuthenticated && data.evalQuizz === "oui") &&{ key: "quizz", label: "Quizz" },
+    data.fichiers &&
+      data.fichiers.length !== 0 && { key: "fichiers", label: "Fichiers" },
+    (data.evalQuizz === "non" ||
+      (isAuthenticated && data.evalQuizz === "oui")) &&
+      data.quizz &&
+      data.quizz.length !== 0 && { key: "quizz", label: "Quizz" },
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
-    data.video && { key: "video", label: "Vidéos" },
-  ];
- 
+    data.video && data.video.length !== 0 && { key: "video", label: "Vidéos" },
+  ].filter(Boolean); // <-- indispensable pour retirer les false/undefined
+
   const contentList = {
     contenu: <ContentBlock {...data} />,
-    fichiers: <FilesBlock {...data} />,
   };
-  if (data.video) {
+
+  if (data.fichiers && data.fichiers.length != 0) {
+    contentList.fichiers = <FilesBlock {...data} />;
+  }
+
+  if (data.video && data.video.length != 0) {
     contentList.video = <VideoBlock {...data} />;
   }
   if (isAuthenticated) {
-    contentList.cloud = <CloudBlock {...data}/>;
+    contentList.cloud = <CloudBlock {...data} />;
   }
- if (data.evalQuizz === 'non' || isAuthenticated && data.evalQuizz === "oui") {
+  if (
+    (data.evalQuizz === "non" ||
+      (isAuthenticated && data.evalQuizz === "oui")) &&
+    data.quizz &&
+    data.quizz.length != 0
+  ) {
     contentList.quizz = <Quizz {...data} />;
   }
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
 
-
-  
   return (
     <Card
       title={data.titre}
