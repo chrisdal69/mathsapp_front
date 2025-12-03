@@ -9,6 +9,8 @@ import {
   VerticalAlignTopOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
+  CloudOutlined,
+  StopOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from "@ant-design/icons";
@@ -31,6 +33,7 @@ const CardBlock = (data) => {
   const [pendingTitle, setPendingTitle] = useState(data.titre || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isTogglingVisible, setIsTogglingVisible] = useState(false);
+  const [isTogglingCloud, setIsTogglingCloud] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [moveConfirmDirection, setMoveConfirmDirection] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -221,6 +224,57 @@ const CardBlock = (data) => {
     }
   };
 
+  const handleToggleCloud = async () => {
+    const cardId = data?._id || data?.id;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+
+    const nextCloud = !data?.cloud;
+    setIsTogglingCloud(true);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/cloud`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ cloud: nextCloud }),
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error || "Impossible de mettre a jour le cloud."
+        );
+      }
+
+      const updatedCard = payload?.result || {
+        _id: cardId,
+        num: data?.num,
+        repertoire: data?.repertoire,
+        cloud: nextCloud,
+      };
+
+      if (!nextCloud && activeTabKey === "cloud") {
+        setActiveTabKey("contenu");
+      }
+
+      updateCardsStore(updatedCard);
+      message.success(nextCloud ? "Cloud active." : "Cloud desactive.");
+    } catch (error) {
+      console.error("Erreur lors de la mise a jour du cloud :", error);
+      message.error(
+        error.message || "Erreur lors de la mise a jour du cloud."
+      );
+    } finally {
+      setIsTogglingCloud(false);
+    }
+  };
+
   const handleDelete = async () => {
     const cardId = data?._id || data?.id;
     if (!cardId) {
@@ -369,13 +423,21 @@ const CardBlock = (data) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.resetSignal]);
 
+  useEffect(() => {
+    if (!data?.cloud && activeTabKey === "cloud") {
+      setActiveTabKey("contenu");
+    }
+  }, [data?.cloud, activeTabKey]);
+
+  const isVisible = data?.visible === true;
+  const isCloudEnabled = data?.cloud === true;
   const tabList = [
     { key: "contenu", label: "Contenu" },
     { key: "fichiers", label: "Fichiers" },
     { key: "quizz", label: "Quizz" },
     { key: "quizzResult", label: "Quizz+" },
 
-    isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
+    isAuthenticated && isCloudEnabled && { key: "cloud", label: "Cloud" },
     data.video && { key: "video", label: "Vidéos" },
   ];
   const contentList = {
@@ -389,11 +451,10 @@ const CardBlock = (data) => {
     contentList.video = <VideoBlock {...data} />;
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && isCloudEnabled) {
     contentList.cloud = <CloudBlock {...data} />;
   }
 
-  const isVisible = data?.visible === true;
   const cardsList =
     (cardsData &&
       Array.isArray(cardsData.result) &&
@@ -548,6 +609,14 @@ const CardBlock = (data) => {
             title={isVisible ? "Rendre invisible" : "Rendre visible"}
             loading={isTogglingVisible}
             icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+          />
+          <Button
+            size="small"
+            type="default"
+            onClick={handleToggleCloud}
+            title={isCloudEnabled ? "Desactiver le cloud" : "Activer le cloud"}
+            loading={isTogglingCloud}
+            icon={isCloudEnabled ? <CloudOutlined /> : <StopOutlined />}
           />
           <Popover
             placement="bottomRight"
