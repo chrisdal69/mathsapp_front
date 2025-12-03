@@ -41,7 +41,7 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
 
-const CloudBlock = ({num}) => {
+const CloudBlock = ({num , repertoire}) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -95,7 +95,7 @@ const CloudBlock = ({num}) => {
       return;
     }
     formData.append("parent", "cloud");
-    formData.append("repertoire", `tag${num}`);
+    formData.append("repertoire", `${repertoire}tag${num}`);
 
     values.files?.forEach((fileWrapper) => {
       formData.append("fichiers", fileWrapper.originFileObj);
@@ -150,7 +150,7 @@ const CloudBlock = ({num}) => {
   const onRecup = async () => {
     const formData = new FormData();
     formData.append("parent", "cloud");
-    formData.append("repertoire", `tag${num}`);
+    formData.append("repertoire", `${repertoire}tag${num}`);
     try {
       const res = await fetch(`${urlFetch}/upload/recup`, {
         method: "POST",
@@ -171,7 +171,7 @@ const CloudBlock = ({num}) => {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
-          repertoire: `tag${num}`,
+          repertoire: `${repertoire}tag${num}`,
           file: fileName,
         }),
         headers: { "Content-Type": "application/json" },
@@ -209,7 +209,7 @@ const CloudBlock = ({num}) => {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
-          repertoire: `tag${num}`,
+          repertoire: `${repertoire}tag${num}`,
           oldName: file.name.split("/").pop(),
           newName,
         }),
