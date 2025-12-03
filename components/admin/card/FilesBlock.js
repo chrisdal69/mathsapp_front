@@ -8,6 +8,8 @@ import {
   QuestionCircleOutlined,
   EditOutlined,
   CheckOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
@@ -168,6 +170,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [editingKey, setEditingKey] = useState("");
   const [editingValue, setEditingValue] = useState("");
   const [editingLoadingKey, setEditingLoadingKey] = useState("");
+  const [reorderKey, setReorderKey] = useState("");
   const cardId = _id || id;
 
   useEffect(() => {
@@ -348,6 +351,62 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     return arr;
   };
 
+  const handleMoveFile = async (index, direction) => {
+    if (!Array.isArray(localFiles) || !localFiles.length) return;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= localFiles.length) return;
+
+    const prevFiles = [...localFiles];
+    const nextFiles = [...localFiles];
+    [nextFiles[index], nextFiles[targetIndex]] = [nextFiles[targetIndex], nextFiles[index]];
+
+    const hrefs = nextFiles.map((f) => (typeof f?.href === "string" ? f.href : ""));
+    if (hrefs.some((href) => !href)) {
+      message.error("Certains fichiers n'ont pas d'identifiant valide.");
+      return;
+    }
+
+    const key =
+      nextFiles[targetIndex]?.href ||
+      nextFiles[index]?.href ||
+      `${index}-${direction}`;
+
+    setLocalFiles(nextFiles);
+    setReorderKey(key);
+
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ hrefs }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(payload?.error || "Impossible de reordonner les fichiers.");
+      }
+      const updatedCard = payload?.result;
+      const next = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : nextFiles;
+      setLocalFiles(next);
+      syncCardsStore(updatedCard, next);
+    } catch (error) {
+      console.error("Erreur lors du reordonnancement des fichiers", error);
+      message.error(error.message || "Erreur lors du reordonnancement des fichiers.");
+      setLocalFiles(prevFiles);
+    } finally {
+      setReorderKey("");
+    }
+  };
+
   const handleAddFile = async () => {
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
@@ -419,6 +478,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const isDeleting = deletingKey === deleteKey;
     const isEditingOpen = editingKey === deleteKey;
     const isEditingLoading = editingLoadingKey === deleteKey;
+    const isReordering = reorderKey === deleteKey;
+    const canMoveUp = idx > 0;
+    const canMoveDown = idx < (localFiles?.length || 0) - 1;
 
     const extFromHref = href.includes(".") ? href.split(".").pop().toLowerCase() : "";
     const extFromName = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
@@ -496,6 +558,24 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           >
             <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting} />
           </Popconfirm>
+        )}
+        {canMoveUp && (
+          <Button
+            size="small"
+            icon={<ArrowUpOutlined />}
+            disabled={isDeleting || isEditingLoading || isReordering}
+            loading={isReordering}
+            onClick={() => handleMoveFile(idx, "up")}
+          />
+        )}
+        {canMoveDown && (
+          <Button
+            size="small"
+            icon={<ArrowDownOutlined />}
+            disabled={isDeleting || isEditingLoading || isReordering}
+            loading={isReordering}
+            onClick={() => handleMoveFile(idx, "down")}
+          />
         )}
       </li>
     );
