@@ -13,11 +13,18 @@ const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
 // ✅ Validation schéma
+const nameRegex = /^[\p{L}\s_-]+$/u;
+
 const schema = yup.object().shape({
-  nom: yup.string().min(2, "Min 2 caractères").required("Nom obligatoire"),
+  nom: yup
+    .string()
+    .min(2, "Min 2 caractères")
+    .matches(nameRegex, "Lettres, espaces, - ou _ uniquement")
+    .required("Nom obligatoire"),
   prenom: yup
     .string()
     .min(2, "Min 2 caractères")
+    .matches(nameRegex, "Lettres, espaces, - ou _ uniquement")
     .required("Prénom obligatoire"),
   email: yup.string().email("Email invalide").required("Email obligatoire"),
   password: yup
@@ -30,12 +37,10 @@ const schema = yup.object().shape({
     .required("Mot de passe obligatoire"),
   confirmPassword: yup
     .string()
-    .oneOf(
-      [yup.ref("password"), null],
-      "Les mots de passe ne correspondent pas"
-    )
+    .oneOf([yup.ref("password"), null], "Les mots de passe ne correspondent pas")
     .required("Confirmation requise"),
 });
+
 
 export default function SignupWizard() {
   const router = useRouter();

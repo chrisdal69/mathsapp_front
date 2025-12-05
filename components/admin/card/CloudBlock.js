@@ -625,7 +625,7 @@ const CloudBlock = ({num , repertoire}) => {
       )}
       {upload && (
         <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
-          <ClimbingBoxLoader color="#2563eb" size={18} speedMultiplier={1} />
+          <ClimbingBoxLoader color="#6C6C6C" size={12} speedMultiplier={1} />
         </div>
       )}
     </div>
