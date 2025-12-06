@@ -10,6 +10,7 @@ import {
   Popover,
   Radio,
   Select,
+  Tooltip,
   Upload,
 } from "antd";
 import {
@@ -513,22 +514,24 @@ const trackWidth =
         }}
       >
         {current > 0 && quizzList.length > 0 && (
-          <Button
-            type="default"
-            shape="circle"
-            onClick={handlePrev}
-            style={{
-              position: "relative",
-              top: "14px",
-              zIndex: 2,
-              background: "#fff",
-              transform: "translateY(-50%)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-            aria-label="Precedent"
-          >
-            <ChevronLeft size={18} />
-          </Button>
+          <Tooltip title="Question pr\u00e9c\u00e9dente" mouseEnterDelay={0.3}>
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handlePrev}
+              style={{
+                position: "relative",
+                top: "14px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Precedent"
+            >
+              <ChevronLeft size={18} />
+            </Button>
+          </Tooltip>
         )}
 
         <div
@@ -590,22 +593,24 @@ const trackWidth =
         </div>
 
         {current < quizzList.length - 1 && quizzList.length > 0 && (
-          <Button
-            type="default"
-            shape="circle"
-            onClick={handleNext}
-            style={{
-              position: "relative",
-              top: "14px",
-              zIndex: 2,
-              background: "#fff",
-              transform: "translateY(-50%)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-            aria-label="Suivant"
-          >
-            <ChevronRight size={18} />
-          </Button>
+          <Tooltip title="Question suivante" mouseEnterDelay={0.3}>
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handleNext}
+              style={{
+                position: "relative",
+                top: "14px",
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Suivant"
+            >
+              <ChevronRight size={18} />
+            </Button>
+          </Tooltip>
         )}
       </div>
 
@@ -627,29 +632,35 @@ const trackWidth =
                 onChange={setQuestionInsertPos}
               />
               <div className="flex justify-end gap-2">
-                <Button
-                  size="small"
-                  icon={<CloseOutlined />}
-                  onClick={() => setAddQuestionOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  loading={isAction("add-question")}
-                  onClick={handleAddQuestion}
-                >
-                  Ajouter
-                </Button>
+                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    icon={<CloseOutlined />}
+                    onClick={() => setAddQuestionOpen(false)}
+                  >
+                    Annuler
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Valider l'ajout" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    loading={isAction("add-question")}
+                    onClick={handleAddQuestion}
+                  >
+                    Ajouter
+                  </Button>
+                </Tooltip>
               </div>
             </div>
           }
         >
-          <Button type="primary" icon={<PlusOutlined />}>
-            Ajouter une question
-          </Button>
+          <Tooltip title="Ajouter une nouvelle question" mouseEnterDelay={0.3}>
+            <Button type="primary" icon={<PlusOutlined />}>
+              Ajouter une question
+            </Button>
+          </Tooltip>
         </Popover>
 
         <Popover
@@ -662,29 +673,35 @@ const trackWidth =
                 Supprimer completement la question {current + 1} ?
               </p>
               <div className="flex justify-end gap-2">
-                <Button
-                  size="small"
-                  icon={<CloseOutlined />}
-                  onClick={() => setDeleteQuestionOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={isAction("delete-question")}
-                  onClick={handleDeleteQuestion}
-                >
-                  Supprimer
-                </Button>
+                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    icon={<CloseOutlined />}
+                    onClick={() => setDeleteQuestionOpen(false)}
+                  >
+                    Annuler
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Supprimer cette question" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={isAction("delete-question")}
+                    onClick={handleDeleteQuestion}
+                  >
+                    Supprimer
+                  </Button>
+                </Tooltip>
               </div>
             </div>
           }
         >
-          <Button danger icon={<DeleteOutlined />} disabled={!quizzList.length}>
-            Supprimer la question
-          </Button>
+          <Tooltip title="Supprimer la question courante" mouseEnterDelay={0.3}>
+            <Button danger icon={<DeleteOutlined />} disabled={!quizzList.length}>
+              Supprimer la question
+            </Button>
+          </Tooltip>
         </Popover>
       </div>
 
@@ -746,21 +763,30 @@ const trackWidth =
                               setEditQuestion({ id: q.id, value: e.target.value })
                             }
                           />
-                          <Button
-                            type="primary"
-                            icon={<EditOutlined />}
-                            className="sm:self-start sm:shrink-0"
-                            style={{
-                              opacity: disableQuestionButton ? 0.6 : 1,
-                            }}
-                            loading={isAction(getActionKey("question", q.id))}
-                            disabled={disableQuestionButton}
-                            onClick={() =>
-                              handleSaveQuestion(q.id, questionValue)
+                          <Tooltip
+                            title={
+                              disableQuestionButton
+                                ? "Saisir ou modifier la question"
+                                : "Enregistrer la question"
                             }
+                            mouseEnterDelay={0.3}
                           >
-                            {questionButtonLabel}
-                          </Button>
+                            <Button
+                              type="primary"
+                              icon={<EditOutlined />}
+                              className="sm:self-start sm:shrink-0"
+                              style={{
+                                opacity: disableQuestionButton ? 0.6 : 1,
+                              }}
+                              loading={isAction(getActionKey("question", q.id))}
+                              disabled={disableQuestionButton}
+                              onClick={() =>
+                                handleSaveQuestion(q.id, questionValue)
+                              }
+                            >
+                              {questionButtonLabel}
+                            </Button>
+                          </Tooltip>
                         </div>
                       </div>
                     }
@@ -774,24 +800,28 @@ const trackWidth =
                           </p>
                           <div className="flex gap-2">
                             <Upload {...buildUploadProps(q)}>
+                              <Tooltip title="Importer une image" mouseEnterDelay={0.3}>
+                                <Button
+                                  size="small"
+                                  icon={<UploadOutlined />}
+                                  loading={uploadingImageFor === q.id}
+                                >
+                                  Uploader
+                                </Button>
+                              </Tooltip>
+                            </Upload>
+                            <Tooltip title="Supprimer l'image" mouseEnterDelay={0.3}>
                               <Button
                                 size="small"
-                                icon={<UploadOutlined />}
-                                loading={uploadingImageFor === q.id}
-                              >
-                                Uploader
-                              </Button>
-                            </Upload>
-                            <Button
-                              size="small"
-                              danger
-                              icon={<DeleteOutlined />}
-                              loading={isAction(
-                                getActionKey("delete-image", q.id)
-                              )}
-                              disabled={!q.image}
-                              onClick={() => handleDeleteImage(q)}
-                            />
+                                danger
+                                icon={<DeleteOutlined />}
+                                loading={isAction(
+                                  getActionKey("delete-image", q.id)
+                                )}
+                                disabled={!q.image}
+                                onClick={() => handleDeleteImage(q)}
+                              />
+                            </Tooltip>
                           </div>
                         </div>
                         <div
@@ -877,37 +907,43 @@ const trackWidth =
                                 }
                               />
                               <div className="flex justify-end gap-2">
-                                <Button
-                                  size="small"
-                                  icon={<CloseOutlined />}
-                                  onClick={() =>
-                                    setOptionInsert({
-                                      qid: null,
-                                      position: "end",
-                                      value: "",
-                                    })
-                                  }
-                                >
-                                  Annuler
-                                </Button>
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  icon={<CheckOutlined />}
-                                  loading={isAction(
-                                    getActionKey("add-option", q.id)
-                                  )}
-                                  onClick={handleAddOption}
-                                >
-                                  Valider
-                                </Button>
+                                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                                  <Button
+                                    size="small"
+                                    icon={<CloseOutlined />}
+                                    onClick={() =>
+                                      setOptionInsert({
+                                        qid: null,
+                                        position: "end",
+                                        value: "",
+                                      })
+                                    }
+                                  >
+                                    Annuler
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip title="Ajouter l'option" mouseEnterDelay={0.3}>
+                                  <Button
+                                    size="small"
+                                    type="primary"
+                                    icon={<CheckOutlined />}
+                                    loading={isAction(
+                                      getActionKey("add-option", q.id)
+                                    )}
+                                    onClick={handleAddOption}
+                                  >
+                                    Valider
+                                  </Button>
+                                </Tooltip>
                               </div>
                             </div>
                           }
                         >
-                          <Button size="small" icon={<PlusOutlined />}>
-                            Ajouter une option
-                          </Button>
+                          <Tooltip title="Ajouter une option" mouseEnterDelay={0.3}>
+                            <Button size="small" icon={<PlusOutlined />}>
+                              Ajouter une option
+                            </Button>
+                          </Tooltip>
                         </Popover>
                       </div>
 
@@ -971,55 +1007,63 @@ const trackWidth =
                                         }
                                       />
                                       <div className="flex justify-end gap-2">
-                                        <Button
-                                          size="small"
-                                          icon={<CloseOutlined />}
-                                          onClick={() =>
-                                            setEditOption({
-                                              qid: null,
-                                              index: null,
-                                              value: "",
-                                            })
-                                          }
-                                        >
-                                          Annuler
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          type="primary"
-                                          icon={<CheckOutlined />}
-                                          loading={isAction(
-                                            getActionKey(
-                                              "edit-option",
-                                              q.id,
-                                              optionIndex
-                                            )
-                                          )}
-                                          onClick={handleEditOption}
-                                        >
-                                          Valider
-                                        </Button>
+                                        <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                                          <Button
+                                            size="small"
+                                            icon={<CloseOutlined />}
+                                            onClick={() =>
+                                              setEditOption({
+                                                qid: null,
+                                                index: null,
+                                                value: "",
+                                              })
+                                            }
+                                          >
+                                            Annuler
+                                          </Button>
+                                        </Tooltip>
+                                        <Tooltip title="Valider la modification" mouseEnterDelay={0.3}>
+                                          <Button
+                                            size="small"
+                                            type="primary"
+                                            icon={<CheckOutlined />}
+                                            loading={isAction(
+                                              getActionKey(
+                                                "edit-option",
+                                                q.id,
+                                                optionIndex
+                                              )
+                                            )}
+                                            onClick={handleEditOption}
+                                          >
+                                            Valider
+                                          </Button>
+                                        </Tooltip>
                                       </div>
                                     </div>
                                   }
                                 >
-                                  <Button size="small" icon={<EditOutlined />} />
+                                  <Tooltip title="Modifier cette option" mouseEnterDelay={0.3}>
+                                    <Button size="small" icon={<EditOutlined />} />
+                                  </Tooltip>
                                 </Popover>
-                                <Button
-                                  size="small"
-                                  danger
-                                  icon={<DeleteOutlined />}
-                                  loading={isAction(
-                                    getActionKey(
-                                      "delete-option",
-                                      q.id,
-                                      optionIndex
-                                    )
-                                  )}
-                                  onClick={() =>
-                                    handleDeleteOption(q.id, optionIndex)
-                                  }
-                                />
+                                <Tooltip title="Supprimer cette option" mouseEnterDelay={0.3}>
+                                  <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    loading={isAction(
+                                      getActionKey(
+                                        "delete-option",
+                                        q.id,
+                                        optionIndex
+                                      )
+                                    )}
+                                    onClick={() =>
+                                      handleDeleteOption(q.id, optionIndex)
+                                    }
+                                  />
+                                </Tooltip>
                               </div>
                             </li>
                           );

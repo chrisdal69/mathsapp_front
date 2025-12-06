@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react";
-import { Button, Carousel, Input, Popover, Select, message } from "antd";
+import { Button, Carousel, Input, Popover, Select, Tooltip, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   CheckOutlined,
@@ -418,27 +418,33 @@ export default function Video({
               autoSize={{ minRows: 2, maxRows: 4 }}
             />
             <div className="flex justify-end gap-2">
-              <Button
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => setEditField({ index: null, field: null, value: "" })}
-              >
-                Annuler
-              </Button>
-              <Button
-                size="small"
-                type="primary"
-                icon={<CheckOutlined />}
-                loading={isAction(`save-${field}-${idx}`)}
-                onClick={() => handleSaveField(idx, field)}
-              >
-                Valider
-              </Button>
+              <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                <Button
+                  size="small"
+                  icon={<CloseOutlined />}
+                  onClick={() => setEditField({ index: null, field: null, value: "" })}
+                >
+                  Annuler
+                </Button>
+              </Tooltip>
+              <Tooltip title="Enregistrer" mouseEnterDelay={0.3}>
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  loading={isAction(`save-${field}-${idx}`)}
+                  onClick={() => handleSaveField(idx, field)}
+                >
+                  Valider
+                </Button>
+              </Tooltip>
             </div>
           </div>
         }
       >
-        <Button size="small" icon={icon} title={label} />
+        <Tooltip title={label} mouseEnterDelay={0.3}>
+          <Button size="small" icon={icon} />
+        </Tooltip>
       </Popover>
     );
   };
@@ -459,23 +465,25 @@ export default function Video({
         }}
       >
         {current > 0 && slides.length > 0 && (
-          <Button
-            type="default"
-            shape="circle"
-            onClick={handlePrev}
-            style={{
-              position: "relative",
-              top: 14,
-              marginRight: 20,
-              zIndex: 2,
-              background: "#fff",
-              transform: "translateY(-50%)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-            aria-label="Precedent"
-          >
-            <ChevronLeft size={18} />
-          </Button>
+          <Tooltip title="Vidéo précédente" mouseEnterDelay={0.3}>
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handlePrev}
+              style={{
+                position: "relative",
+                top: 14,
+                marginRight: 20,
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Precedent"
+            >
+              <ChevronLeft size={18} />
+            </Button>
+          </Tooltip>
         )}
 
         <div style={{ position: "relative", width: trackWidth, height: 12 }}>
@@ -526,23 +534,25 @@ export default function Video({
         </div>
 
         {current < slides.length - 1 && slides.length > 0 && (
-          <Button
-            type="default"
-            shape="circle"
-            onClick={handleNext}
-            style={{
-              position: "relative",
-              top: 14,
-              marginLeft: 20,
-              zIndex: 2,
-              background: "#fff",
-              transform: "translateY(-50%)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            }}
-            aria-label="Suivant"
-          >
-            <ChevronRight size={18} />
-          </Button>
+          <Tooltip title="Vidéo suivante" mouseEnterDelay={0.3}>
+            <Button
+              type="default"
+              shape="circle"
+              onClick={handleNext}
+              style={{
+                position: "relative",
+                top: 14,
+                marginLeft: 20,
+                zIndex: 2,
+                background: "#fff",
+                transform: "translateY(-50%)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              }}
+              aria-label="Suivant"
+            >
+              <ChevronRight size={18} />
+            </Button>
+          </Tooltip>
         )}
       </div>
 
@@ -563,32 +573,38 @@ export default function Video({
                 onChange={setInsertPosition}
               />
               <div className="flex justify-end gap-2">
-                <Button
-                  size="small"
-                  icon={<CloseOutlined />}
-                  onClick={() => {
-                    setInsertPosition("end");
-                    setAddPopoverOpen(false);
-                  }}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  loading={isAction("add")}
-                  onClick={handleAddVideo}
-                >
-                  Valider
-                </Button>
+                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    icon={<CloseOutlined />}
+                    onClick={() => {
+                      setInsertPosition("end");
+                      setAddPopoverOpen(false);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Ajouter la vidéo" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    loading={isAction("add")}
+                    onClick={handleAddVideo}
+                  >
+                    Valider
+                  </Button>
+                </Tooltip>
               </div>
             </div>
           }
         >
-          <Button type="primary" icon={<PlusOutlined />}>
-            Ajouter une video
-          </Button>
+          <Tooltip title="Ajouter une nouvelle vidéo" mouseEnterDelay={0.3}>
+            <Button type="primary" icon={<PlusOutlined />}>
+              Ajouter une video
+            </Button>
+          </Tooltip>
         </Popover>
 
         <Popover
@@ -599,31 +615,37 @@ export default function Video({
                 Supprimer completement la video {current + 1} ?
               </p>
               <div className="flex justify-end gap-2">
-                <Button
-                  size="small"
-                  icon={<CloseOutlined />}
-                  onClick={() => setDeletePopoverOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={isAction(`delete-${current}`)}
-                  onClick={handleDeleteVideo}
-                >
-                  Supprimer
-                </Button>
+                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    icon={<CloseOutlined />}
+                    onClick={() => setDeletePopoverOpen(false)}
+                  >
+                    Annuler
+                  </Button>
+                </Tooltip>
+                <Tooltip title="Supprimer cette vidéo" mouseEnterDelay={0.3}>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={isAction(`delete-${current}`)}
+                    onClick={handleDeleteVideo}
+                  >
+                    Supprimer
+                  </Button>
+                </Tooltip>
               </div>
             </div>
           }
           open={deletePopoverOpen}
           onOpenChange={setDeletePopoverOpen}
         >
-          <Button danger icon={<DeleteOutlined />} disabled={!slides.length}>
-            Supprimer cette video
-          </Button>
+          <Tooltip title="Supprimer la vidéo courante" mouseEnterDelay={0.3}>
+            <Button danger icon={<DeleteOutlined />} disabled={!slides.length}>
+              Supprimer cette video
+            </Button>
+          </Tooltip>
         </Popover>
       </div>
 

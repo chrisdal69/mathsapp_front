@@ -10,6 +10,7 @@ import {
   Popover,
   Select,
   Image,
+  Tooltip,
 } from "antd";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import {
@@ -473,35 +474,47 @@ const CloudBlock = ({num , repertoire}) => {
               <Option value="javascript">JavaScript ⚡</Option>
               <Option value="other">Autres</Option>
             </Select>
-            <Button
-              icon={
-                sortOrder === "asc" ? (
-                  <SortAscendingOutlined />
-                ) : (
-                  <SortDescendingOutlined />
-                )
-              }
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            <Tooltip
+              title={sortOrder === "asc" ? "Trier de A à Z" : "Trier de Z à A"}
+              mouseEnterDelay={0.3}
             >
-              {sortOrder === "asc" ? "A → Z" : "Z → A"}
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadZip}
-              loading={zipLoading}
-              disabled={!filesCloud.length || upload}
+              <Button
+                icon={
+                  sortOrder === "asc" ? (
+                    <SortAscendingOutlined />
+                  ) : (
+                    <SortDescendingOutlined />
+                  )
+                }
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              >
+                {sortOrder === "asc" ? "A → Z" : "Z → A"}
+              </Button>
+            </Tooltip>
+            <Tooltip title="Télécharger tous les fichiers en ZIP" mouseEnterDelay={0.3}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadZip}
+                loading={zipLoading}
+                disabled={!filesCloud.length || upload}
+              >
+                Télécharger le ZIP
+              </Button>
+            </Tooltip>
+            <Tooltip
+              title={scrollExpanded ? "Réduire la liste" : "Agrandir la liste"}
+              mouseEnterDelay={0.3}
             >
-              Télécharger le ZIP
-            </Button>
-            <Button
-              icon={
-                scrollExpanded ? <CompressOutlined /> : <ExpandAltOutlined />
-              }
-              onClick={() => setScrollExpanded((prev) => !prev)}
-              disabled={!filteredFiles.length}
-            >
-              {scrollExpanded ? "Réduire la liste" : "Agrandir la liste"}
-            </Button>
+              <Button
+                icon={
+                  scrollExpanded ? <CompressOutlined /> : <ExpandAltOutlined />
+                }
+                onClick={() => setScrollExpanded((prev) => !prev)}
+                disabled={!filteredFiles.length}
+              >
+                {scrollExpanded ? "Réduire la liste" : "Agrandir la liste"}
+              </Button>
+            </Tooltip>
           </div>
 
           {/* 📂 Liste avec scroll */}
@@ -551,26 +564,32 @@ const CloudBlock = ({num , repertoire}) => {
                               onChange={(e) => setNewName(e.target.value)}
                               placeholder="Nouveau nom"
                             />
-                            <Button
-                              type="primary"
-                              size="small"
-                              icon={<CheckOutlined />}
-                              onClick={() => handleConfirmRename(file)}
-                            />
-                            <Button
-                              size="small"
-                              icon={<CloseOutlined />}
-                              onClick={() => setRenameVisible(null)}
-                            />
+                            <Tooltip title="Valider le nouveau nom" mouseEnterDelay={0.3}>
+                              <Button
+                                type="primary"
+                                size="small"
+                                icon={<CheckOutlined />}
+                                onClick={() => handleConfirmRename(file)}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                              <Button
+                                size="small"
+                                icon={<CloseOutlined />}
+                                onClick={() => setRenameVisible(null)}
+                              />
+                            </Tooltip>
                           </Space>
                         }
                       >
-                        <Button
-                          icon={<EditOutlined />}
-                          size="small"
-                          className={isRenameOpen ? "btn-active" : ""}
-                          onClick={() => handleRenameClick(file, index)}
-                        />
+                        <Tooltip title="Renommer le fichier" mouseEnterDelay={0.3}>
+                          <Button
+                            icon={<EditOutlined />}
+                            size="small"
+                            className={isRenameOpen ? "btn-active" : ""}
+                            onClick={() => handleRenameClick(file, index)}
+                          />
+                        </Tooltip>
                       </Popover>
 
                       <Popover
@@ -593,27 +612,33 @@ const CloudBlock = ({num , repertoire}) => {
                               style={{ color: "#faad14" }}
                             />
                             <span>Supprimer ?</span>
-                            <Button
-                              danger
-                              size="small"
-                              icon={<CheckOutlined />}
-                              onClick={() => handleDelete(fullName)}
-                            />
-                            <Button
-                              size="small"
-                              icon={<CloseOutlined />}
-                              onClick={() => setDeleteVisible(null)}
-                            />
+                            <Tooltip title="Confirmer la suppression" mouseEnterDelay={0.3}>
+                              <Button
+                                danger
+                                size="small"
+                                icon={<CheckOutlined />}
+                                onClick={() => handleDelete(fullName)}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                              <Button
+                                size="small"
+                                icon={<CloseOutlined />}
+                                onClick={() => setDeleteVisible(null)}
+                              />
+                            </Tooltip>
                           </Space>
                         }
                       >
-                        <Button
-                          danger
-                          icon={<DeleteOutlined />}
-                          size="small"
-                          className={isDeleteOpen ? "btn-active" : ""}
-                          onClick={() => handleDeleteClick(index)}
-                        />
+                        <Tooltip title="Supprimer ce fichier" mouseEnterDelay={0.3}>
+                          <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            size="small"
+                            className={isDeleteOpen ? "btn-active" : ""}
+                            onClick={() => handleDeleteClick(index)}
+                          />
+                        </Tooltip>
                       </Popover>
                     </div>
                   </List.Item>
