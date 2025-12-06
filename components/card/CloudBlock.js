@@ -40,6 +40,10 @@ const CLOUD_SCROLL_HEIGHT = 200;
 const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
+const stripPrefix = (name = "") => {
+  const parts = `${name}`.split("___");
+  return parts.length > 1 ? parts.slice(1).join("___") : name;
+};
 
 const CloudBlock = ({num , repertoire}) => {
   const [form] = Form.useForm();
@@ -461,8 +465,13 @@ const CloudBlock = ({num , repertoire}) => {
               dataSource={filteredFiles}
               locale={{ emptyText: "Aucun fichier trouvé" }}
               renderItem={(file, index) => {
-                const shortName = file.name.split("/").pop().split("___").pop();
-                const fullName = file.name.split("/").pop();
+                const fileName = file.name.split("/").pop();
+                const shortName = stripPrefix(fileName || "");
+                const downloadUrl = fileName
+                  ? `${urlFetch}/upload/download?parent=cloud&repertoire=${encodeURIComponent(
+                      `${repertoire}tag${num}`
+                    )}&file=${encodeURIComponent(fileName)}`
+                  : file.url;
                 const isRenameOpen = renameVisible === index;
                 const isDeleteOpen = deleteVisible === index;
 
@@ -470,7 +479,12 @@ const CloudBlock = ({num , repertoire}) => {
                   <List.Item className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-1 border-b border-gray-100 last:border-b-0">
                     <div className="flex items-center gap-2">
                       {getFilePreview(file)}
-                      <a href={file.url} target="_blank" rel="noreferrer">
+                      <a
+                        href={downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={shortName || undefined}
+                      >
                         <Text className="file-name">{shortName}</Text>
                       </a>
                     </div>
@@ -537,7 +551,7 @@ const CloudBlock = ({num , repertoire}) => {
                               danger
                               size="small"
                               icon={<CheckOutlined />}
-                              onClick={() => handleDelete(fullName)}
+                              onClick={() => handleDelete(fileName)}
                             />
                             <Button
                               size="small"
