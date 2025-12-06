@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Button, Input, Popover, Select, message } from "antd";
+import { Button, Input, Popover, Select, Tooltip, message } from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
@@ -466,16 +466,18 @@ export default function Contenu({
                   setInsertPositions((prev) => ({ ...prev, [type]: value }))
                 }
               />
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                loading={isActionInProgress("add", type)}
-                disabled={!newValues[type].trim()}
-                onClick={() => handleAddItem(type)}
-                className="shrink-0"
-              >
-                Ajouter
-              </Button>
+              <Tooltip title={`Ajouter ${config.label.toLowerCase()}`} mouseEnterDelay={0.3}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  loading={isActionInProgress("add", type)}
+                  disabled={!newValues[type].trim()}
+                  onClick={() => handleAddItem(type)}
+                  className="shrink-0"
+                >
+                  Ajouter
+                </Button>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -516,11 +518,16 @@ export default function Contenu({
                       }}
                       content={renderEditContent(type, index)}
                     >
-                      <Button
-                        icon={<EditOutlined />}
-                        size="small"
-                        type="default"
-                      />
+                      <Tooltip
+                        title={`Modifier ${config.label.toLowerCase()} ${index + 1}`}
+                        mouseEnterDelay={0.3}
+                      >
+                        <Button
+                          icon={<EditOutlined />}
+                          size="small"
+                          type="default"
+                        />
+                      </Tooltip>
                     </Popover>
                     <Popover
                       trigger="click"
@@ -535,12 +542,17 @@ export default function Contenu({
                       }}
                       content={renderDeleteContent(type, index)}
                     >
-                      <Button
-                        icon={<DeleteOutlined />}
-                        size="small"
-                        danger
-                        type="default"
-                      />
+                      <Tooltip
+                        title={`Supprimer ${config.label.toLowerCase()} ${index + 1}`}
+                        mouseEnterDelay={0.3}
+                      >
+                        <Button
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          danger
+                          type="default"
+                        />
+                      </Tooltip>
                     </Popover>
                   </div>
                 </li>
@@ -573,16 +585,18 @@ export default function Contenu({
               className="hidden"
               onChange={handleBackgroundInputChange}
             />
-            <Button
-              icon={<EditOutlined />}
-              size="small"
-              type="default"
-              onClick={handleBackgroundButtonClick}
-              loading={isUploadingBg}
-              className="flex items-center"
-            >
-              {isUploadingBg ? "Upload..." : "Changer"}
-            </Button>
+            <Tooltip title="Changer l'image de fond" mouseEnterDelay={0.3}>
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                type="default"
+                onClick={handleBackgroundButtonClick}
+                loading={isUploadingBg}
+                className="flex items-center"
+              >
+                {isUploadingBg ? "Upload..." : "Changer"}
+              </Button>
+            </Tooltip>
           </div>
           {localBg ? (
             <Image

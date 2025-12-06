@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Input, Popconfirm, Popover, Select, Upload, message } from "antd";
+import { Button, Input, Popconfirm, Popover, Select, Tooltip, Upload, message } from "antd";
 import {
   PlusOutlined,
   UploadOutlined,
@@ -10,6 +10,8 @@ import {
   CheckOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
@@ -171,6 +173,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [editingValue, setEditingValue] = useState("");
   const [editingLoadingKey, setEditingLoadingKey] = useState("");
   const [reorderKey, setReorderKey] = useState("");
+  const [visibilityLoadingKey, setVisibilityLoadingKey] = useState("");
   const cardId = _id || id;
 
   useEffect(() => {
@@ -331,6 +334,51 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     }
   };
 
+  const handleToggleVisibility = async (file, key) => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const href = file?.href;
+    if (!href) {
+      message.error("Fichier invalide.");
+      return;
+    }
+
+    const currentVisible = file?.visible !== false;
+    const nextVisible = !currentVisible;
+    setVisibilityLoadingKey(key);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ href, visible: nextVisible }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(payload?.error || "Mise a jour impossible.");
+      }
+      const updatedCard = payload?.result;
+      const nextFiles = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : (localFiles || []).map((f) =>
+            f?.href === href ? { ...f, visible: nextVisible } : f
+          );
+      setLocalFiles(nextFiles);
+      syncCardsStore(updatedCard, nextFiles);
+      message.success(nextVisible ? "Fichier visible." : "Fichier masque.");
+    } catch (error) {
+      console.error("Erreur lors du changement de visibilite", error);
+      message.error(error.message || "Erreur lors de la mise a jour de la visibilite.");
+    } finally {
+      setVisibilityLoadingKey("");
+    }
+  };
+
   const insertAt = (list, value, position) => {
     const arr = Array.isArray(list) ? [...list] : [];
     if (position === "start") {
@@ -453,7 +501,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         throw new Error(payload?.error || "Impossible d'ajouter le fichier."); 
       }
       const updatedCard = payload?.result;
-      const newEntry = { txt: trimmedDescription, href: payload?.fileName || selectedFile.name };
+      const newEntry = { txt: trimmedDescription, href: payload?.fileName || selectedFile.name, visible: true };
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
         : insertAt(localFiles, newEntry, insertPosition);
@@ -479,8 +527,10 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const isEditingOpen = editingKey === deleteKey;
     const isEditingLoading = editingLoadingKey === deleteKey;
     const isReordering = reorderKey === deleteKey;
+    const isVisibilityLoading = visibilityLoadingKey === deleteKey;
     const canMoveUp = idx > 0;
     const canMoveDown = idx < (localFiles?.length || 0) - 1;
+    const isVisible = elt?.visible !== false;
 
     const extFromHref = href.includes(".") ? href.split(".").pop().toLowerCase() : "";
     const extFromName = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
@@ -500,6 +550,20 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             {ext && <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>}
           </a>
         </div>
+        {elt?.href && (
+          <Tooltip
+            title={isVisible ? "Masquer ce fichier" : "Rendre ce fichier visible"}
+            mouseEnterDelay={0.3}
+          >
+            <Button
+              size="small"
+              icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+              loading={isVisibilityLoading}
+              disabled={isDeleting || isEditingLoading || isReordering}
+              onClick={() => handleToggleVisibility(elt, deleteKey)}
+            />
+          </Tooltip>
+        )}
         {elt?.href && (
           <Popover
             trigger="click"
@@ -544,38 +608,46 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
               </div>
             }
           >
-            <Button size="small" icon={<EditOutlined />} />
+            <Tooltip title="Modifier le descriptif" mouseEnterDelay={0.3}>
+              <Button size="small" icon={<EditOutlined />} />
+            </Tooltip>
           </Popover>
         )}
         {elt?.href && (
-          <Popconfirm
-            title="Supprimer ce fichier ?"
-            okText="Supprimer"
-            cancelText="Annuler"
-            icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-            okButtonProps={{ loading: isDeleting, danger: true }}
-            onConfirm={() => handleDeleteFile(elt, deleteKey)}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting} />
-          </Popconfirm>
+          <Tooltip title="Supprimer ce fichier" mouseEnterDelay={0.3}>
+            <Popconfirm
+              title="Supprimer ce fichier ?"
+              okText="Supprimer"
+              cancelText="Annuler"
+              icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+              okButtonProps={{ loading: isDeleting, danger: true }}
+              onConfirm={() => handleDeleteFile(elt, deleteKey)}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting} />
+            </Popconfirm>
+          </Tooltip>
         )}
         {canMoveUp && (
-          <Button
-            size="small"
-            icon={<ArrowUpOutlined />}
-            disabled={isDeleting || isEditingLoading || isReordering}
-            loading={isReordering}
-            onClick={() => handleMoveFile(idx, "up")}
-          />
+          <Tooltip title="Monter ce fichier" mouseEnterDelay={0.3}>
+            <Button
+              size="small"
+              icon={<ArrowUpOutlined />}
+              disabled={isDeleting || isEditingLoading || isReordering}
+              loading={isReordering}
+              onClick={() => handleMoveFile(idx, "up")}
+            />
+          </Tooltip>
         )}
         {canMoveDown && (
-          <Button
-            size="small"
-            icon={<ArrowDownOutlined />}
-            disabled={isDeleting || isEditingLoading || isReordering}
-            loading={isReordering}
-            onClick={() => handleMoveFile(idx, "down")}
-          />
+          <Tooltip title="Descendre ce fichier" mouseEnterDelay={0.3}>
+            <Button
+              size="small"
+              icon={<ArrowDownOutlined />}
+              disabled={isDeleting || isEditingLoading || isReordering}
+              loading={isReordering}
+              onClick={() => handleMoveFile(idx, "down")}
+            />
+          </Tooltip>
         )}
       </li>
     );
@@ -585,23 +657,28 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     <div className="p-2">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="m-0 text-sm font-semibold text-gray-800">Fichiers</p>
-        <Button
-          size="small"
-          type={isFormOpen ? "default" : "primary"}
-          icon={<PlusOutlined />}
-          onClick={() =>
-            setIsFormOpen((prev) => {
-              const next = !prev;
-              if (!next) {
-                resetForm();
-              }
-              return next;
-            })
-          }
-          disabled={isSubmitting}
+        <Tooltip
+          title={isFormOpen ? "Fermer le formulaire d'ajout" : "Ajouter un nouveau fichier"}
+          mouseEnterDelay={0.3}
         >
-          {isFormOpen ? "Fermer" : "Nouveau fichier"}
-        </Button>
+          <Button
+            size="small"
+            type={isFormOpen ? "default" : "primary"}
+            icon={<PlusOutlined />}
+            onClick={() =>
+              setIsFormOpen((prev) => {
+                const next = !prev;
+                if (!next) {
+                  resetForm();
+                }
+                return next;
+              })
+            }
+            disabled={isSubmitting}
+          >
+            {isFormOpen ? "Fermer" : "Nouveau fichier"}
+          </Button>
+        </Tooltip>
       </div>
 
       <div
@@ -646,26 +723,30 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             </p>
           </Dragger>
           <div className="flex justify-end gap-2">
-            <Button
-              size="small"
-              icon={<CloseOutlined />}
-              onClick={() => {
-                resetForm();
-                setIsFormOpen(false);
-              }}
-              disabled={isSubmitting}
-            >
-              Annuler
-            </Button>
-            <Button
-              size="small"
-              type="primary"
-              icon={<UploadOutlined />}
-              loading={isSubmitting}
-              onClick={handleAddFile}
-            >
-              Ajouter
-            </Button>
+            <Tooltip title="Annuler l'ajout" mouseEnterDelay={0.3}>
+              <Button
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => {
+                  resetForm();
+                  setIsFormOpen(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Annuler
+              </Button>
+            </Tooltip>
+            <Tooltip title="Ajouter le fichier" mouseEnterDelay={0.3}>
+              <Button
+                size="small"
+                type="primary"
+                icon={<UploadOutlined />}
+                loading={isSubmitting}
+                onClick={handleAddFile}
+              >
+                Ajouter
+              </Button>
+            </Tooltip>
           </div>
           {isSubmitting && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">

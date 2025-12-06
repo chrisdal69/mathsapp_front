@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Card, Button, Input, Popover, Space, message } from "antd";
+import { Card, Button, Input, Popover, Space, Tooltip, message } from "antd";
 import {
   EditOutlined,
   CheckOutlined,
@@ -471,6 +471,10 @@ const CardBlock = (data) => {
 
   const titleNode = (
     <div className="flex flex-wrap items-center gap-2">
+      <Tooltip
+        title={isCollapsed ? "Deplier la carte" : "Replier la carte"}
+        mouseEnterDelay={0.3}
+      >
       <Button
         size="small"
         type="default"
@@ -507,6 +511,7 @@ const CardBlock = (data) => {
           )
         }
       />
+      </Tooltip>
       <Popover
         placement="bottomRight"
         trigger="click"
@@ -527,31 +532,37 @@ const CardBlock = (data) => {
               placeholder="Nouveau titre"
               onChange={(e) => setPendingTitle(e.target.value)}
             />
-            <Button
-              type="primary"
-              size="small"
-              icon={<CheckOutlined />}
-              loading={isSavingTitle}
-              onClick={handleSaveTitle}
-            />
-            <Button
-              size="small"
-              icon={<CloseOutlined />}
-              disabled={isSavingTitle}
-              onClick={() => {
-                setTitlePopoverOpen(false);
-                setPendingTitle(localTitle || "");
-              }}
-            />
+            <Tooltip title="Valider le titre" mouseEnterDelay={0.3}>
+              <Button
+                type="primary"
+                size="small"
+                icon={<CheckOutlined />}
+                loading={isSavingTitle}
+                onClick={handleSaveTitle}
+              />
+            </Tooltip>
+            <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+              <Button
+                size="small"
+                icon={<CloseOutlined />}
+                disabled={isSavingTitle}
+                onClick={() => {
+                  setTitlePopoverOpen(false);
+                  setPendingTitle(localTitle || "");
+                }}
+              />
+            </Tooltip>
           </Space>
         }
       >
-        <Button
-          icon={<EditOutlined />}
-          size="small"
-          type="default"
-          className="flex items-center"
-        />
+        <Tooltip title="Modifier le titre" mouseEnterDelay={0.3}>
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            type="default"
+            className="flex items-center"
+          />
+        </Tooltip>
       </Popover>
       <span className="font-semibold">{localTitle}</span>
     </div>
@@ -573,13 +584,15 @@ const CardBlock = (data) => {
               }}
               content={renderMovePopoverContent("up")}
             >
-              <Button
-                size="small"
-                type="default"
-                disabled={isMoving}
-                title="Monter"
-                icon={<ArrowUpOutlined />}
-              />
+              <Tooltip title="Deplacer la carte vers le haut" mouseEnterDelay={0.3}>
+                <Button
+                  size="small"
+                  type="default"
+                  disabled={isMoving}
+                  title="Monter"
+                  icon={<ArrowUpOutlined />}
+                />
+              </Tooltip>
             </Popover>
           )}
           {canMoveDown && (
@@ -593,31 +606,41 @@ const CardBlock = (data) => {
               }}
               content={renderMovePopoverContent("down")}
             >
-              <Button
-                size="small"
-                type="default"
-                disabled={isMoving}
-                title="Descendre"
-                icon={<ArrowDownOutlined />}
-              />
+              <Tooltip title="Deplacer la carte vers le bas" mouseEnterDelay={0.3}>
+                <Button
+                  size="small"
+                  type="default"
+                  disabled={isMoving}
+                  title="Descendre"
+                  icon={<ArrowDownOutlined />}
+                />
+              </Tooltip>
             </Popover>
           )}
-          <Button
-            size="small"
-            type="default"
-            onClick={handleToggleVisible}
-            title={isVisible ? "Rendre invisible" : "Rendre visible"}
-            loading={isTogglingVisible}
-            icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-          />
-          <Button
-            size="small"
-            type="default"
-            onClick={handleToggleCloud}
+          <Tooltip
+            title={isVisible ? "Masquer la carte" : "Rendre la carte visible"}
+            mouseEnterDelay={0.3}
+          >
+            <Button
+              size="small"
+              type="default"
+              onClick={handleToggleVisible}
+              loading={isTogglingVisible}
+              icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+            />
+          </Tooltip>
+          <Tooltip
             title={isCloudEnabled ? "Desactiver le cloud" : "Activer le cloud"}
-            loading={isTogglingCloud}
-            icon={isCloudEnabled ? <CloudOutlined /> : <StopOutlined />}
-          />
+            mouseEnterDelay={0.3}
+          >
+            <Button
+              size="small"
+              type="default"
+              onClick={handleToggleCloud}
+              loading={isTogglingCloud}
+              icon={isCloudEnabled ? <CloudOutlined /> : <StopOutlined />}
+            />
+          </Tooltip>
           <Popover
             placement="bottomRight"
             trigger="click"
