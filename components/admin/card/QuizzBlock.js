@@ -41,6 +41,7 @@ export default function Quizz({
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const carouselRef = useRef(null);
+  const pendingSlideRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
   const [quizzList, setQuizzList] = useState(Array.isArray(quizz) ? quizz : []);
@@ -83,6 +84,22 @@ export default function Quizz({
   useEffect(() => {
     setLocalResultatQuizz(!!resultatQuizz);
   }, [resultatQuizz]);
+
+  // Reposition the carousel after the slide list changes (e.g. after adding a question).
+  useEffect(() => {
+    if (pendingSlideRef.current === null) return;
+    if (!quizzList.length) {
+      pendingSlideRef.current = null;
+      return;
+    }
+    const targetIndex = Math.min(
+      Math.max(0, pendingSlideRef.current),
+      quizzList.length - 1
+    );
+    pendingSlideRef.current = null;
+    setCurrent(targetIndex);
+    carouselRef.current?.goTo(targetIndex);
+  }, [quizzList.length]);
 
 const DOT = 10;
 const GAP = 20;
@@ -224,6 +241,7 @@ const trackWidth =
 
   const handleAddQuestion = async () => {
     const insertIndex = resolveInsertIndex(quizzList, questionInsertPos);
+    pendingSlideRef.current = insertIndex;
     const blank = {
       id: "",
       question: "",
@@ -243,6 +261,8 @@ const trackWidth =
       setQuestionInsertPos("end");
       setCurrent(insertIndex);
       carouselRef.current?.goTo(insertIndex);
+    } else {
+      pendingSlideRef.current = null;
     }
   };
 

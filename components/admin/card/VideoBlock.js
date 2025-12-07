@@ -125,6 +125,7 @@ export default function Video({
   const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
   const [loaded, setLoaded] = useState([]);
   const fallbackTimers = useRef([]);
+  const pendingSlideRef = useRef(null);
 
   useEffect(() => {
     setVideos(sanitizeVideoList(video));
@@ -137,6 +138,22 @@ export default function Video({
       carouselRef.current?.goTo(nextIndex);
     }
   }, [videos.length, current]);
+
+  // After the list updates (e.g. post-creation), reposition carousel to the intended slide.
+  useEffect(() => {
+    if (pendingSlideRef.current === null) return;
+    if (!videos.length) {
+      pendingSlideRef.current = null;
+      return;
+    }
+    const targetIndex = Math.min(
+      Math.max(0, pendingSlideRef.current),
+      videos.length - 1
+    );
+    pendingSlideRef.current = null;
+    setCurrent(targetIndex);
+    carouselRef.current?.goTo(targetIndex);
+  }, [videos.length]);
 
   const slides = useMemo(
     () =>
@@ -281,10 +298,11 @@ export default function Video({
       }
       const updatedCard = payload?.result;
       const nextVideos = sanitizeVideoList(updatedCard?.video || [...videos]);
-      setVideos(nextVideos);
-      syncCardsStore(updatedCard, nextVideos);
       const insertedIndex = resolveInsertIndex(nextVideos, insertPosition);
       const nextIndex = Math.max(0, Math.min(nextVideos.length - 1, insertedIndex));
+      pendingSlideRef.current = nextIndex;
+      setVideos(nextVideos);
+      syncCardsStore(updatedCard, nextVideos);
       setCurrent(nextIndex);
       carouselRef.current?.goTo(nextIndex);
       setInsertPosition("end");
