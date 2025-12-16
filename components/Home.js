@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Layout, theme } from "antd";
 const { Content } = Layout;
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
@@ -23,6 +24,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [resetSignals, setResetSignals] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     setResetSignals((prev) => {
@@ -39,7 +41,7 @@ const App = () => {
 
   useEffect(() => {
     if (!Array.isArray(data) || data.length !== 0) {
-      return; // le store contient déjà autre chose, on ne refetch pas
+      return; // le store contient deja autre chose, on ne refetch pas
     }
 
     let cancelled = false;
@@ -84,49 +86,113 @@ const App = () => {
     });
   };
 
+  const getCardKey = (card, idx) => card._id || card.num || idx;
+  const expandedIndex = cards.findIndex(
+    (card, idx) => getCardKey(card, idx) === expandedId
+  );
+  const expandedCard = expandedIndex >= 0 ? cards[expandedIndex] : null;
+  console.log(cards)
   return (
     <Layout>
       <Content>
-        <div
-          style={{
-            background: colorBgContainer,
-            minHeight: 20,
-            padding: 15,
-            borderRadius: borderRadiusLG,
-            marginTop: 0,
-          }}
-          className="flex gap-y-10 flex-wrap items-center"
-        >
-          <Accueil/>
-          {loading && (
-            <div className="flex flex-col items-center py-10">
-              <ClimbingBoxLoader color="#6C6C6C" size={12} />
-              <p className="mt-4 text-sm text-gray-500">
-                Chargement des cartes...
-              </p>
-            </div>
-          )}
-
-          {!loading && errorMessage && (
-            <p className="text-red-500 text-sm">{errorMessage}</p>
-          )}
-
-          {!loading &&
-            !errorMessage &&
-            cards.map((card, idx) => (
-              <div className="w-1/2" key={card._id || card.num || idx}>
-                <Card
-                  {...card}
-                  resetSignal={resetSignals[idx]}
-                  onTabChangeExternal={() => handleExternalTabChange(idx)}
-                />
+        <LayoutGroup>
+          <div
+            style={{
+              background: colorBgContainer,
+              minHeight: 20,
+              padding: 15,
+              borderRadius: borderRadiusLG,
+              marginTop: 0,
+            }}
+            className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6 items-start"
+          >
+            {!loading&&<Accueil titre={cards[0].titre} />}
+            {loading && (
+              <div className="col-span-full flex flex-col items-center py-10">
+                <ClimbingBoxLoader color="#6C6C6C" size={12} />
+                <p className="mt-4 text-sm text-gray-500">
+                  Chargement des cartes...
+                </p>
               </div>
-            ))}
+            )}
 
-          {!loading && !errorMessage && !cards.length && (
-            <p className="text-gray-500 text-sm">Aucune carte à afficher.</p>
-          )}
-        </div>
+            {!loading && errorMessage && (
+              <p className="col-span-full text-red-500 text-sm">
+                {errorMessage}
+              </p>
+            )}
+
+            {!loading &&
+              !errorMessage &&
+              cards.map((card, idx) => {
+                const key = getCardKey(card, idx);
+                const isExpanded = expandedId === key;
+                const wobble = (idx % 3) - 1;
+                const tilt = idx % 2 === 0 ? -1.5 : 1.5;
+
+                return (
+                  <motion.div
+                    layout
+                    layoutId={`card-${key}`}
+                    key={key}
+                    onClick={() => setExpandedId(isExpanded ? null : key)}
+                    className="cursor-pointer"
+                    style={{
+                      zIndex: isExpanded ? 20 : 1,
+                      pointerEvents: isExpanded ? "none" : "auto",
+                    }}
+                    animate={{
+                      scale: isExpanded ? 1 : 0.98,
+                      rotate: isExpanded ? 0 : tilt,
+                      y: isExpanded ? 0 : wobble * 12,
+                      opacity: isExpanded ? 0 : 1,
+                      boxShadow: isExpanded
+                        ? "0 18px 50px rgba(0,0,0,0.18)"
+                        : "0 8px 25px rgba(0,0,0,0.08)",
+                    }}
+                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <Card
+                      {...card}
+                      resetSignal={resetSignals[idx]}
+                      onTabChangeExternal={() => handleExternalTabChange(idx)}
+                    />
+                  </motion.div>
+                );
+              })}
+
+            {!loading && !errorMessage && !cards.length && (
+              <p className="col-span-full text-gray-500 text-sm">
+                Aucune carte a afficher.
+              </p>
+            )}
+          </div>
+          <AnimatePresence>
+            {expandedCard && (
+              <motion.div
+                key="overlay"
+                className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setExpandedId(null)}
+              >
+                <motion.div
+                  layoutId={`card-${expandedId}`}
+                  className="w-full max-w-5xl"
+                  transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Card
+                    {...expandedCard}
+                    resetSignal={resetSignals[expandedIndex] ?? 0}
+                    onTabChangeExternal={() => handleExternalTabChange(expandedIndex)}
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </LayoutGroup>
       </Content>
     </Layout>
   );
@@ -134,6 +200,10 @@ const App = () => {
 
 export default App;
 
-function Accueil() {
-  return <div className="w-1/2 h-50 bg-blue-200"></div>;
+function Accueil({titre}) {
+  return (
+  <div className=" h-50 flex justify-center items-center text-5xl">
+      <p> {titre}</p> 
+  </div>
+  );
 }
