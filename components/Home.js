@@ -25,6 +25,7 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [resetSignals, setResetSignals] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [showAccueil, setShowAccueil] = useState(false);
 
   useEffect(() => {
     setResetSignals((prev) => {
@@ -79,6 +80,23 @@ const App = () => {
     };
   }, [data, dispatch, urlFetch]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateAccueilVisibility = () => {
+      setShowAccueil(window.innerWidth >= 810);
+    };
+
+    updateAccueilVisibility();
+    window.addEventListener("resize", updateAccueilVisibility);
+
+    return () => {
+      window.removeEventListener("resize", updateAccueilVisibility);
+    };
+  }, []);
+
   const handleExternalTabChange = (index) => {
     setResetSignals((prev) => {
       if (!prev.length) return prev;
@@ -101,13 +119,10 @@ const App = () => {
               minHeight: 20,
               padding: 15,
               borderRadius: borderRadiusLG,
-              marginTop: 0,
+              marginTop: 10,
             }}
-            className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6 items-start"
+            className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-6 items-start "
           >
-            {!loading && cards.length > 0 && (
-              <Accueil titre={cards[0]?.titre} />
-            )}
             {loading && (
               <div className="col-span-full flex flex-col items-center py-10">
                 <ClimbingBoxLoader color="#6C6C6C" size={12} />
@@ -122,10 +137,65 @@ const App = () => {
                 {errorMessage}
               </p>
             )}
-
+            {!loading && cards.length > 0 && showAccueil && (
+              <Accueil titre={cards[0]?.titre} />
+            )}
             {!loading &&
               !errorMessage &&
-              cards.map((card, idx) => {
+              cards.slice(0, 1).map((card, idx) => {
+                const key = getCardKey(card, idx);
+                const isExpanded = expandedId === key;
+
+                return (
+                  <motion.div
+                    layout
+                    layoutId={`card-${key}`}
+                    key={key}
+                    onClick={() => setExpandedId(isExpanded ? null : key)}
+                    className="cursor-pointer m-5"
+                    style={{
+                      zIndex: isExpanded ? 20 : 1,
+                      pointerEvents: isExpanded ? "none" : "auto",
+                    }}
+                    animate={{
+                      scale: isExpanded ? 1 : 0.98,
+                      opacity: isExpanded ? 0 : 1,
+                      boxShadow: isExpanded
+                        ? "0 18px 50px rgba(0,0,0,0.18)"
+                        : "0 8px 25px rgba(0,0,0,0.08)",
+                    }}
+                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <Card
+                      {...card}
+                      isExpanded={isExpanded}
+                      onExpand={() => setExpandedId(key)}
+                      resetSignal={resetSignals[idx]}
+                      onTabChangeExternal={() => handleExternalTabChange(idx)}
+                    />
+                  </motion.div>
+                );
+              })}
+
+            {!loading && !errorMessage && !cards.length && (
+              <p className="col-span-full text-gray-500 text-sm">
+                Aucune carte a afficher.
+              </p>
+            )}
+          </div>
+          <div
+            style={{
+              background: colorBgContainer,
+              minHeight: 20,
+              padding: 15,
+              borderRadius: borderRadiusLG,
+              marginTop: 0,
+            }}
+            className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-6 items-start"
+          >
+            {!loading &&
+              !errorMessage &&
+              cards.slice(1).map((card, idx) => {
                 const key = getCardKey(card, idx);
                 const isExpanded = expandedId === key;
                 const wobble = (idx % 3) - 1;
@@ -137,7 +207,7 @@ const App = () => {
                     layoutId={`card-${key}`}
                     key={key}
                     onClick={() => setExpandedId(isExpanded ? null : key)}
-                    className="cursor-pointer"
+                    className="cursor-pointer m-5 "
                     style={{
                       zIndex: isExpanded ? 20 : 1,
                       pointerEvents: isExpanded ? "none" : "auto",
@@ -163,12 +233,6 @@ const App = () => {
                   </motion.div>
                 );
               })}
-
-            {!loading && !errorMessage && !cards.length && (
-              <p className="col-span-full text-gray-500 text-sm">
-                Aucune carte a afficher.
-              </p>
-            )}
           </div>
           <AnimatePresence>
             {expandedCard && (
@@ -179,6 +243,7 @@ const App = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setExpandedId(null)}
+                
               >
                 <motion.div
                   layoutId={`card-${expandedId}`}
@@ -190,7 +255,9 @@ const App = () => {
                     {...expandedCard}
                     isExpanded={true}
                     resetSignal={resetSignals[expandedIndex] ?? 0}
-                    onTabChangeExternal={() => handleExternalTabChange(expandedIndex)}
+                    onTabChangeExternal={() =>
+                      handleExternalTabChange(expandedIndex)
+                    }
                   />
                 </motion.div>
               </motion.div>
@@ -204,10 +271,10 @@ const App = () => {
 
 export default App;
 
-function Accueil({titre}) {
+function Accueil({ titre }) {
   return (
-  <div className=" h-50 flex justify-center items-center text-5xl">
-      <p> {titre}</p> 
-  </div>
+    <div className=" h-55 flex justify-center items-center text-5xl border m-7">
+      <p className="border text-center"> {titre}</p>
+    </div>
   );
 }

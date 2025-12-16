@@ -81,11 +81,11 @@ const CardBlock = (data) => {
   return (
     <Card
       title={data.titre}
-      style={{ width: "100%" }}
+      style={{ width: "100%",  }}
       tabList={tabList}
       activeTabKey={activeTabKey}
       onTabChange={onTabChange}
-      className="shadow-md hover:shadow-xl transition-shadow duration-200 rounded-3xl"
+      className="shadow-md hover:shadow-3xl  transition-shadow duration-200 rounded-3xl "
       tabProps={{ size: "middle", onTabClick: handleTabClick }}
       styles={
         iscontenu
