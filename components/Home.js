@@ -155,6 +155,8 @@ const App = () => {
                   >
                     <Card
                       {...card}
+                      isExpanded={isExpanded}
+                      onExpand={() => setExpandedId(key)}
                       resetSignal={resetSignals[idx]}
                       onTabChangeExternal={() => handleExternalTabChange(idx)}
                     />
@@ -186,6 +188,7 @@ const App = () => {
                 >
                   <Card
                     {...expandedCard}
+                    isExpanded={true}
                     resetSignal={resetSignals[expandedIndex] ?? 0}
                     onTabChangeExternal={() => handleExternalTabChange(expandedIndex)}
                   />

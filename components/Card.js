@@ -8,8 +8,20 @@ import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
 
 const CardBlock = (data) => {
+  const { isExpanded, onExpand } = data;
   const [activeTabKey, setActiveTabKey] = useState("contenu");
+
+  const handleTabClick = (key) => {
+    if (!isExpanded && typeof onExpand === "function") {
+      onExpand();
+    }
+  };
+
   const onTabChange = (key) => {
+    if (!isExpanded && typeof onExpand === "function") {
+      onExpand();
+      return; // on ne change l'onglet que lorsque la carte est étendue
+    }
     setActiveTabKey(key);
     if (typeof data.onTabChangeExternal === "function") {
       data.onTabChangeExternal(key);
@@ -74,7 +86,7 @@ const CardBlock = (data) => {
       activeTabKey={activeTabKey}
       onTabChange={onTabChange}
       className="shadow-md hover:shadow-xl transition-shadow duration-200 rounded-3xl"
-      tabProps={{ size: "middle" }}
+      tabProps={{ size: "middle", onTabClick: handleTabClick }}
       styles={
         iscontenu
           ? { body: { padding: 1 } }
