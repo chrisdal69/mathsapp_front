@@ -6,6 +6,7 @@ import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../reducers/cardsMathsSlice";
+import { Italic } from "lucide-react";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -275,8 +276,32 @@ export default App;
 
 function Accueil({ titre }) {
   return (
-    <div className=" h-55 flex justify-center items-center text-5xl border m-7">
-      <p className="border text-center"> {titre}</p>
+    <div className=" h-55 flex justify-center items-center text-5xl  m-7 overflow-hidden">
+      <motion.p
+        initial={{
+          opacity: 0,
+          x:-10,
+          y: 30,
+          clipPath: "inset(0 0 100% 0)",
+          filter: "blur(12px)",
+        }}
+        animate={{
+          opacity: 1,
+          x:0,
+          y: 0,
+          clipPath: "inset(0 0 0% 0)",
+          filter: "blur(0px)",
+        }}
+        transition={{
+          duration: 1.9,
+          ease: [0.16, 1, 0.3, 1],
+          delay: 0.05,
+        }}
+        className="text-center leading-tight"
+        whileHover={{x:5}}
+      >
+        {titre}
+      </motion.p>
     </div>
   );
 }
