@@ -73,7 +73,7 @@ const CardBlock = (data) => {
       tabList={tabList}
       activeTabKey={activeTabKey}
       onTabChange={onTabChange}
-      className="shadow-md hover:shadow-xl transition-shadow duration-200"
+      className="shadow-md hover:shadow-xl transition-shadow duration-200 rounded-3xl"
       tabProps={{ size: "middle" }}
       styles={
         iscontenu

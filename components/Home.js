@@ -91,7 +91,6 @@ const App = () => {
     (card, idx) => getCardKey(card, idx) === expandedId
   );
   const expandedCard = expandedIndex >= 0 ? cards[expandedIndex] : null;
-  console.log(cards)
   return (
     <Layout>
       <Content>
@@ -106,7 +105,9 @@ const App = () => {
             }}
             className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6 items-start"
           >
-            {!loading&&<Accueil titre={cards[0].titre} />}
+            {!loading && cards.length > 0 && (
+              <Accueil titre={cards[0]?.titre} />
+            )}
             {loading && (
               <div className="col-span-full flex flex-col items-center py-10">
                 <ClimbingBoxLoader color="#6C6C6C" size={12} />
