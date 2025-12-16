@@ -9,7 +9,8 @@ import { setCardsMaths } from "../reducers/cardsMathsSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
-const App = () => {  
+
+const App = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -17,7 +18,7 @@ const App = () => {
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
-  const cards = cardsFiltre.filter((obj) => obj.repertoire === 'ciel1');
+  const cards = cardsFiltre.filter((obj) => obj.repertoire === "ciel1");
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -53,7 +54,7 @@ const App = () => {
 
         if (response.ok) {
           dispatch(setCardsMaths(payload));
-          console.log("payload : ",payload)
+          console.log("payload : ", payload);
         } else {
           setErrorMessage(
             payload?.error || "Erreur lors du chargement des cartes."
@@ -94,8 +95,9 @@ const App = () => {
             borderRadius: borderRadiusLG,
             marginTop: 0,
           }}
-          className="flex flex-col gap-y-10 items-center"
+          className="flex gap-y-10 flex-wrap items-center"
         >
+          <Accueil/>
           {loading && (
             <div className="flex flex-col items-center py-10">
               <ClimbingBoxLoader color="#6C6C6C" size={12} />
@@ -112,7 +114,7 @@ const App = () => {
           {!loading &&
             !errorMessage &&
             cards.map((card, idx) => (
-              <div className="w-full" key={card._id || card.num || idx}>
+              <div className="w-1/2" key={card._id || card.num || idx}>
                 <Card
                   {...card}
                   resetSignal={resetSignals[idx]}
@@ -131,3 +133,7 @@ const App = () => {
 };
 
 export default App;
+
+function Accueil() {
+  return <div className="w-1/2 h-50 bg-blue-200"></div>;
+}
