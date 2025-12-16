@@ -165,6 +165,7 @@ const App = () => {
                         : "0 8px 25px rgba(0,0,0,0.08)",
                     }}
                     transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                    whileHover={{scale:1.005}}
                   >
                     <Card
                       {...card}
@@ -222,6 +223,7 @@ const App = () => {
                         : "0 8px 25px rgba(0,0,0,0.08)",
                     }}
                     transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                    whileHover={{scale:1.005}}
                   >
                     <Card
                       {...card}
