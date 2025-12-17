@@ -6,7 +6,6 @@ import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../reducers/cardsMathsSlice";
-import { Italic } from "lucide-react";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
