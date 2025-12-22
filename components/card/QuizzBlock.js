@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
+import "katex/dist/katex.min.css";
+import { InlineMath, BlockMath } from "react-katex";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 const NODE_ENV = process.env.NODE_ENV;
@@ -325,122 +327,145 @@ export default function Quizz({
             adaptiveHeight
             className="max-w-xs sm:max-w-2xl"
           >
-            {quizz.map((q) => (
-              <div
-                key={q.id}
-                style={{ display: "flex", justifyContent: "center" }}
-              >
-                <Card
-                  style={{
-                    margin: "4px auto",
-                    width: "100%",
-                    maxWidth: "100%",
-                    textAlign: "center",
-                    padding: "0px",
-                  }}
+            {quizz.map((q) => {
+              const questionTab = q.question.split("$");
+              const questionJsx = questionTab.map((txt, i) => {
+                if (i % 2 === 0) {
+                  return (
+                    <React.Fragment key={`text-${i}`}>{txt}</React.Fragment>
+                  );
+                }
+                return <InlineMath key={`math-${i}`} math={txt} />;
+              });
+              return (
+                <div
+                  key={q.id}
+                  style={{ display: "flex", justifyContent: "center" }}
                 >
-                  <div style={{ position: "relative", marginBottom: 0 }}>
-                    {q.image && (
-                      <div
-                        style={{
-                          display: "inline-block",
-                          borderRadius: 8,
-                          overflow: "hidden",
-                          boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-                        }}
-                      >
-                        <Image
-                          src={racine + q.image}
-                          alt=""
-                          width="400"
-                          height="400"
-                          style={{
-                            display: "block",
-                            margin: 0,
-                            transition: "transform 200ms ease",
-                            transform:
-                              hovered === q.id ? "scale(1.04)" : "scale(1)",
-                          }}
-                          onMouseEnter={() => setHovered(q.id)}
-                          onMouseLeave={() => setHovered(null)}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <p
+                  <Card
                     style={{
-                      marginBottom: 10,
-                      fontWeight: "bold",
-                      color:
-                        evalQuizz === "non" &&
-                        Number.isInteger(q.correct) &&
-                        answers[q.id] !== undefined
-                          ? answers[q.id] === q.correct
-                            ? "#52c41a"
-                            : "#ff4d4f"
-                          : undefined,
+                      margin: "4px auto",
+                      width: "100%",
+                      maxWidth: "100%",
+                      textAlign: "center",
+                      padding: "0px",
                     }}
                   >
-                    {q.question}
-                  </p>
-
-                  <Radio.Group
-                    value={answers[q.id] ?? null}
-                    onChange={(e) => handleSelect(q.id, e.target.value)}
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      gap: 2,
-                      justifyContent: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {q.options.map((opt, i) => {
-                      const sel = answers[q.id] === i;
-                      const showFeedback =
-                        evalQuizz === "non" && Number.isInteger(q.correct);
-                      const isOk =
-                        showFeedback && sel && answers[q.id] === q.correct;
-                      const isErr =
-                        showFeedback && sel && answers[q.id] !== q.correct;
-                      const borderColor = isOk
-                        ? "#52c41a"
-                        : isErr
-                        ? "#ff4d4f"
-                        : "transparent";
-                      const bg = isOk
-                        ? "rgba(82,196,26,0.12)"
-                        : isErr
-                        ? "rgba(255,77,79,0.12)"
-                        : sel
-                        ? "rgba(0,0,0,0.05)"
-                        : "transparent";
-                      const textColor = isOk
-                        ? "#52c41a"
-                        : isErr
-                        ? "#ff4d4f"
-                        : undefined;
-                      return (
+                    <div style={{ position: "relative", marginBottom: 0 }}>
+                      {q.image && (
                         <div
-                          key={opt}
                           style={{
-                            padding: "4px 8px",
+                            display: "inline-block",
                             borderRadius: 8,
-                            border: `1px solid ${borderColor}`,
-                            backgroundColor: bg,
+                            overflow: "hidden",
+                            boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                           }}
                         >
-                          <Radio value={i} style={{ color: textColor }}>
-                            {opt}
-                          </Radio>
+                          <Image
+                            src={racine + q.image}
+                            alt=""
+                            width="400"
+                            height="400"
+                            style={{
+                              display: "block",
+                              margin: 0,
+                              transition: "transform 200ms ease",
+                              transform:
+                                hovered === q.id ? "scale(1.04)" : "scale(1)",
+                            }}
+                            onMouseEnter={() => setHovered(q.id)}
+                            onMouseLeave={() => setHovered(null)}
+                          />
                         </div>
-                      );
-                    })}
-                  </Radio.Group>
-                </Card>
-              </div>
-            ))}
+                      )}
+                    </div>
+
+                    <p
+                      style={{
+                        marginBottom: 10,
+
+                        color:
+                          evalQuizz === "non" &&
+                          Number.isInteger(q.correct) &&
+                          answers[q.id] !== undefined
+                            ? answers[q.id] === q.correct
+                              ? "#52c41a"
+                              : "#ff4d4f"
+                            : undefined,
+                      }}
+                    >
+                      {questionJsx}
+                    </p>
+
+                    <Radio.Group
+                      value={answers[q.id] ?? null}
+                      onChange={(e) => handleSelect(q.id, e.target.value)}
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 2,
+                        justifyContent: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {q.options.map((opt, i) => {
+                        const sel = answers[q.id] === i;
+                        const showFeedback =
+                          evalQuizz === "non" && Number.isInteger(q.correct);
+                        const isOk =
+                          showFeedback && sel && answers[q.id] === q.correct;
+                        const isErr =
+                          showFeedback && sel && answers[q.id] !== q.correct;
+                        const borderColor = isOk
+                          ? "#52c41a"
+                          : isErr
+                          ? "#ff4d4f"
+                          : "transparent";
+                        const bg = isOk
+                          ? "rgba(82,196,26,0.12)"
+                          : isErr
+                          ? "rgba(255,77,79,0.12)"
+                          : sel
+                          ? "rgba(0,0,0,0.05)"
+                          : "transparent";
+                        const textColor = isOk
+                          ? "#52c41a"
+                          : isErr
+                          ? "#ff4d4f"
+                          : undefined;
+                        const optTab = opt.split("$");
+                        const optJsx = optTab.map((txt, i) => {
+                          if (i % 2 === 0) {
+                            return (
+                              <React.Fragment key={`text-${i}`}>
+                                {txt}
+                              </React.Fragment>
+                            );
+                          }
+                          return <InlineMath key={`math-${i}`} math={txt} />;
+                        });
+
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: 8,
+                              border: `1px solid ${borderColor}`,
+                              backgroundColor: bg,
+                            }}
+                          >
+                            <Radio value={i} style={{ color: textColor }}>
+                              {optJsx}
+                            </Radio>
+                          </div>
+                        );
+                      })}
+                    </Radio.Group>
+                  </Card>
+                </div>
+              );
+            })}
           </Carousel>
           {evalQuizz === "oui" && (
             <div style={{ marginTop: 16, textAlign: "center" }}>
@@ -457,9 +482,7 @@ export default function Quizz({
               {historyMessage && (
                 <p style={{ marginTop: 8 }}>{historyMessage}</p>
               )}
-              {scoreMessage && (
-                <p style={{ marginTop: 4 }}>{scoreMessage}</p>
-              )}
+              {scoreMessage && <p style={{ marginTop: 4 }}>{scoreMessage}</p>}
             </div>
           )}
         </div>

@@ -12,11 +12,12 @@ const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
 const App = ({repertoire}) => {
-  const {
+  let {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
- 
-
+  colorBgContainer = 'blue';
+  borderRadiusLG = 0;
+  
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
