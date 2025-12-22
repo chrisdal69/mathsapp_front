@@ -5,11 +5,87 @@ import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
-import { InlineMath, BlockMath } from "react-katex";
+import { InlineMath } from "react-katex";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+  let hasUnmatched = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    hasUnmatched = true;
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return { parts: tokens, hasUnmatched };
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return { parts: tokens, hasUnmatched };
+};
+
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
+    part.type === "text" ? (
+      <React.Fragment key={`text-${i}`}>{part.value}</React.Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+  return { nodes, hasUnmatched };
+};
 
 export default function Quizz({
   num,
@@ -328,15 +404,8 @@ export default function Quizz({
             className="max-w-xs sm:max-w-2xl"
           >
             {quizz.map((q) => {
-              const questionTab = q.question.split("$");
-              const questionJsx = questionTab.map((txt, i) => {
-                if (i % 2 === 0) {
-                  return (
-                    <React.Fragment key={`text-${i}`}>{txt}</React.Fragment>
-                  );
-                }
-                return <InlineMath key={`math-${i}`} math={txt} />;
-              });
+              const { nodes: questionJsx, hasUnmatched: questionHasError } =
+                renderInlineKatex(q.question);
               return (
                 <div
                   key={q.id}
@@ -395,6 +464,17 @@ export default function Quizz({
                       }}
                     >
                       {questionJsx}
+                      {questionHasError && (
+                        <span
+                          style={{
+                            color: "#ff4d4f",
+                            marginLeft: 6,
+                            fontSize: 12,
+                          }}
+                        >
+                          ($ non ferme)
+                        </span>
+                      )}
                     </p>
 
                     <Radio.Group
@@ -433,17 +513,8 @@ export default function Quizz({
                           : isErr
                           ? "#ff4d4f"
                           : undefined;
-                        const optTab = opt.split("$");
-                        const optJsx = optTab.map((txt, i) => {
-                          if (i % 2 === 0) {
-                            return (
-                              <React.Fragment key={`text-${i}`}>
-                                {txt}
-                              </React.Fragment>
-                            );
-                          }
-                          return <InlineMath key={`math-${i}`} math={txt} />;
-                        });
+                        const { nodes: optJsx, hasUnmatched: optHasError } =
+                          renderInlineKatex(opt);
 
                         return (
                           <div
@@ -457,6 +528,17 @@ export default function Quizz({
                           >
                             <Radio value={i} style={{ color: textColor }}>
                               {optJsx}
+                              {optHasError && (
+                                <span
+                                  style={{
+                                    color: "#ff4d4f",
+                                    marginLeft: 6,
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  ($ non ferme)
+                                </span>
+                              )}
                             </Radio>
                           </div>
                         );
