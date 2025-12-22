@@ -45,12 +45,12 @@ const stripPrefix = (name = "") => {
   return parts.length > 1 ? parts.slice(1).join("___") : name;
 };
 
-const CloudBlock = ({num , repertoire}) => {
+const CloudBlock = ({num , repertoire , _id}) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
-
+const [listMessage , setListMessage] = useState([]);
   // Filtres / tri
   const [searchTerm, setSearchTerm] = useState("");
   const [fileType, setFileType] = useState("all");
@@ -89,6 +89,10 @@ const CloudBlock = ({num , repertoire}) => {
   useEffect(() => {
     if (isAuthenticated) onRecup();
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (isAuthenticated) onRecupMessages();
+  }, [isAuthenticated, _id]);
 
   const onFinish = async (values) => {
     setUpload(true);
@@ -166,6 +170,35 @@ const CloudBlock = ({num , repertoire}) => {
       console.log(data);
     } catch (err) {
       console.error("Erreur upload:", err);
+    }
+  };
+
+  const onRecupMessages = async () => {
+    if (!_id) return;
+    try {
+      const res = await fetch(
+        `${urlFetch}/cards/cloud?id_card=${encodeURIComponent(_id)}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (!res.ok) {
+        const errorMsg =
+          data?.error || data?.message || "Erreur lors de la recuperation";
+        console.error("Erreur messages:", errorMsg);
+        return;
+      }
+
+      const nextList = Array.isArray(data) ? data : data.result;
+      setListMessage(Array.isArray(nextList) ? nextList : []);
+    } catch (err) {
+      console.error("Erreur messages:", err);
     }
   };
 
@@ -447,6 +480,18 @@ const CloudBlock = ({num , repertoire}) => {
               {sortOrder === "asc" ? "A → Z" : "Z → A"}
             </Button>
           </div>
+         {/* 📂 Message */}
+              <div className=' border'>
+                {listMessage.map((obj,i)=>{
+                  return (
+                    <div className="border">
+                      <p>@{obj.filename}</p>
+                      <p>{obj.message}</p>
+                    </div>
+                  )
+                })}
+
+              </div>
 
           {/* 📂 Liste avec scroll */}
           <div
