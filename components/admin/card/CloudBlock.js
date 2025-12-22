@@ -19,6 +19,7 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
+  MailOutlined,
   ExclamationCircleOutlined,
   FilePdfOutlined,
   FileImageOutlined,
@@ -63,6 +64,9 @@ const CloudBlock = ({ num, repertoire, _id }) => {
   const [renameVisible, setRenameVisible] = useState(null);
   const [deleteVisible, setDeleteVisible] = useState(null);
   const [newName, setNewName] = useState("");
+  const [messageVisible, setMessageVisible] = useState(null);
+  const [messageText, setMessageText] = useState("");
+  const [messageSending, setMessageSending] = useState(false);
 
   const dispatch = useDispatch();
   const deleteTimer = useRef(null);
@@ -208,6 +212,11 @@ const CloudBlock = ({ num, repertoire, _id }) => {
     deleteTimer.current = setTimeout(() => setDeleteVisible(null), 2000);
   };
 
+  const handleMessageClick = (index) => {
+    setMessageVisible(index);
+    setMessageText("");
+  };
+
   const handleConfirmRename = async (file) => {
     //console.log("handleConfirmRename : ", file.name, newName);
     try {
@@ -234,6 +243,69 @@ const CloudBlock = ({ num, repertoire, _id }) => {
       message.error("Erreur de communication avec le serveur");
     }
     setRenameVisible(null);
+  };
+
+  const handleSendMessage = async ({ nom, prenom, text, filename }) => {
+    const normalizedNom =
+      typeof nom === "string" ? nom.trim().toUpperCase() : "";
+    const normalizedPrenom =
+      typeof prenom === "string" ? prenom.trim().toLowerCase() : "";
+    const trimmedText = typeof text === "string" ? text.trim() : "";
+    const trimmedFilename =
+      typeof filename === "string" ? filename.trim() : "";
+
+    if (!_id) {
+      message.error("Id de carte manquant.");
+      return;
+    }
+    if (!normalizedNom || !normalizedPrenom) {
+      message.error("Nom ou prenom introuvable pour ce fichier.");
+      return;
+    }
+    if (!trimmedText) {
+      message.error("Le message est vide.");
+      return;
+    }
+    if (!trimmedFilename) {
+      message.error("Nom de fichier manquant.");
+      return;
+    }
+
+    setMessageSending(true);
+    try {
+      const res = await fetch(`${urlFetch}/cards/cloud`, {
+        method: "POST",
+        body: JSON.stringify({
+          id_card: _id,
+          nom: normalizedNom,
+          prenom: normalizedPrenom,
+          message: trimmedText,
+          filename: trimmedFilename,
+        }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (!res.ok || data?.error) {
+        message.error(
+          data?.message || data?.error || "Erreur lors de l'envoi du message"
+        );
+        return;
+      }
+
+      message.success("Message envoye !");
+      setMessageVisible(null);
+      setMessageText("");
+    } catch (err) {
+      console.error(err);
+      message.error("Erreur de communication avec le serveur");
+    } finally {
+      setMessageSending(false);
+    }
   };
 
   const handleDownloadZip = async () => {
@@ -429,10 +501,12 @@ const CloudBlock = ({ num, repertoire, _id }) => {
     return () => window.removeEventListener("resize", updateHeight);
   }, [filteredFiles]);
 
-  function splitMajMin(str) {
-    const index = str.search(/[A-Z][a-z]/);
-    if (index === -1) return [str, ""];
-    return [str.slice(0, index+1).toUpperCase(), str.slice(index+1).toLowerCase()];
+  function splitMajMin(value) {
+    const str = typeof value === "string" ? value : "";
+    const index = str.search(/[a-z]/);
+    if (index === -1) return [str.toUpperCase(), ""];
+    if (index === 0) return ["", str.toLowerCase()];
+    return [str.slice(0, index).toUpperCase(), str.slice(index).toLowerCase()];
   }
 
   return (
@@ -542,12 +616,14 @@ const CloudBlock = ({ num, repertoire, _id }) => {
               dataSource={filteredFiles}
               locale={{ emptyText: "Aucun fichier trouvé" }}
               renderItem={(file, index) => {
-                const fullName = file.name.split("/").pop();
+                const fullName = file.name?.split("/").pop() ?? "";
                 const isRenameOpen = renameVisible === index;
                 const isDeleteOpen = deleteVisible === index;
+                const isMessageOpen = messageVisible === index;
 
                 const nomPrenom = fullName.split("___")[0] ?? "";
                 const [nom, prenom] = splitMajMin(nomPrenom);
+                const reduceName = fullName.split("___")[1] ?? "";
 
                 return (
                   <List.Item className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-1 border-b border-gray-100 last:border-b-0">
@@ -604,6 +680,67 @@ const CloudBlock = ({ num, repertoire, _id }) => {
                             size="small"
                             className={isRenameOpen ? "btn-active" : ""}
                             onClick={() => handleRenameClick(file, index)}
+                          />
+                        </Tooltip>
+                      </Popover>
+
+                      <Popover
+                        placement="bottom"
+                        open={isMessageOpen}
+                        onOpenChange={(visible) =>
+                          setMessageVisible(visible ? index : null)
+                        }
+                        trigger="click"
+                        content={
+                          <Space direction="vertical">
+                            <Input.TextArea
+                              rows={3}
+                              value={messageText}
+                              onChange={(e) => setMessageText(e.target.value)}
+                              placeholder="Message..."
+                              disabled={messageSending}
+                            />
+                            <Space>
+                              <Tooltip
+                                title="Valider le message"
+                                mouseEnterDelay={0.3}
+                              >
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  icon={<CheckOutlined />}
+                                  loading={messageSending}
+                                  onClick={() =>
+                                    handleSendMessage({
+                                      nom,
+                                      prenom,
+                                      text: messageText,
+                                      filename: reduceName,
+                                    })
+                                  }
+                                />
+                              </Tooltip>
+                              <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                                <Button
+                                  size="small"
+                                  icon={<CloseOutlined />}
+                                  onClick={() => setMessageVisible(null)}
+                                  disabled={messageSending}
+                                />
+                              </Tooltip>
+                            </Space>
+                          </Space>
+                        }
+                      >
+                        <Tooltip
+                          title="Envoyer un message"
+                          mouseEnterDelay={0.3}
+                        >
+                          <Button
+                            icon={<MailOutlined />}
+                            size="small"
+                            className={isMessageOpen ? "btn-active" : ""}
+                            onClick={() => handleMessageClick(index)}
                           />
                         </Tooltip>
                       </Popover>
