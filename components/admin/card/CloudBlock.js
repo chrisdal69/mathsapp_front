@@ -45,17 +45,15 @@ const { Dragger } = Upload;
 const { Text } = Typography;
 const { Option } = Select;
 
-const CloudBlock = ({num , repertoire}) => {
+const CloudBlock = ({ num, repertoire, _id }) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
   const [zipLoading, setZipLoading] = useState(false);
   const [scrollExpanded, setScrollExpanded] = useState(false);
-  const [listContentHeight, setListContentHeight] = useState(
-    CLOUD_SCROLL_HEIGHT
-  );
-
+  const [listContentHeight, setListContentHeight] =
+    useState(CLOUD_SCROLL_HEIGHT);
   // Filtres / tri
   const [searchTerm, setSearchTerm] = useState("");
   const [fileType, setFileType] = useState("all");
@@ -155,7 +153,6 @@ const CloudBlock = ({num , repertoire}) => {
     }
   };
 
-
   const onRecup = async () => {
     const formData = new FormData();
     formData.append("parent", "cloud");
@@ -168,7 +165,7 @@ const CloudBlock = ({num , repertoire}) => {
       });
       const data = await res.json();
       setFilesCloud(data);
-      console.log(data);
+      //console.log(data);
     } catch (err) {
       console.error("Erreur upload:", err);
     }
@@ -212,7 +209,7 @@ const CloudBlock = ({num , repertoire}) => {
   };
 
   const handleConfirmRename = async (file) => {
-    console.log("handleConfirmRename : ", file.name, newName);
+    //console.log("handleConfirmRename : ", file.name, newName);
     try {
       const res = await fetch(`${urlFetch}/upload/renameA`, {
         method: "POST",
@@ -424,15 +421,19 @@ const CloudBlock = ({num , repertoire}) => {
     const updateHeight = () => {
       if (listContainerRef.current) {
         const scrollHeight = listContainerRef.current.scrollHeight || 0;
-        setListContentHeight(
-          Math.max(scrollHeight, CLOUD_SCROLL_HEIGHT)
-        );
+        setListContentHeight(Math.max(scrollHeight, CLOUD_SCROLL_HEIGHT));
       }
     };
     updateHeight();
     window.addEventListener("resize", updateHeight);
     return () => window.removeEventListener("resize", updateHeight);
   }, [filteredFiles]);
+
+  function splitMajMin(str) {
+    const index = str.search(/[A-Z][a-z]/);
+    if (index === -1) return [str, ""];
+    return [str.slice(0, index+1).toUpperCase(), str.slice(index+1).toLowerCase()];
+  }
 
   return (
     <div className="relative" aria-busy={upload}>
@@ -444,7 +445,6 @@ const CloudBlock = ({num , repertoire}) => {
 
       {isAuthenticated && (
         <Form form={form} onFinish={onFinish} className="upload-form">
-         
           {/* 🎛️ Filtres */}
           <div className="mb-6 flex flex-wrap gap-3 items-center justify-center md:justify-start">
             <Input
@@ -486,12 +486,17 @@ const CloudBlock = ({num , repertoire}) => {
                     <SortDescendingOutlined />
                   )
                 }
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
               >
                 {sortOrder === "asc" ? "A → Z" : "Z → A"}
               </Button>
             </Tooltip>
-            <Tooltip title="Télécharger tous les fichiers en ZIP" mouseEnterDelay={0.3}>
+            <Tooltip
+              title="Télécharger tous les fichiers en ZIP"
+              mouseEnterDelay={0.3}
+            >
               <Button
                 icon={<DownloadOutlined />}
                 onClick={handleDownloadZip}
@@ -521,7 +526,9 @@ const CloudBlock = ({num , repertoire}) => {
           <div
             ref={listContainerRef}
             style={{
-              maxHeight: `${scrollExpanded ? listContentHeight : CLOUD_SCROLL_HEIGHT}px`,
+              maxHeight: `${
+                scrollExpanded ? listContentHeight : CLOUD_SCROLL_HEIGHT
+              }px`,
               overflowY: scrollExpanded ? "visible" : "auto",
               border: "1px solid #f0f0f0",
               borderRadius: "6px",
@@ -538,6 +545,9 @@ const CloudBlock = ({num , repertoire}) => {
                 const fullName = file.name.split("/").pop();
                 const isRenameOpen = renameVisible === index;
                 const isDeleteOpen = deleteVisible === index;
+
+                const nomPrenom = fullName.split("___")[0] ?? "";
+                const [nom, prenom] = splitMajMin(nomPrenom);
 
                 return (
                   <List.Item className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-1 border-b border-gray-100 last:border-b-0">
@@ -564,7 +574,10 @@ const CloudBlock = ({num , repertoire}) => {
                               onChange={(e) => setNewName(e.target.value)}
                               placeholder="Nouveau nom"
                             />
-                            <Tooltip title="Valider le nouveau nom" mouseEnterDelay={0.3}>
+                            <Tooltip
+                              title="Valider le nouveau nom"
+                              mouseEnterDelay={0.3}
+                            >
                               <Button
                                 type="primary"
                                 size="small"
@@ -582,7 +595,10 @@ const CloudBlock = ({num , repertoire}) => {
                           </Space>
                         }
                       >
-                        <Tooltip title="Renommer le fichier" mouseEnterDelay={0.3}>
+                        <Tooltip
+                          title="Renommer le fichier"
+                          mouseEnterDelay={0.3}
+                        >
                           <Button
                             icon={<EditOutlined />}
                             size="small"
@@ -612,7 +628,10 @@ const CloudBlock = ({num , repertoire}) => {
                               style={{ color: "#faad14" }}
                             />
                             <span>Supprimer ?</span>
-                            <Tooltip title="Confirmer la suppression" mouseEnterDelay={0.3}>
+                            <Tooltip
+                              title="Confirmer la suppression"
+                              mouseEnterDelay={0.3}
+                            >
                               <Button
                                 danger
                                 size="small"
@@ -630,7 +649,10 @@ const CloudBlock = ({num , repertoire}) => {
                           </Space>
                         }
                       >
-                        <Tooltip title="Supprimer ce fichier" mouseEnterDelay={0.3}>
+                        <Tooltip
+                          title="Supprimer ce fichier"
+                          mouseEnterDelay={0.3}
+                        >
                           <Button
                             danger
                             icon={<DeleteOutlined />}
