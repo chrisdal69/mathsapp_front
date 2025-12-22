@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
 import { Button, Input, Popover, Select, Tooltip, message } from "antd";
 import {
   EditOutlined,
@@ -13,6 +15,86 @@ import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+const EMPTY_SENTINEL = "\u200B"; // Persist an "empty-looking" item through backend trimming.
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+  let hasUnmatched = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    hasUnmatched = true;
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return { parts: tokens, hasUnmatched };
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return { parts: tokens, hasUnmatched };
+};
+
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
+    part.type === "text" ? (
+      <Fragment key={`text-${i}`}>{part.value}</Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+  return { nodes, hasUnmatched };
+};
+
+const normalizeEmptyValue = (value) =>
+  value === EMPTY_SENTINEL ? "" : value || "";
 
 export default function Contenu({
   _id,
@@ -32,7 +114,6 @@ export default function Contenu({
   const [localPlan, setLocalPlan] = useState(
     Array.isArray(plan) ? plan : []
   );
-  const [newValues, setNewValues] = useState({ presentation: "", plan: "" });
   const [insertPositions, setInsertPositions] = useState({
     presentation: "end",
     plan: "end",
@@ -313,24 +394,15 @@ export default function Contenu({
     const config = listConfigs[type];
     if (!config) return;
 
-    const value = (newValues[type] || "").trim();
-    if (!value) {
-      message.error("Le champ ne peut pas être vide.");
-      return;
-    }
-
     const nextList = insertAt(
       getListForType(type),
-      value,
+      EMPTY_SENTINEL,
       getInsertIndex(type)
     );
     const key = getActionKey("add", type);
     setActionKey(key);
-    const success = await persistList(type, nextList, config.success.add);
+    await persistList(type, nextList, config.success.add);
     setActionKey("");
-    if (success) {
-      setNewValues((prev) => ({ ...prev, [type]: "" }));
-    }
   };
 
   const handleSaveEdit = async () => {
@@ -381,9 +453,12 @@ export default function Contenu({
         value={editValue}
         maxLength={500}
         autoSize={{ minRows: 2, maxRows: 5 }}
-        placeholder="Modifier le texte"
+        placeholder="Texte et formules avec $...$"
         onChange={(e) => setEditValue(e.target.value)}
       />
+      <p className="text-xs text-gray-500">
+        Utiliser $...$ pour les formules inline.
+      </p>
       <div className="flex justify-end gap-2">
         <Button
           type="primary"
@@ -446,39 +521,29 @@ export default function Contenu({
           <p className="text-base font-semibold text-gray-800">
             {config.title}
           </p>
-          <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-start">
-            <textarea
-              value={newValues[type]}
-              onChange={(e) =>
-                setNewValues((prev) => ({ ...prev, [type]: e.target.value }))
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:items-start">
+            <Select
+              className="w-full sm:w-56"
+              value={insertPositions[type]}
+              options={insertionOptions}
+              onChange={(value) =>
+                setInsertPositions((prev) => ({ ...prev, [type]: value }))
               }
-              placeholder={config.placeholder}
-              maxLength={500}
-              rows={2}
-              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:items-start">
-              <Select
-                className="w-full sm:w-56"
-                value={insertPositions[type]}
-                options={insertionOptions}
-                onChange={(value) =>
-                  setInsertPositions((prev) => ({ ...prev, [type]: value }))
-                }
-              />
-              <Tooltip title={`Ajouter ${config.label.toLowerCase()}`} mouseEnterDelay={0.3}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  loading={isActionInProgress("add", type)}
-                  disabled={!newValues[type].trim()}
-                  onClick={() => handleAddItem(type)}
-                  className="shrink-0"
-                >
-                  Ajouter
-                </Button>
-              </Tooltip>
-            </div>
+            <Tooltip
+              title={`Ajouter ${config.label.toLowerCase()}`}
+              mouseEnterDelay={0.3}
+            >
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                loading={isActionInProgress("add", type)}
+                onClick={() => handleAddItem(type)}
+                className="shrink-0"
+              >
+                Ajouter
+              </Button>
+            </Tooltip>
           </div>
         </div>
 
@@ -489,6 +554,11 @@ export default function Contenu({
                 editContext.type === type && editContext.index === index;
               const isDeleteOpen =
                 deleteContext.type === type && deleteContext.index === index;
+              const displayValue = isEditOpen
+                ? editValue
+                : normalizeEmptyValue(text);
+              const { nodes: renderedValue, hasUnmatched } =
+                renderInlineKatex(displayValue);
 
               return (
                 <li
@@ -500,7 +570,22 @@ export default function Contenu({
                       {config.label} {index + 1}
                     </p>
                     <p className="whitespace-pre-line break-words text-sm text-gray-800">
-                      {text}
+                      {displayValue ? (
+                        renderedValue
+                      ) : (
+                        <span className="text-gray-400">vide</span>
+                      )}
+                      {displayValue && hasUnmatched && (
+                        <span
+                          style={{
+                            color: "#ff4d4f",
+                            marginLeft: 6,
+                            fontSize: 12,
+                          }}
+                        >
+                          ($ non ferme)
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -511,7 +596,7 @@ export default function Contenu({
                       onOpenChange={(visible) => {
                         if (visible) {
                           setEditContext({ type, index });
-                          setEditValue(text);
+                          setEditValue(normalizeEmptyValue(text));
                         } else if (isEditOpen) {
                           closeEditPopover();
                         }
