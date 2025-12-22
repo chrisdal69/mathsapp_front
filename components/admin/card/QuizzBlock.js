@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Button,
@@ -28,6 +30,82 @@ import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+  let hasUnmatched = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    hasUnmatched = true;
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return { parts: tokens, hasUnmatched };
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return { parts: tokens, hasUnmatched };
+};
+
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
+    part.type === "text" ? (
+      <Fragment key={`text-${i}`}>{part.value}</Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+  return { nodes, hasUnmatched };
+};
 
 export default function Quizz({
   num,
@@ -741,15 +819,16 @@ const trackWidth =
           >
             {quizzList.map((q, idx) => {
               const initialQuestionValue = q.question || "";
-              const questionValue =
-                editQuestion.id === q.id
-                  ? editQuestion.value
-                  : initialQuestionValue;
+              const isEditingQuestion = editQuestion.id === q.id;
+              const questionValue = isEditingQuestion
+                ? editQuestion.value
+                : initialQuestionValue;
               const isQuestionEmpty = !questionValue.trim();
               const hasQuestionChanged = questionValue !== initialQuestionValue;
-              const disableQuestionButton =
+              const disableQuestionSave =
                 isQuestionEmpty || !hasQuestionChanged;
-              const questionButtonLabel = isQuestionEmpty ? "Saisir" : "Modifier";
+              const { nodes: questionNodes, hasUnmatched: questionHasError } =
+                renderInlineKatex(questionValue);
               return (
                 <div
                   key={q.id || idx}
@@ -769,44 +848,107 @@ const trackWidth =
                     }}
                     title={
                       <div className="flex w-full flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">
-                          Question {idx + 1} ({q.id || `q${idx + 1}`}) :
-                        </label>
-                        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start sm:gap-3">
-                          <Input.TextArea
-                            autoSize={{ minRows: 2, maxRows: 4 }}
-                            className="!font-normal"
-                            value={questionValue}
-                            maxLength={500}
-                            placeholder="Saisir l'intitule de la question"
-                            onChange={(e) =>
-                              setEditQuestion({ id: q.id, value: e.target.value })
-                            }
-                          />
-                          <Tooltip
-                            title={
-                              disableQuestionButton
-                                ? "Saisir ou modifier la question"
-                                : "Enregistrer la question"
-                            }
-                            mouseEnterDelay={0.3}
-                          >
-                            <Button
-                              type="primary"
-                              icon={<EditOutlined />}
-                              className="sm:self-start sm:shrink-0"
-                              style={{
-                                opacity: disableQuestionButton ? 0.6 : 1,
-                              }}
-                              loading={isAction(getActionKey("question", q.id))}
-                              disabled={disableQuestionButton}
-                              onClick={() =>
-                                handleSaveQuestion(q.id, questionValue)
+                        <div className="flex items-start justify-between gap-2">
+                          <label className="text-sm font-normal text-gray-700">
+                            Question {idx + 1} ({q.id || `q${idx + 1}`}) :
+                          </label>
+                          <Popover
+                            trigger="click"
+                            open={isEditingQuestion}
+                            onOpenChange={(visible) => {
+                              if (visible) {
+                                setEditQuestion({
+                                  id: q.id,
+                                  value: initialQuestionValue,
+                                });
+                              } else if (isEditingQuestion) {
+                                setEditQuestion({ id: null, value: "" });
                               }
+                            }}
+                            content={
+                              <div className="w-80 space-y-2">
+                                <Input.TextArea
+                                  autoSize={{ minRows: 3, maxRows: 6 }}
+                                  className="!font-normal"
+                                  value={questionValue}
+                                  maxLength={500}
+                                  placeholder="Texte et formules avec $...$"
+                                  onChange={(e) =>
+                                    setEditQuestion({
+                                      id: q.id,
+                                      value: e.target.value,
+                                    })
+                                  }
+                                />
+                                <p className="text-xs text-gray-500">
+                                  Utiliser $...$ pour les formules inline.
+                                </p>
+                                <div className="flex justify-end gap-2">
+                                  <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                                    <Button
+                                      size="small"
+                                      icon={<CloseOutlined />}
+                                      onClick={() =>
+                                        setEditQuestion({ id: null, value: "" })
+                                      }
+                                    >
+                                      Annuler
+                                    </Button>
+                                  </Tooltip>
+                                  <Tooltip
+                                    title="Valider la modification"
+                                    mouseEnterDelay={0.3}
+                                  >
+                                    <Button
+                                      size="small"
+                                      type="primary"
+                                      icon={<CheckOutlined />}
+                                      loading={isAction(
+                                        getActionKey("question", q.id)
+                                      )}
+                                      disabled={disableQuestionSave}
+                                      onClick={() =>
+                                        handleSaveQuestion(q.id, questionValue)
+                                      }
+                                    >
+                                      Valider
+                                    </Button>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            }
+                          >
+                            <Tooltip
+                              title={
+                                isQuestionEmpty
+                                  ? "Saisir la question"
+                                  : "Modifier la question"
+                              }
+                              mouseEnterDelay={0.3}
                             >
-                              {questionButtonLabel}
-                            </Button>
-                          </Tooltip>
+                              <Button size="small" icon={<EditOutlined />} />
+                            </Tooltip>
+                          </Popover>
+                        </div>
+                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                          {isQuestionEmpty ? (
+                            <span className="text-gray-400">
+                              Aucun intitule
+                            </span>
+                          ) : (
+                            questionNodes
+                          )}
+                          {questionHasError && (
+                            <span
+                              style={{
+                                color: "#ff4d4f",
+                                marginLeft: 6,
+                                fontSize: 12,
+                              }}
+                            >
+                              ($ non ferme)
+                            </span>
+                          )}
                         </div>
                       </div>
                     }
@@ -972,6 +1114,13 @@ const trackWidth =
                           const editOpen =
                             editOption.qid === q.id &&
                             editOption.index === optionIndex;
+                          const optionValue = editOpen
+                            ? editOption.value
+                            : op || "";
+                          const {
+                            nodes: optionNodes,
+                            hasUnmatched: optionHasError,
+                          } = renderInlineKatex(optionValue);
                           return (
                             <li
                               key={`${q.id}-${optionIndex}`}
@@ -989,8 +1138,21 @@ const trackWidth =
                                     Option {optionIndex + 1}
                                   </p>
                                   <p className="whitespace-pre-line break-words text-sm text-gray-800">
-                                    {op || (
+                                    {optionValue ? (
+                                      optionNodes
+                                    ) : (
                                       <span className="text-gray-400">vide</span>
+                                    )}
+                                    {optionValue && optionHasError && (
+                                      <span
+                                        style={{
+                                          color: "#ff4d4f",
+                                          marginLeft: 6,
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        ($ non ferme)
+                                      </span>
                                     )}
                                   </p>
                                 </div>
