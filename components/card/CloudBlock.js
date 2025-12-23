@@ -10,6 +10,7 @@ import {
   Popover,
   Select,
   Image,
+  Tooltip,
 } from "antd";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import {
@@ -45,12 +46,12 @@ const stripPrefix = (name = "") => {
   return parts.length > 1 ? parts.slice(1).join("___") : name;
 };
 
-const CloudBlock = ({num , repertoire , _id}) => {
+const CloudBlock = ({ num, repertoire, _id }) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [filesCloud, setFilesCloud] = useState([]);
-const [listMessage , setListMessage] = useState([]);
+  const [listMessage, setListMessage] = useState([]);
   // Filtres / tri
   const [searchTerm, setSearchTerm] = useState("");
   const [fileType, setFileType] = useState("all");
@@ -60,6 +61,8 @@ const [listMessage , setListMessage] = useState([]);
   const [renameVisible, setRenameVisible] = useState(null);
   const [deleteVisible, setDeleteVisible] = useState(null);
   const [newName, setNewName] = useState("");
+  const [messageDeleteVisible, setMessageDeleteVisible] = useState(null);
+  const [messageDeleting, setMessageDeleting] = useState(false);
 
   const dispatch = useDispatch();
   const deleteTimer = useRef(null);
@@ -199,6 +202,45 @@ const [listMessage , setListMessage] = useState([]);
       setListMessage(Array.isArray(nextList) ? nextList : []);
     } catch (err) {
       console.error("Erreur messages:", err);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!messageId) {
+      message.error("Message introuvable.");
+      return;
+    }
+    setMessageDeleting(true);
+    try {
+      const res = await fetch(
+        `${urlFetch}/cards/cloud/${encodeURIComponent(messageId)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {}
+
+      if (!res.ok || data?.error) {
+        message.error(
+          data?.message || data?.error || "Erreur lors de la suppression"
+        );
+        return;
+      }
+
+      setListMessage((prev) =>
+        prev.filter((item) => String(item._id) !== String(messageId))
+      );
+      message.success("Message supprime.");
+    } catch (err) {
+      console.error("Erreur suppression message:", err);
+      message.error("Erreur de communication avec le serveur");
+    } finally {
+      setMessageDeleting(false);
+      setMessageDeleteVisible(null);
     }
   };
 
@@ -480,20 +522,72 @@ const [listMessage , setListMessage] = useState([]);
               {sortOrder === "asc" ? "A → Z" : "Z → A"}
             </Button>
           </div>
-         {/* 📂 Message */}
-              <div className=' border'>
-                {listMessage.map((obj,i)=>{
-                  return (
-                    <div className="border">
-                      <p>@{obj.filename}</p>
-                      <p>{obj.message}</p>
-                    </div>
-                  )
-                })}
+          {/* ?? Message */}
+          <div className="">
+            {listMessage.map((obj, i) => {
+              return (
+                <div
+                  className="shadow-xl p-2 bg-blue-600 rounded-3xl mb-3 text-blue-50"
+                  key={obj?._id || i}
+                >
+                  <div className="flex justify-between items-center gap-2 ">
+                    <p className="underline underline-offset-4">
+                      <span className="text-3xl  ">@</span>
+                      {obj?.filename} :
+                    </p>
+                    <Popover
+                      placement="bottom"
+                      open={messageDeleteVisible === obj?._id}
+                      onOpenChange={(visible) =>
+                        setMessageDeleteVisible(visible ? obj?._id : null)
+                      }
+                      trigger="click"
+                      content={
+                        <Space>
+                          <ExclamationCircleOutlined
+                            style={{ color: "#faad14" }}
+                          />
+                          <span>Supprimer ?</span>
+                          <Tooltip
+                            title="Confirmer la suppression"
+                            mouseEnterDelay={0.3}
+                          >
+                            <Button
+                              danger
+                              size="small"
+                              icon={<CheckOutlined />}
+                              onClick={() => handleDeleteMessage(obj?._id)}
+                              loading={messageDeleting}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                            <Button
+                              size="small"
+                              icon={<CloseOutlined />}
+                              onClick={() => setMessageDeleteVisible(null)}
+                              disabled={messageDeleting}
+                            />
+                          </Tooltip>
+                        </Space>
+                      }
+                    >
+                      <Tooltip
+                        title="Supprimer ce message"
+                        mouseEnterDelay={0.3}
+                      >
+                        <Button danger icon={<DeleteOutlined />} size="small" />
+                      </Tooltip>
+                    </Popover>
+                  </div>
+                  <p style={{ whiteSpace: "pre-wrap" }} className="mx-10 my-1">
+                    {obj?.message}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
 
-              </div>
-
-          {/* 📂 Liste avec scroll */}
+          {/* ?? Liste avec scroll */}
           <div
             style={{
               //height: `${CLOUD_SCROLL_HEIGHT}px`,
