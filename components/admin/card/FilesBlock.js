@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
 import { Button, Input, Popconfirm, Popover, Select, Tooltip, Upload, message } from "antd";
 import {
   PlusOutlined,
@@ -43,6 +45,82 @@ const ALLOWED_EXTENSIONS = [
   ".mp4",
 ];
 const { Dragger } = Upload;
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+  let hasUnmatched = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    hasUnmatched = true;
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return { parts: tokens, hasUnmatched };
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return { parts: tokens, hasUnmatched };
+};
+
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
+    part.type === "text" ? (
+      <Fragment key={`text-${i}`}>{part.value}</Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+  return { nodes, hasUnmatched };
+};
 
 const BrandImg = ({ src, alt, title, className, fallback }) => {
   const [err, setErr] = useState(false);
@@ -615,8 +693,23 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const ext = (extFromHref || extFromName || "").split(/[?#]/)[0];
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
     const nameNode = <span className="break-words whitespace-normal">{name}</span>;
+    const { nodes: hoverNodes, hasUnmatched: hoverHasUnmatched } =
+      renderInlineKatex(hoverText);
     const hoverTitle = hoverText ? (
-      <span style={{ whiteSpace: "pre-line" }}>{hoverText}</span>
+      <span style={{ whiteSpace: "pre-line" }}>
+        {hoverNodes}
+        {hoverHasUnmatched && (
+          <span
+            style={{
+              color: "#ff4d4f",
+              marginLeft: 6,
+              fontSize: 12,
+            }}
+          >
+            ($ non ferme)
+          </span>
+        )}
+      </span>
     ) : null;
     const nameWithHover = hoverText ? (
       <Tooltip title={hoverTitle} mouseEnterDelay={0.3}>
