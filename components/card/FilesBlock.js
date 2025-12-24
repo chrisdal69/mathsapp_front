@@ -1,6 +1,79 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
 
 export default function FilesBlock({ num,repertoire,fichiers }) {
+
+  const parseInlineKatex = (input) => {
+    const tokens = [];
+    const text = String(input ?? "");
+    let buffer = "";
+    let inMath = false;
+
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      if (char === "\\") {
+        const next = text[i + 1];
+        if (next === "$") {
+          buffer += "$";
+          i += 1;
+          continue;
+        }
+        buffer += char;
+        continue;
+      }
+      if (char === "$") {
+        if (inMath) {
+          if (buffer.length === 0) {
+            const last = tokens[tokens.length - 1];
+            if (last && last.type === "text") {
+              last.value += "$$";
+            } else {
+              tokens.push({ type: "text", value: "$$" });
+            }
+          } else {
+            tokens.push({ type: "math", value: buffer });
+          }
+          buffer = "";
+          inMath = false;
+        } else {
+          if (buffer.length > 0) {
+            tokens.push({ type: "text", value: buffer });
+          }
+          buffer = "";
+          inMath = true;
+        }
+        continue;
+      }
+      buffer += char;
+    }
+
+    if (inMath) {
+      const literal = `$${buffer}`;
+      const last = tokens[tokens.length - 1];
+      if (last && last.type === "text") {
+        last.value += literal;
+      } else if (literal.length > 0) {
+        tokens.push({ type: "text", value: literal });
+      }
+      return tokens;
+    }
+
+    if (buffer.length > 0) {
+      tokens.push({ type: "text", value: buffer });
+    }
+
+    return tokens;
+  };
+
+  const renderInlineKatex = (input) =>
+    parseInlineKatex(input).map((part, i) =>
+      part.type === "text" ? (
+        <Fragment key={`text-${i}`}>{part.value}</Fragment>
+      ) : (
+        <InlineMath key={`math-${i}`} math={part.value} />
+      )
+    );
 
   // Icônes officielles via Simple Icons CDN (tracés officiels)
   const BrandImg = ({ src, alt, title, className, fallback }) => {
@@ -239,7 +312,7 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
             <span className="relative group">
               <span className="break-all whitespace-normal">{name}</span>
               <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-xs -translate-x-1/2 rounded bg-gray-900/95 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 whitespace-pre-line">
-                {hoverText}
+                {renderInlineKatex(hoverText)}
               </span>
             </span>
           ) : (

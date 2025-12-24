@@ -817,6 +817,27 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
                   autoSize={{ minRows: 3, maxRows: 6 }}
                   maxLength={500}
                 />
+                {editingHoverValue &&
+                  (() => {
+                    const { nodes, hasUnmatched } =
+                      renderInlineKatex(editingHoverValue);
+                    return (
+                      <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                        {nodes}
+                        {hasUnmatched && (
+                          <span
+                            style={{
+                              color: "#ff4d4f",
+                              marginLeft: 6,
+                              fontSize: 12,
+                            }}
+                          >
+                            ($ non ferme)
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 <div className="flex justify-end gap-2">
                   <Button
                     size="small"
@@ -933,6 +954,26 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             autoSize={{ minRows: 3, maxRows: 6 }}
             maxLength={500}
           />
+          {hoverText &&
+            (() => {
+              const { nodes, hasUnmatched } = renderInlineKatex(hoverText);
+              return (
+                <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                  {nodes}
+                  {hasUnmatched && (
+                    <span
+                      style={{
+                        color: "#ff4d4f",
+                        marginLeft: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      ($ non ferme)
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           <Select
             size="middle"
             value={insertPosition}
