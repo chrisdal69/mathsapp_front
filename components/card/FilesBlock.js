@@ -235,9 +235,16 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
           className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
         >
           <span className="shrink-0 text-lg leading-none">{icon}</span>
-          <span className="break-all whitespace-normal" title={hoverText || undefined}>
-            {name}
-          </span>
+          {hoverText ? (
+            <span className="relative group">
+              <span className="break-all whitespace-normal">{name}</span>
+              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-xs -translate-x-1/2 rounded bg-gray-900/95 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 whitespace-pre-line">
+                {hoverText}
+              </span>
+            </span>
+          ) : (
+            <span className="break-all whitespace-normal">{name}</span>
+          )}
           {ext && (
             <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>
           )}
