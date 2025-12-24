@@ -157,6 +157,26 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
   );
 };
 
+const HandIcon = ({ className = "inline-block" }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M7 11V5.5a1.5 1.5 0 0 1 3 0V10" />
+    <path d="M10 10V4.5a1.5 1.5 0 0 1 3 0V10" />
+    <path d="M13 10V5.5a1.5 1.5 0 0 1 3 0V12" />
+    <path d="M16 12V7.5a1.5 1.5 0 0 1 3 0V14a4.5 4.5 0 0 1-4.5 4.5H11a4.5 4.5 0 0 1-4.5-4.5V12a1.5 1.5 0 0 1 3 0v2" />
+  </svg>
+);
+
 export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
@@ -164,6 +184,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [localFiles, setLocalFiles] = useState(Array.isArray(fichiers) ? fichiers : []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [description, setDescription] = useState("");
+  const [hoverText, setHoverText] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileList, setFileList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -172,6 +193,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const [editingKey, setEditingKey] = useState("");
   const [editingValue, setEditingValue] = useState("");
   const [editingLoadingKey, setEditingLoadingKey] = useState("");
+  const [editingHoverKey, setEditingHoverKey] = useState("");
+  const [editingHoverValue, setEditingHoverValue] = useState("");
+  const [editingHoverLoadingKey, setEditingHoverLoadingKey] = useState("");
   const [reorderKey, setReorderKey] = useState("");
   const [visibilityLoadingKey, setVisibilityLoadingKey] = useState("");
   const cardId = _id || id;
@@ -206,6 +230,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
   const resetForm = () => {
     setDescription("");
+    setHoverText("");
     setSelectedFile(null);
     setFileList([]);
     setInsertPosition("end");
@@ -331,6 +356,49 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error(error.message || "Erreur lors de la mise a jour.");
     } finally {
       setEditingLoadingKey("");
+    }
+  };
+
+  const handleEditHover = async (file, key) => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const href = file?.href;
+    if (!href) {
+      message.error("Fichier invalide.");
+      return;
+    }
+    const trimmed = (editingHoverValue || "").trim();
+    setEditingHoverLoadingKey(key);
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ href, hover: trimmed }),
+      });
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(payload?.error || "Mise a jour impossible.");
+      }
+      const updatedCard = payload?.result;
+      const nextFiles = Array.isArray(updatedCard?.fichiers)
+        ? updatedCard.fichiers
+        : (localFiles || []).map((f) => (f?.href === href ? { ...f, hover: trimmed } : f));
+      setLocalFiles(nextFiles);
+      syncCardsStore(updatedCard, nextFiles);
+      message.success("Texte de survol mis a jour.");
+      setEditingHoverKey("");
+      setEditingHoverValue("");
+    } catch (error) {
+      console.error("Erreur edition texte survol", error);
+      message.error(error.message || "Erreur lors de la mise a jour.");
+    } finally {
+      setEditingHoverLoadingKey("");
     }
   };
 
@@ -474,6 +542,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error("Le descriptif est obligatoire.");
       return;
     }
+    const trimmedHover = (hoverText || "").trim();
     if (!selectedFile) {
       message.error("Veuillez selectionner un fichier.");
       return;
@@ -482,6 +551,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("description", trimmedDescription);
+    formData.append("hover", trimmedHover);
     formData.append("repertoire", repertoire);
     formData.append("num", `${normalizedNum}`);
     formData.append("position", insertPosition);
@@ -501,7 +571,12 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
         throw new Error(payload?.error || "Impossible d'ajouter le fichier."); 
       }
       const updatedCard = payload?.result;
-      const newEntry = { txt: trimmedDescription, href: payload?.fileName || selectedFile.name, visible: true };
+      const newEntry = {
+        txt: trimmedDescription,
+        href: payload?.fileName || selectedFile.name,
+        visible: true,
+        hover: trimmedHover,
+      };
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
         : insertAt(localFiles, newEntry, insertPosition);
@@ -526,16 +601,30 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const isDeleting = deletingKey === deleteKey;
     const isEditingOpen = editingKey === deleteKey;
     const isEditingLoading = editingLoadingKey === deleteKey;
+    const isHoverEditingOpen = editingHoverKey === deleteKey;
+    const isHoverEditingLoading = editingHoverLoadingKey === deleteKey;
     const isReordering = reorderKey === deleteKey;
     const isVisibilityLoading = visibilityLoadingKey === deleteKey;
     const canMoveUp = idx > 0;
     const canMoveDown = idx < (localFiles?.length || 0) - 1;
     const isVisible = elt?.visible !== false;
+    const hoverText = typeof elt?.hover === "string" ? elt.hover.trim() : "";
 
     const extFromHref = href.includes(".") ? href.split(".").pop().toLowerCase() : "";
     const extFromName = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
     const ext = (extFromHref || extFromName || "").split(/[?#]/)[0];
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
+    const nameNode = <span className="break-words whitespace-normal">{name}</span>;
+    const hoverTitle = hoverText ? (
+      <span style={{ whiteSpace: "pre-line" }}>{hoverText}</span>
+    ) : null;
+    const nameWithHover = hoverText ? (
+      <Tooltip title={hoverTitle} mouseEnterDelay={0.3}>
+        {nameNode}
+      </Tooltip>
+    ) : (
+      nameNode
+    );
     return (
       <li key={`${elt?.href || idx}`} className="flex items-center gap-2 py-1">
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -546,7 +635,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             className="inline-flex min-w-0 flex-1 items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
           >
             <span className="shrink-0 text-lg leading-none">{icon}</span>
-            <span className="break-words whitespace-normal">{name}</span>
+            {nameWithHover}
             {ext && <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>}
           </a>
         </div>
@@ -559,7 +648,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
               size="small"
               icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
               loading={isVisibilityLoading}
-              disabled={isDeleting || isEditingLoading || isReordering}
+              disabled={isDeleting || isEditingLoading || isHoverEditingLoading || isReordering}
               onClick={() => handleToggleVisibility(elt, deleteKey)}
             />
           </Tooltip>
@@ -610,6 +699,56 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           >
             <Tooltip title="Modifier le descriptif" mouseEnterDelay={0.3}>
               <Button size="small" icon={<EditOutlined />} />
+            </Tooltip>
+          </Popover>
+        )}
+        {elt?.href && (
+          <Popover
+            trigger="click"
+            open={isHoverEditingOpen}
+            onOpenChange={(visible) => {
+              if (visible) {
+                setEditingHoverKey(deleteKey);
+                setEditingHoverValue(elt?.hover || "");
+              } else if (isHoverEditingOpen) {
+                setEditingHoverKey("");
+                setEditingHoverValue("");
+              }
+            }}
+            content={
+              <div className="flex w-64 flex-col gap-2">
+                <Input.TextArea
+                  value={editingHoverValue}
+                  onChange={(e) => setEditingHoverValue(e.target.value)}
+                  placeholder="Modifier le texte de survol"
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  maxLength={500}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setEditingHoverKey("");
+                      setEditingHoverValue("");
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    loading={isHoverEditingLoading}
+                    onClick={() => handleEditHover(elt, deleteKey)}
+                  >
+                    Valider
+                  </Button>
+                </div>
+              </div>
+            }
+          >
+            <Tooltip title="Modifier le texte de survol" mouseEnterDelay={0.3}>
+              <Button size="small" icon={<HandIcon />} />
             </Tooltip>
           </Popover>
         )}
@@ -693,6 +832,13 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={200}
+          />
+          <Input.TextArea
+            placeholder="Texte au survol (optionnel)"
+            value={hoverText}
+            onChange={(e) => setHoverText(e.target.value)}
+            autoSize={{ minRows: 3, maxRows: 6 }}
+            maxLength={500}
           />
           <Select
             size="middle"
