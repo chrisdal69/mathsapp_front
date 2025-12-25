@@ -11,15 +11,18 @@ const CardBlock = (data) => {
   const { isExpanded, onExpand } = data;
   const [activeTabKey, setActiveTabKey] = useState("contenu");
 
-  const handleTabClick = (key) => {
-    if (!isExpanded && typeof onExpand === "function") {
-      onExpand();
+  const handleTabClick = (key, event) => {
+    if (event?.stopPropagation) {
+      event.stopPropagation();
+    }
+    if (!isExpanded && typeof onExpand === "function" && key === activeTabKey) {
+      onExpand(key);
     }
   };
 
   const onTabChange = (key) => {
     if (!isExpanded && typeof onExpand === "function") {
-      onExpand();
+      onExpand(key);
       return; // on ne change l'onglet que lorsque la carte est étendue
     }
     setActiveTabKey(key);
@@ -40,6 +43,12 @@ const CardBlock = (data) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.resetSignal]);
+
+  useEffect(() => {
+    if (data?.initialActiveTabKey) {
+      setActiveTabKey(data.initialActiveTabKey);
+    }
+  }, [data?.initialActiveTabKey]);
 
   const tabList = [
     { key: "contenu", label: "Contenu" },

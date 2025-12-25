@@ -27,6 +27,7 @@ const App = ({repertoire}) => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [resetSignals, setResetSignals] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
+  const [expandedTabKey, setExpandedTabKey] = useState("contenu");
   const [showAccueil, setShowAccueil] = useState(false);
 
   useEffect(() => {
@@ -105,6 +106,15 @@ const App = ({repertoire}) => {
       return prev.map((value, idx) => (idx === index ? value : value + 1));
     });
   };
+  const handleExpand = (key, tabKey = "contenu") => {
+    setExpandedId(key);
+    setExpandedTabKey(tabKey);
+  };
+
+  const handleCollapse = () => {
+    setExpandedId(null);
+    setExpandedTabKey("contenu");
+  };
 
   const getCardKey = (card, idx) => card._id || card.num || idx;
   const expandedIndex = cards.findIndex(
@@ -153,7 +163,9 @@ const App = ({repertoire}) => {
                     layout
                     layoutId={`card-${key}`}
                     key={key}
-                    onClick={() => setExpandedId(isExpanded ? null : key)}
+                    onClick={() =>
+                      isExpanded ? handleCollapse() : handleExpand(key)
+                    }
                     className="cursor-pointer m-5"
                     style={{
                       zIndex: isExpanded ? 20 : 1,
@@ -172,7 +184,7 @@ const App = ({repertoire}) => {
                     <Card
                       {...card}
                       isExpanded={isExpanded}
-                      onExpand={() => setExpandedId(key)}
+                      onExpand={(tabKey) => handleExpand(key, tabKey)}
                       resetSignal={resetSignals[idx]}
                       onTabChangeExternal={() => handleExternalTabChange(idx)}
                     />
@@ -209,7 +221,9 @@ const App = ({repertoire}) => {
                     layout
                     layoutId={`card-${key}`}
                     key={key}
-                    onClick={() => setExpandedId(isExpanded ? null : key)}
+                    onClick={() =>
+                      isExpanded ? handleCollapse() : handleExpand(key)
+                    }
                     className="cursor-pointer m-5 "
                     style={{
                       zIndex: isExpanded ? 20 : 1,
@@ -230,7 +244,7 @@ const App = ({repertoire}) => {
                     <Card
                       {...card}
                       isExpanded={isExpanded}
-                      onExpand={() => setExpandedId(key)}
+                      onExpand={(tabKey) => handleExpand(key, tabKey)}
                       resetSignal={resetSignals[idx]}
                       onTabChangeExternal={() => handleExternalTabChange(idx)}
                     />
@@ -246,7 +260,7 @@ const App = ({repertoire}) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setExpandedId(null)}
+                onClick={handleCollapse}
                 
               >
                 <motion.div
@@ -258,6 +272,7 @@ const App = ({repertoire}) => {
                   <Card
                     {...expandedCard}
                     isExpanded={true}
+                    initialActiveTabKey={expandedTabKey}
                     resetSignal={resetSignals[expandedIndex] ?? 0}
                     onTabChangeExternal={() =>
                       handleExternalTabChange(expandedIndex)
