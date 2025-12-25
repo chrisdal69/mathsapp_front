@@ -687,8 +687,8 @@ export default function Contenu({
             <Image
               src={`${racine}${localBg}`}
               alt="Illustration de la carte"
-              width={1000}
-              height={200}
+              width={300}
+              height={300}
               placeholder={blurBg ? "blur" : undefined}
               blurDataURL={blurBg ? `${racine}${blurBg}` : undefined}
               sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"

@@ -1,7 +1,10 @@
 import '../styles/globals.css';
+import '../styles/theme.css';
 import Head from 'next/head';
 import '@ant-design/v5-patch-for-react-19';
-import { unstableSetRender } from 'antd';
+import { ConfigProvider, unstableSetRender } from 'antd';
+import themeTokens from '../themeTokens';
+import { appFonts, fontFamily } from '../themeFonts';
 import { createRoot } from 'react-dom/client';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
@@ -17,6 +20,28 @@ const store = configureStore({
   },
 }); 
 
+const cssVars = `
+:root {
+  --color-bg: ${themeTokens.colors.bg};
+  --color-surface: ${themeTokens.colors.surface};
+  --color-primary: ${themeTokens.colors.primary};
+  --color-text: ${themeTokens.colors.text};
+  --color-muted: ${themeTokens.colors.muted};
+  --radius-lg: ${themeTokens.radius.lg};
+}
+`;
+
+const antTheme = {
+  token: {
+    colorBgLayout: themeTokens.colors.bg,
+    colorBgContainer: themeTokens.colors.surface,
+    colorPrimary: themeTokens.colors.primary,
+    colorText: themeTokens.colors.text,
+    colorTextSecondary: themeTokens.colors.muted,
+    fontFamily: fontFamily.sans,
+  },
+};
+
 unstableSetRender((node, container) => {
   container._reactRoot ||= createRoot(container);
   const root = container._reactRoot;
@@ -31,12 +56,19 @@ unstableSetRender((node, container) => {
 function App({ Component, pageProps }) {
   return (
     <Provider store={store}>
-      <Head>
-        <title>Mathsapp</title>
-      </Head>
-      <Nav/>
-      <Component {...pageProps} />
-      <Footer/>
+      <ConfigProvider theme={antTheme}>
+        <Head>
+          <title>Mathsapp</title>
+        </Head>
+        <style jsx global>
+          {cssVars}
+        </style>
+        <div className={`${appFonts.sans.variable} ${appFonts.display.variable} ${appFonts.script.variable} app-root`}>
+          <Nav/>
+          <Component {...pageProps} />
+          <Footer/>
+        </div>
+      </ConfigProvider>
     </Provider>
   );
 }

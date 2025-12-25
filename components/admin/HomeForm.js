@@ -11,7 +11,7 @@ const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const App = () => {
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgLayout,colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
   const dispatch = useDispatch();
@@ -117,7 +117,7 @@ const App = () => {
       <Content>
         <div
           style={{
-            background: colorBgContainer,
+            background: colorBgLayout,
             minHeight: 20,
             borderRadius: borderRadiusLG,
             marginTop: 0,

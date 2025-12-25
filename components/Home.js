@@ -11,13 +11,11 @@ const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 
-const App = ({repertoire}) => {
+const App = ({ repertoire }) => {
   let {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgLayout,colorBgContainer, borderRadiusLG },
   } = theme.useToken();
-  colorBgContainer = 'blue';
-  borderRadiusLG = 0;
-  
+
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
@@ -127,7 +125,7 @@ const App = ({repertoire}) => {
         <LayoutGroup>
           <div
             style={{
-              background: colorBgContainer,
+              background: colorBgLayout,
               minHeight: 20,
               paddingTop: 10,
               borderRadius: borderRadiusLG,
@@ -166,7 +164,7 @@ const App = ({repertoire}) => {
                     onClick={() =>
                       isExpanded ? handleCollapse() : handleExpand(key)
                     }
-                    className="cursor-pointer m-5"
+                    className="cursor-pointer mx-5 my-20"
                     style={{
                       zIndex: isExpanded ? 20 : 1,
                       pointerEvents: isExpanded ? "none" : "auto",
@@ -179,7 +177,7 @@ const App = ({repertoire}) => {
                         : "0 8px 25px rgba(0,0,0,0.08)",
                     }}
                     transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                    whileHover={{scale:1.005}}
+                    whileHover={{ scale: 1.005 }}
                   >
                     <Card
                       {...card}
@@ -200,7 +198,7 @@ const App = ({repertoire}) => {
           </div>
           <div
             style={{
-              background: colorBgContainer,
+              background: colorBgLayout,
               minHeight: 20,
               padding: 15,
               borderRadius: borderRadiusLG,
@@ -239,7 +237,7 @@ const App = ({repertoire}) => {
                         : "0 8px 25px rgba(0,0,0,0.08)",
                     }}
                     transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                    whileHover={{scale:1.005}}
+                    whileHover={{ scale: 1.005 }}
                   >
                     <Card
                       {...card}
@@ -261,7 +259,6 @@ const App = ({repertoire}) => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={handleCollapse}
-                
               >
                 <motion.div
                   layoutId={`card-${expandedId}`}
@@ -292,19 +289,21 @@ export default App;
 
 function Accueil({ titre }) {
   return (
-    <div className=" h-55 flex flex-col justify-center    m-7 overflow-hidden">
+    <div className=" h-55 flex flex-col justify-center  my-20  m-7 overflow-hidden">
       <motion.p
         initial={{
           opacity: 0,
-          x:-10,
-          y: 30,
+          x: 0,
+          y: 100,
+          letterSpacing: "0px",
           clipPath: "inset(0 0 100% 0)",
           filter: "blur(12px)",
         }}
         animate={{
           opacity: 1,
-          x:0,
+          x: 0,
           y: 0,
+          letterSpacing: "5px",
           clipPath: "inset(0 0 0% 0)",
           filter: "blur(0px)",
         }}
@@ -314,22 +313,24 @@ function Accueil({ titre }) {
           delay: 0.05,
         }}
         className=" leading-tight text-2xl"
-        whileHover={{x:5}}
+        whileHover={{ x: 5 }}
       >
         Chapitre en cours :
       </motion.p>
       <motion.p
         initial={{
           opacity: 0,
-          x:-10,
-          y: 30,
+          x: 0,
+          y: 100,
+          letterSpacing: "0px",
           clipPath: "inset(0 0 100% 0)",
           filter: "blur(12px)",
         }}
         animate={{
           opacity: 1,
-          x:0,
+          x: 0,
           y: 0,
+          letterSpacing: "3px",
           clipPath: "inset(0 0 0% 0)",
           filter: "blur(0px)",
         }}
@@ -338,8 +339,8 @@ function Accueil({ titre }) {
           ease: [0.16, 1, 0.3, 1],
           delay: 0.05,
         }}
-        className="text-center leading-tight text-5xl"
-        whileHover={{x:5}}
+        className="text-center leading-tight text-6xl font-script"
+        whileHover={{ x: 5 }}
       >
         {titre}
       </motion.p>
