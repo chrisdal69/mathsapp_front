@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useInView } from "framer-motion";
 import { useSelector } from "react-redux";
 import { Card } from "antd";
 import ContentBlock from "./card/ContentBlock";
@@ -10,6 +11,8 @@ import Quizz from "./card/QuizzBlock";
 const CardBlock = (data) => {
   const { isExpanded, onExpand } = data;
   const [activeTabKey, setActiveTabKey] = useState("contenu");
+  const cardRef = useRef(null);
+  const tabsVisible = useInView(cardRef, { once: true, amount: 0.3 });
 
   const handleTabClick = (key, event) => {
     if (event?.stopPropagation) {
@@ -88,24 +91,31 @@ const CardBlock = (data) => {
   const isvideo = activeTabKey === "video";
 
   return (
-    <Card
-      title={data.titre}
-      style={{ width: "100%",  }}
-      tabList={tabList}
-      activeTabKey={activeTabKey}
-      onTabChange={onTabChange}
-      className="shadow-md hover:shadow-3xl  transition-shadow duration-200 rounded-3xl "
-      tabProps={{ size: "middle", onTabClick: handleTabClick }}
-      styles={
-        iscontenu
-          ? { body: { padding: 1 } }
-          : isvideo
-          ? { body: { padding: 0 } }
-          : undefined
-      }
+    <div
+      ref={cardRef}
+      className={`card-tabs-reveal ${
+        tabsVisible ? "card-tabs-reveal--visible" : ""
+      }`}
     >
-      {contentList[activeTabKey]}
-    </Card>
+      <Card
+        title={data.titre}
+        style={{ width: "100%",  }}
+        tabList={tabList}
+        activeTabKey={activeTabKey}
+        onTabChange={onTabChange}
+        className="shadow-md hover:shadow-3xl transition-shadow duration-200 rounded-3xl"
+        tabProps={{ size: "middle", onTabClick: handleTabClick }}
+        styles={
+          iscontenu
+            ? { body: { padding: 1 } }
+            : isvideo
+            ? { body: { padding: 0 } }
+            : undefined
+        }
+      >
+        {contentList[activeTabKey]}
+      </Card>
+    </div>
   );
 };
 
