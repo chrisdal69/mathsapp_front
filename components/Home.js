@@ -158,34 +158,41 @@ const App = ({ repertoire }) => {
 
                 return (
                   <motion.div
-                    layout
-                    layoutId={`card-${key}`}
                     key={key}
-                    onClick={() =>
-                      isExpanded ? handleCollapse() : handleExpand(key)
-                    }
-                    className="cursor-pointer mx-5 my-20"
-                    style={{
-                      zIndex: isExpanded ? 20 : 1,
-                      pointerEvents: isExpanded ? "none" : "auto",
-                    }}
-                    animate={{
-                      scale: isExpanded ? 1 : 0.98,
-                      opacity: isExpanded ? 0 : 1,
-                      boxShadow: isExpanded
-                        ? "0 18px 50px rgba(0,0,0,0.18)"
-                        : "0 8px 25px rgba(0,0,0,0.08)",
-                    }}
-                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                    whileHover={{ scale: 1.005 }}
+                    initial={{ y: 50, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <Card
-                      {...card}
-                      isExpanded={isExpanded}
-                      onExpand={(tabKey) => handleExpand(key, tabKey)}
-                      resetSignal={resetSignals[idx]}
-                      onTabChangeExternal={() => handleExternalTabChange(idx)}
-                    />
+                    <motion.div
+                      layout
+                      layoutId={`card-${key}`}
+                      onClick={() =>
+                        isExpanded ? handleCollapse() : handleExpand(key)
+                      }
+                      className="cursor-pointer mx-5 my-20"
+                      style={{
+                        zIndex: isExpanded ? 20 : 1,
+                        pointerEvents: isExpanded ? "none" : "auto",
+                      }}
+                      animate={{
+                        scale: isExpanded ? 1 : 0.98,
+                        opacity: isExpanded ? 0 : 1,
+                        boxShadow: isExpanded
+                          ? "0 18px 50px rgba(0,0,0,0.18)"
+                          : "0 8px 25px rgba(0,0,0,0.08)",
+                      }}
+                      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                      whileHover={{ scale: 1.005 }}
+                    >
+                      <Card
+                        {...card}
+                        isExpanded={isExpanded}
+                        onExpand={(tabKey) => handleExpand(key, tabKey)}
+                        resetSignal={resetSignals[idx]}
+                        onTabChangeExternal={() => handleExternalTabChange(idx)}
+                      />
+                    </motion.div>
                   </motion.div>
                 );
               })}
@@ -216,36 +223,43 @@ const App = ({ repertoire }) => {
 
                 return (
                   <motion.div
-                    layout
-                    layoutId={`card-${key}`}
                     key={key}
-                    onClick={() =>
-                      isExpanded ? handleCollapse() : handleExpand(key)
-                    }
-                    className="cursor-pointer m-5 "
-                    style={{
-                      zIndex: isExpanded ? 20 : 1,
-                      pointerEvents: isExpanded ? "none" : "auto",
-                    }}
-                    animate={{
-                      scale: isExpanded ? 1 : 0.98,
-                      rotate: isExpanded ? 0 : tilt,
-                      y: isExpanded ? 0 : wobble * 40,
-                      opacity: isExpanded ? 0 : 1,
-                      boxShadow: isExpanded
-                        ? "0 18px 50px rgba(0,0,0,0.18)"
-                        : "0 8px 25px rgba(0,0,0,0.08)",
-                    }}
-                    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                    whileHover={{ scale: 1.005 }}
+                    initial={{ y: 50, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <Card
-                      {...card}
-                      isExpanded={isExpanded}
-                      onExpand={(tabKey) => handleExpand(key, tabKey)}
-                      resetSignal={resetSignals[idx]}
-                      onTabChangeExternal={() => handleExternalTabChange(idx)}
-                    />
+                    <motion.div
+                      layout
+                      layoutId={`card-${key}`}
+                      onClick={() =>
+                        isExpanded ? handleCollapse() : handleExpand(key)
+                      }
+                      className="cursor-pointer m-5 "
+                      style={{
+                        zIndex: isExpanded ? 20 : 1,
+                        pointerEvents: isExpanded ? "none" : "auto",
+                      }}
+                      animate={{
+                        scale: isExpanded ? 1 : 0.98,
+                        rotate: isExpanded ? 0 : tilt,
+                        y: isExpanded ? 0 : wobble * 40,
+                        opacity: isExpanded ? 0 : 1,
+                        boxShadow: isExpanded
+                          ? "0 18px 50px rgba(0,0,0,0.18)"
+                          : "0 8px 25px rgba(0,0,0,0.08)",
+                      }}
+                      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                      whileHover={{ scale: 1.005 }}
+                    >
+                      <Card
+                        {...card}
+                        isExpanded={isExpanded}
+                        onExpand={(tabKey) => handleExpand(key, tabKey)}
+                        resetSignal={resetSignals[idx]}
+                        onTabChangeExternal={() => handleExternalTabChange(idx)}
+                      />
+                    </motion.div>
                   </motion.div>
                 );
               })}

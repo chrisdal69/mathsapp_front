@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
@@ -153,17 +154,30 @@ export default function Contenu({ num, repertoire, plan, presentation, bg }) {
         )}
       </div>
 
-      <Image
-        src={`${racine}${bg}`}
-        alt="Logo"
-        fill
-        placeholder="blur"
-        blurDataURL={`${racine}${blurBg}`}
-        sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-        className={`object-cover object-center transition-opacity duration-300 ease-out ${
-          typing ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
-      />
+      <motion.div
+        className="absolute inset-0"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.4 }}
+        variants={{
+          hidden: { clipPath: "inset(0 0 100% 0)" },
+          visible: { clipPath: "inset(0 0 0% 0)" },
+        }}
+        transition={{ duration: 1.9, ease: [0.22, 1, 0.36, 1] }}
+        style={{ willChange: "clip-path" }}
+      >
+        <Image
+          src={`${racine}${bg}`}
+          alt="Logo"
+          fill
+          placeholder="blur"
+          blurDataURL={`${racine}${blurBg}`}
+          sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+          className={`object-cover object-center transition-opacity duration-300 ease-out ${
+            typing ? "opacity-0 pointer-events-none" : "opacity-100"
+          }`}
+        />
+      </motion.div>
 
       <div
         className="absolute inset-0 w-full h-full z-10 cursor-pointer"
