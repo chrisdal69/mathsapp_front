@@ -211,8 +211,8 @@ const App = ({ repertoire }) => {
               cards.slice(1).map((card, idx) => {
                 const key = getCardKey(card, idx);
                 const isExpanded = expandedId === key;
-                const wobble = (idx % 3) - 1;
-                const tilt = idx % 2 === 0 ? -1.5 : 1.5;
+                const wobble = (idx % 4) - 1;
+                const tilt = idx % 2 === 0 ? 0 : 0;
 
                 return (
                   <motion.div
@@ -230,7 +230,7 @@ const App = ({ repertoire }) => {
                     animate={{
                       scale: isExpanded ? 1 : 0.98,
                       rotate: isExpanded ? 0 : tilt,
-                      y: isExpanded ? 0 : wobble * 12,
+                      y: isExpanded ? 0 : wobble * 40,
                       opacity: isExpanded ? 0 : 1,
                       boxShadow: isExpanded
                         ? "0 18px 50px rgba(0,0,0,0.18)"
