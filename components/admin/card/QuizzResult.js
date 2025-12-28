@@ -1,13 +1,88 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 
 import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return tokens;
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return tokens;
+};
+
+const renderInlineKatex = (input) => {
+  const parts = parseInlineKatex(input);
+  return parts.map((part, i) =>
+    part.type === "text" ? (
+      <Fragment key={`text-${i}`}>{part.value}</Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+};
 
 export default function Quizz({
   num,
@@ -327,6 +402,7 @@ export default function Quizz({
           {quizz.map((q) => {
             const imageName = (q.image || "").trim();
             const hasImage = !!imageName;
+            const questionNodes = renderInlineKatex(q.question);
             return (
               <div
                 key={q.id}
@@ -383,7 +459,7 @@ export default function Quizz({
                           : undefined,
                     }}
                   >
-                    {q.question}
+                    {questionNodes}
                   </p>
 
                   <Radio.Group
@@ -421,6 +497,7 @@ export default function Quizz({
                         : isErr
                         ? "#ff4d4f"
                         : undefined;
+                      const optionNodes = renderInlineKatex(opt);
                       return (
                         <div
                           key={opt}
@@ -432,7 +509,7 @@ export default function Quizz({
                           }}
                         >
                           <Radio value={i} style={{ color: textColor }}>
-                            {opt}
+                            {optionNodes}
                           </Radio>
                         </div>
                       );
