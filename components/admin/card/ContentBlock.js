@@ -159,13 +159,13 @@ export default function Contenu({
   const listConfigs = {
     presentation: {
       title: "Présentation",
-      placeholder: "Nouvelle phrase",
-      empty: "Aucune phrase enregistrée.",
-      label: "Phrase",
+      placeholder: "Nouveau paragraphe",
+      empty: "Aucune paragraphe enregistré.",
+      label: "Paragraphe",
       success: {
-        add: "Phrase ajoutée.",
-        edit: "Phrase mise à jour.",
-        delete: "Phrase supprimée.",
+        add: "Paragraphe ajoutée.",
+        edit: "Paragraphe mise à jour.",
+        delete: "Paragraphe supprimé.",
       },
     },
     plan: {
