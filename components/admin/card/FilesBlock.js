@@ -719,7 +719,7 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       nameNode
     );
     return (
-      <li key={`${elt?.href || idx}`} className="flex items-center gap-2 py-1">
+      <li key={`${elt?.href || idx}`} className={`flex items-center gap-2 py-1 px-2 ${idx % 2 === 1 ? "bg-gray-50" : ""}`}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href={href}
@@ -1044,3 +1044,4 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     </div>
   );
 }
+
