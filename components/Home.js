@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Layout, theme } from "antd";
 const { Content } = Layout;
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
@@ -10,6 +10,7 @@ import { setCardsMaths } from "../reducers/cardsMathsSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+const CARD_MIN_WIDTH = 380;
 
 const App = ({ repertoire }) => {
   let {
@@ -27,6 +28,8 @@ const App = ({ repertoire }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [expandedTabKey, setExpandedTabKey] = useState("contenu");
   const [showAccueil, setShowAccueil] = useState(false);
+  const [cardsPerRow, setCardsPerRow] = useState(1);
+  const cardsGridRef = useRef(null);
 
   useEffect(() => {
     setResetSignals((prev) => {
@@ -95,6 +98,51 @@ const App = ({ repertoire }) => {
 
     return () => {
       window.removeEventListener("resize", updateAccueilVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const gridEl = cardsGridRef.current;
+    if (!gridEl) {
+      return;
+    }
+
+    const updateCardsPerRow = () => {
+      const styles = window.getComputedStyle(gridEl);
+      const gapValue = styles.columnGap || styles.gap || "0px";
+      const gap = Number.parseFloat(gapValue);
+      const paddingLeft = Number.parseFloat(styles.paddingLeft);
+      const paddingRight = Number.parseFloat(styles.paddingRight);
+      const width =
+        gridEl.clientWidth -
+        (Number.isNaN(paddingLeft) ? 0 : paddingLeft) -
+        (Number.isNaN(paddingRight) ? 0 : paddingRight);
+      const gapPx = Number.isNaN(gap) ? 0 : gap;
+      const columns = Math.max(
+        1,
+        Math.floor((width + gapPx) / (CARD_MIN_WIDTH + gapPx))
+      );
+
+      setCardsPerRow(columns);
+    };
+
+    updateCardsPerRow();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const resizeObserver = new ResizeObserver(updateCardsPerRow);
+      resizeObserver.observe(gridEl);
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", updateCardsPerRow);
+    return () => {
+      window.removeEventListener("resize", updateCardsPerRow);
     };
   }, []);
 
@@ -204,6 +252,7 @@ const App = ({ repertoire }) => {
             )}
           </div>
           <div
+            ref={cardsGridRef}
             style={{
               background: colorBgLayout,
               minHeight: 20,
@@ -218,7 +267,7 @@ const App = ({ repertoire }) => {
               cards.slice(1).map((card, idx) => {
                 const key = getCardKey(card, idx);
                 const isExpanded = expandedId === key;
-                const wobble = (idx % 4) - 1;
+                const wobble = (idx % cardsPerRow) - 1;
                 const tilt = idx % 2 === 0 ? 0 : 0;
 
                 return (
