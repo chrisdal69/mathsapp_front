@@ -96,7 +96,14 @@ const renderTypedInlineKatex = (tokens, step) => {
   return nodes;
 };
 
-export default function Contenu({ num, repertoire, plan, presentation, bg }) {
+export default function Contenu({
+  num,
+  repertoire,
+  plan,
+  presentation,
+  bg,
+  isExpanded,
+}) {
   const [typing, setTyping] = useState(false);
   const [typedStep, setTypedStep] = useState(0);
 
@@ -145,6 +152,10 @@ export default function Contenu({ num, repertoire, plan, presentation, bg }) {
   };
 
   const blurBg = useMemo(() => toBlurFile(bg), [bg]);
+  const handleTouchStart = () => {
+    if (!isExpanded) return;
+    setTyping(true);
+  };
 
   return (
     <div className="group relative w-full min-h-[150px] ">
@@ -183,7 +194,7 @@ export default function Contenu({ num, repertoire, plan, presentation, bg }) {
         className="absolute inset-0 w-full h-full z-10 cursor-pointer"
         onMouseEnter={() => setTyping(true)}
         onMouseLeave={() => setTyping(false)}
-        onTouchStart={() => setTyping(true)}
+        onTouchStart={handleTouchStart}
       />
     </div>
   );
