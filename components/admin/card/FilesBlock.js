@@ -320,8 +320,8 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error("Extension non autorisee pour ce fichier.");
       return Upload.LIST_IGNORE;
     }
-    if (file.size && file.size > 10 * 1024 * 1024) {
-      message.error("Fichier trop volumineux (10 Mo max).");
+    if (file.size && file.size > 100 * 1024 * 1024) {
+      message.error("Fichier trop volumineux (100 Mo max).");
       return Upload.LIST_IGNORE;
     }
     setSelectedFile(file);
