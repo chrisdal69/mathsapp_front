@@ -44,6 +44,7 @@ const ALLOWED_EXTENSIONS = [
   ".webp",
   ".mp4",
 ];
+const FALLBACK_MAX_BYTES = 4 * 1024 * 1024;
 const { Dragger } = Upload;
 
 const parseInlineKatex = (input) => {
@@ -629,69 +630,126 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     setIsSubmitting(true);
     try {
       const contentType = selectedFile.type || "application/octet-stream";
-      const signResponse = await fetch(`${urlFetch}/cards/${cardId}/files/sign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: selectedFile.name,
-          type: contentType,
-          size: selectedFile.size,
-          repertoire,
-          num: `${normalizedNum}`,
-        }),
-      });
-      let signPayload = null;
+      const uploadDirect = async () => {
+        const signResponse = await fetch(`${urlFetch}/cards/${cardId}/files/sign`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: selectedFile.name,
+            type: contentType,
+            size: selectedFile.size,
+            repertoire,
+            num: `${normalizedNum}`,
+          }),
+        });
+        let signPayload = null;
+        try {
+          signPayload = await signResponse.json();
+        } catch (_) {}
+        if (!signResponse.ok) {
+          const err = new Error(
+            signPayload?.error || "Impossible de preparer l'upload."
+          );
+          err.stage = "sign";
+          throw err;
+        }
+        const signedResult = signPayload?.result || signPayload;
+        const signedUrl = signedResult?.url;
+        const signedFileName = signedResult?.fileName;
+        const signedContentType = signedResult?.contentType || contentType;
+        if (!signedUrl || !signedFileName) {
+          const err = new Error("URL d'upload manquante.");
+          err.stage = "sign";
+          throw err;
+        }
+
+        const uploadResponse = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": signedContentType },
+          body: selectedFile,
+        });
+        if (!uploadResponse.ok) {
+          const err = new Error("Upload direct echoue.");
+          err.stage = "upload";
+          throw err;
+        }
+
+        const confirmResponse = await fetch(`${urlFetch}/cards/${cardId}/files/confirm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            fileName: signedFileName,
+            description: trimmedDescription,
+            hover: trimmedHover,
+            repertoire,
+            num: `${normalizedNum}`,
+            position: insertPosition,
+          }),
+        });
+        let confirmPayload = null;
+        try {
+          confirmPayload = await confirmResponse.json();
+        } catch (_) {}
+        if (!confirmResponse.ok) {
+          const err = new Error(
+            confirmPayload?.error || "Impossible de finaliser l'upload."
+          );
+          err.stage = "confirm";
+          throw err;
+        }
+
+        return confirmPayload;
+      };
+
+      const uploadViaBackend = async () => {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("description", trimmedDescription);
+        formData.append("hover", trimmedHover);
+        formData.append("repertoire", repertoire);
+        formData.append("num", `${normalizedNum}`);
+        formData.append("position", insertPosition);
+
+        const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        let payload = null;
+        try {
+          payload = await response.json();
+        } catch (_) {}
+        if (!response.ok) {
+          throw new Error(payload?.error || "Impossible d'ajouter le fichier.");
+        }
+        return payload;
+      };
+
+      let payload = null;
+      let usedFallback = false;
       try {
-        signPayload = await signResponse.json();
-      } catch (_) {}
-      if (!signResponse.ok) {
-        throw new Error(signPayload?.error || "Impossible de preparer l'upload.");
-      }
-      const signedResult = signPayload?.result || signPayload;
-      const signedUrl = signedResult?.url;
-      const signedFileName = signedResult?.fileName;
-      const signedContentType = signedResult?.contentType || contentType;
-      if (!signedUrl || !signedFileName) {
-        throw new Error("URL d'upload manquante.");
-      }
-
-      const uploadResponse = await fetch(signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": signedContentType },
-        body: selectedFile,
-      });
-      if (!uploadResponse.ok) {
-        throw new Error("Upload direct echoue.");
+        payload = await uploadDirect();
+      } catch (directError) {
+        const stage = directError?.stage;
+        const size = Number(selectedFile?.size);
+        const canFallbackBySize =
+          urlFetch ||
+          (Number.isFinite(size) && size > 0 && size <= FALLBACK_MAX_BYTES);
+        const canFallback = stage !== "confirm" && canFallbackBySize;
+        if (!canFallback) {
+          throw directError;
+        }
+        console.warn("Upload direct echoue, tentative fallback.", directError);
+        payload = await uploadViaBackend();
+        usedFallback = true;
       }
 
-      const confirmResponse = await fetch(`${urlFetch}/cards/${cardId}/files/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          fileName: signedFileName,
-          description: trimmedDescription,
-          hover: trimmedHover,
-          repertoire,
-          num: `${normalizedNum}`,
-          position: insertPosition,
-        }),
-      });
-      let confirmPayload = null;
-      try {
-        confirmPayload = await confirmResponse.json();
-      } catch (_) {}
-      if (!confirmResponse.ok) {
-        throw new Error(
-          confirmPayload?.error || "Impossible de finaliser l'upload."
-        );
-      }
-
-      const updatedCard = confirmPayload?.result;
+      const updatedCard = payload?.result;
       const newEntry = {
         txt: trimmedDescription,
-        href: confirmPayload?.fileName || signedFileName,
+        href: payload?.fileName || selectedFile.name,
         visible: true,
         hover: trimmedHover,
       };
@@ -701,6 +759,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
       setLocalFiles(nextFiles);
       syncCardsStore(updatedCard, nextFiles);
+      if (usedFallback) {
+        message.warning("Upload direct indisponible, fallback utilise.");
+      }
       message.success("Fichier ajoute.");
       resetForm();
       setIsFormOpen(false);
