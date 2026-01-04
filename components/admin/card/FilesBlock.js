@@ -320,8 +320,8 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.error("Extension non autorisee pour ce fichier.");
       return Upload.LIST_IGNORE;
     }
-    if (file.size && file.size > 100 * 1024 * 1024) {
-      message.error("Fichier trop volumineux (100 Mo max).");
+    if (file.size && file.size > 10 * 1024 * 1024) {
+      message.error("Fichier trop volumineux (10 Mo max).");
       return Upload.LIST_IGNORE;
     }
     setSelectedFile(file);
@@ -626,32 +626,72 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("description", trimmedDescription);
-    formData.append("hover", trimmedHover);
-    formData.append("repertoire", repertoire);
-    formData.append("num", `${normalizedNum}`);
-    formData.append("position", insertPosition);
-
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+      const contentType = selectedFile.type || "application/octet-stream";
+      const signResponse = await fetch(`${urlFetch}/cards/${cardId}/files/sign`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: formData,
+        body: JSON.stringify({
+          name: selectedFile.name,
+          type: contentType,
+          size: selectedFile.size,
+          repertoire,
+          num: `${normalizedNum}`,
+        }),
       });
-      let payload = null;
+      let signPayload = null;
       try {
-        payload = await response.json();
+        signPayload = await signResponse.json();
       } catch (_) {}
-      if (!response.ok) {
-        throw new Error(payload?.error || "Impossible d'ajouter le fichier."); 
+      if (!signResponse.ok) {
+        throw new Error(signPayload?.error || "Impossible de preparer l'upload.");
       }
-      const updatedCard = payload?.result;
+      const signedResult = signPayload?.result || signPayload;
+      const signedUrl = signedResult?.url;
+      const signedFileName = signedResult?.fileName;
+      const signedContentType = signedResult?.contentType || contentType;
+      if (!signedUrl || !signedFileName) {
+        throw new Error("URL d'upload manquante.");
+      }
+
+      const uploadResponse = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": signedContentType },
+        body: selectedFile,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error("Upload direct echoue.");
+      }
+
+      const confirmResponse = await fetch(`${urlFetch}/cards/${cardId}/files/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          fileName: signedFileName,
+          description: trimmedDescription,
+          hover: trimmedHover,
+          repertoire,
+          num: `${normalizedNum}`,
+          position: insertPosition,
+        }),
+      });
+      let confirmPayload = null;
+      try {
+        confirmPayload = await confirmResponse.json();
+      } catch (_) {}
+      if (!confirmResponse.ok) {
+        throw new Error(
+          confirmPayload?.error || "Impossible de finaliser l'upload."
+        );
+      }
+
+      const updatedCard = confirmPayload?.result;
       const newEntry = {
         txt: trimmedDescription,
-        href: payload?.fileName || selectedFile.name,
+        href: confirmPayload?.fileName || signedFileName,
         visible: true,
         hover: trimmedHover,
       };
