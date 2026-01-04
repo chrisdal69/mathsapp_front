@@ -218,7 +218,7 @@ const App = ({ repertoire }) => {
                       onClick={() =>
                         isExpanded ? handleCollapse() : handleExpand(key)
                       }
-                      className="cursor-pointer mx-5 my-20"
+                      className=" cursor-pointer mx-5 my-10 md:my-20"
                       style={{
                         zIndex: isExpanded ? 20 : 1,
                         pointerEvents: isExpanded ? "none" : "auto",
@@ -256,11 +256,10 @@ const App = ({ repertoire }) => {
             style={{
               background: colorBgLayout,
               minHeight: 20,
-              padding: 15,
               borderRadius: borderRadiusLG,
               marginTop: 0,
             }}
-            className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-6 items-start"
+            className="py-5 md:p-5 grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-0 md:gap-6 items-start"
           >
             {!loading &&
               !errorMessage &&
@@ -352,7 +351,7 @@ export default App;
 
 function Accueil({ titre }) {
   return (
-    <div className=" h-55 flex flex-col justify-center  my-20  m-7 overflow-hidden">
+    <div className=" h-55 flex flex-col justify-center  my-10 md:my-20  mx-7 overflow-hidden">
       <motion.p
         initial={{
           opacity: 0,
