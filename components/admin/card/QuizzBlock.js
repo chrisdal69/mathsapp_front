@@ -566,6 +566,92 @@ const trackWidth =
     }
   };
 
+  const handlePasteImage = (question, event) => {
+    if (!question?.id || uploadingImageFor === question.id) return;
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.type?.startsWith("image/"));
+    if (!imageItem) return;
+    event.preventDefault();
+
+    const blob = imageItem.getAsFile();
+    if (!blob) return;
+
+    const mime = blob.type || "image/png";
+    const ext =
+      mime === "image/png"
+        ? ".png"
+        : mime === "image/jpeg" || mime === "image/jpg"
+        ? ".jpg"
+        : "";
+
+    if (!ALLOWED_IMAGE_EXT.includes(ext)) {
+      message.error("Image non autorisee (jpg ou png).");
+      return;
+    }
+
+    const name =
+      blob.name && blob.name.toLowerCase().endsWith(ext)
+        ? blob.name
+        : `capture-${Date.now()}${ext}`;
+    const file = new File([blob], name, { type: mime });
+    handleUploadImage(question, file);
+  };
+
+  const handlePasteFromClipboard = async (question) => {
+    if (!question?.id || uploadingImageFor === question.id) return;
+    if (!navigator?.clipboard?.read) {
+      message.error("Le collage direct n'est pas disponible sur ce navigateur.");
+      return;
+    }
+
+    try {
+      const items = await navigator.clipboard.read();
+      const imageItem = items.find((item) =>
+        item.types.some((type) => type.startsWith("image/"))
+      );
+      if (!imageItem) {
+        message.error("Aucune image dans le presse-papiers.");
+        return;
+      }
+      const mime =
+        imageItem.types.find((type) => type.startsWith("image/")) || "image/png";
+      const blob = await imageItem.getType(mime);
+      if (!blob) return;
+      const ext =
+        mime === "image/png"
+          ? ".png"
+          : mime === "image/jpeg" || mime === "image/jpg"
+          ? ".jpg"
+          : "";
+      if (!ALLOWED_IMAGE_EXT.includes(ext)) {
+        message.error("Image non autorisee (jpg ou png).");
+        return;
+      }
+      const name = `capture-${Date.now()}${ext}`;
+      const file = new File([blob], name, { type: mime });
+      handleUploadImage(question, file);
+    } catch (error) {
+      console.error("Erreur collage image quizz", error);
+      message.error("Erreur lors du collage.");
+    }
+  };
+
+  useEffect(() => {
+    const handlePaste = (event) => {
+      const active = document.activeElement;
+      const indexAttr = active?.getAttribute?.("data-upload-question-index");
+      if (indexAttr === null || typeof indexAttr === "undefined") return;
+      const index = Number(indexAttr);
+      if (Number.isNaN(index)) return;
+      const question = quizzList[index];
+      if (!question) return;
+      handlePasteImage(question, event);
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [quizzList, handlePasteImage]);
+
   const questionInsertionOptions = useMemo(() => {
     const options = [{ value: "start", label: "Debut (avant la premiere)" }];
     quizzList.forEach((q, idx) =>
@@ -972,11 +1058,21 @@ const trackWidth =
                                   size="small"
                                   icon={<UploadOutlined />}
                                   loading={uploadingImageFor === q.id}
+                                  data-upload-question-index={idx}
                                 >
                                   Uploader
                                 </Button>
                               </Tooltip>
                             </Upload>
+                            <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
+                              <Button
+                                size="small"
+                                onClick={() => handlePasteFromClipboard(q)}
+                                disabled={uploadingImageFor === q.id}
+                              >
+                                Coller
+                              </Button>
+                            </Tooltip>
                             <Tooltip title="Supprimer l'image" mouseEnterDelay={0.3}>
                               <Button
                                 size="small"
