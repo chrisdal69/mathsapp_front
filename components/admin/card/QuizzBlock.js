@@ -1178,9 +1178,10 @@ const trackWidth =
                                   }}
                                   content={
                                     <div className="w-64 space-y-2">
-                                      <Input
+                                      <Input.TextArea
                                         value={editOption.value}
                                         maxLength={300}
+                                        autoSize={{ minRows: 3, maxRows: 6 }}
                                         onChange={(e) =>
                                           setEditOption((prev) => ({
                                             ...prev,

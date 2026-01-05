@@ -274,6 +274,7 @@ export default function Video({
                   width: "100%",
                   paddingTop: `${paddingTop}%`,
                   margin: 0,
+                  marginBottom: 8,
                 }}
               >
                 {!loaded[idx] && (
@@ -313,6 +314,7 @@ export default function Video({
                     height: "100%",
                     border: 0,
                   }}
+                
                 />
               </div>
             </div>

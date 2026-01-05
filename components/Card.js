@@ -60,7 +60,7 @@ const CardBlock = (data) => {
     (data.evalQuizz === "non" ||
       (isAuthenticated && data.evalQuizz === "oui")) &&
       data.quizz &&
-      data.quizz.length !== 0 && { key: "quizz", label: "Quizz" },
+      data.quizz.length !== 0 && { key: "quizz", label: "Quiz" },
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
     data.video && data.video.length !== 0 && { key: "video", label: "Vidéos" },
   ].filter(Boolean); // <-- indispensable pour retirer les false/undefined
