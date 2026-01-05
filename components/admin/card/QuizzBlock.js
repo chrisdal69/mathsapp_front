@@ -30,6 +30,7 @@ import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
+const MAX_QUIZZ_IMAGE_BYTES = 4 * 1024 * 1024;
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -471,6 +472,10 @@ const trackWidth =
     const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
     if (!ALLOWED_IMAGE_EXT.includes(ext)) {
       message.error("Image non autorisee (jpg ou png).");
+      return;
+    }
+    if (file.size && file.size > MAX_QUIZZ_IMAGE_BYTES) {
+      message.error("Fichier trop volumineux (4 Mo max)");
       return;
     }
     if (!cardId) {

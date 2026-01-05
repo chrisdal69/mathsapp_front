@@ -16,6 +16,7 @@ import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const EMPTY_SENTINEL = "\u200B"; // Persist an "empty-looking" item through backend trimming.
+const MAX_BG_BYTES = 4 * 1024 * 1024;
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -341,6 +342,11 @@ export default function Contenu({
     const normalizedNum = Number(num);
     if (!Number.isFinite(normalizedNum)) {
       message.error("Numéro de tag invalide.");
+      return;
+    }
+
+    if (file?.size && file.size > MAX_BG_BYTES) {
+      message.error("Fichier trop volumineux (4 Mo max)");
       return;
     }
 
