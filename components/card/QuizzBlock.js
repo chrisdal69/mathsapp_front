@@ -97,6 +97,7 @@ export default function Quizz({
   id,
 }) {
   const carouselRef = useRef(null);
+  const preloadedImagesRef = useRef(new Set());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
@@ -131,6 +132,22 @@ export default function Quizz({
   const handleSelect = (qid, value) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!Array.isArray(quizz)) return;
+    const sources = quizz
+      .map((q) => q?.image)
+      .filter(Boolean)
+      .map((image) => `${racine}${image}`);
+
+    sources.forEach((src) => {
+      if (preloadedImagesRef.current.has(src)) return;
+      const img = new window.Image();
+      img.src = src;
+      preloadedImagesRef.current.add(src);
+    });
+  }, [quizz, racine]);
 
   useEffect(() => {
     if (evalQuizz !== "oui" || !cardId || !isAuthenticated) return;
@@ -433,8 +450,9 @@ export default function Quizz({
                           <Image
                             src={racine + q.image}
                             alt=""
-                            width="450"
-                            height="450"
+                            width={450}
+                            height={450}
+                            loading="eager"
                             style={{
                               display: "block",
                               margin: 0,
