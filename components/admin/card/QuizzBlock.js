@@ -1067,10 +1067,10 @@ const trackWidth =
                   >
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
+                      <div className=" space-y-2">
+                        <div className=" flex items-center justify-between">
                           <p className="text-sm font-semibold text-gray-700">
-                            Image (300x300)
+                            Image 
                           </p>
                           <div className="flex gap-2">
                             <Upload {...buildUploadProps(q)}>
@@ -1111,8 +1111,9 @@ const trackWidth =
                         <div
                           className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
                           style={{
-                            width: "100%",
-                            maxWidth: PREVIEW_IMAGE_WIDTH,
+                            width: "90%",
+                            //maxWidth: PREVIEW_IMAGE_WIDTH,
+                            margin: "auto"
                           }}
                         >
                           {q.image ? (
