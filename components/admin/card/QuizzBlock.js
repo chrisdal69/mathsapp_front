@@ -31,6 +31,7 @@ const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const MAX_QUIZZ_IMAGE_BYTES = 4 * 1024 * 1024;
+const PREVIEW_IMAGE_WIDTH = 250;
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -144,6 +145,7 @@ export default function Quizz({
   });
   const [actionKey, setActionKey] = useState("");
   const [uploadingImageFor, setUploadingImageFor] = useState("");
+  const [imageRatios, setImageRatios] = useState({});
 
   const cardId = _id || id;
   const racine = useMemo(
@@ -208,6 +210,21 @@ const trackWidth =
     [mode, idPart, extra].filter(Boolean).join("-");
 
   const isAction = (key) => actionKey === key;
+
+  const recordImageRatio = (questionId, image) => {
+    if (!questionId || !image) return;
+    const rawWidth = image.naturalWidth ?? image.width;
+    const rawHeight = image.naturalHeight ?? image.height;
+    const naturalWidth = Number(rawWidth);
+    const naturalHeight = Number(rawHeight);
+    if (!naturalWidth || !naturalHeight) return;
+    const ratio = Number((naturalWidth / naturalHeight).toFixed(4));
+    if (!Number.isFinite(ratio) || ratio <= 0) return;
+    setImageRatios((prev) => {
+      if (prev[questionId] === ratio) return prev;
+      return { ...prev, [questionId]: ratio };
+    });
+  };
 
   const syncCardsStore = (updatedCard, fallbackQuizz) => {
     if (!cardsData || !Array.isArray(cardsData.result)) return;
@@ -920,6 +937,10 @@ const trackWidth =
                 isQuestionEmpty || !hasQuestionChanged;
               const { nodes: questionNodes, hasUnmatched: questionHasError } =
                 renderInlineKatex(questionValue);
+              const ratio = imageRatios[q.id];
+              const previewHeight = ratio
+                ? Math.max(1, Math.round(PREVIEW_IMAGE_WIDTH / ratio))
+                : PREVIEW_IMAGE_WIDTH;
               return (
                 <div
                   key={q.id || idx}
@@ -1091,21 +1112,21 @@ const trackWidth =
                           className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
                           style={{
                             width: "100%",
-                            maxWidth: 220,
-                            aspectRatio: "1 / 1",
-                            overflow: "hidden",
+                            maxWidth: PREVIEW_IMAGE_WIDTH,
                           }}
                         >
                           {q.image ? (
                             <Image
                               src={`${racine}${q.image}`}
                               alt=""
-                              width={220}
-                              height={220}
+                              width={PREVIEW_IMAGE_WIDTH}
+                              height={previewHeight}
+                              onLoadingComplete={(img) =>
+                                recordImageRatio(q.id, img)
+                              }
                               style={{
-                                objectFit: "cover",
                                 width: "100%",
-                                height: "100%",
+                                height: "auto",
                               }}
                             />
                           ) : (
