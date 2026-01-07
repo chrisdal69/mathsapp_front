@@ -5,20 +5,30 @@ import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
+import { useRouter } from "next/router";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
-const App = () => {
+const App = ({ nomRepertoire }) => {
   const {
-    token: { colorBgLayout,colorBgContainer, borderRadiusLG },
+    token: { colorBgLayout, colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+ //////
+  const router = useRouter();
+  const { isAuthenticated, user } = useSelector((s) => s.auth);
+  const isAdmin = isAuthenticated && user?.role === "admin";
 
+  useEffect(() => {
+    if (!isAdmin) {
+      router.replace("/"); // bloque l'accès aux non-admin
+    }
+  }, [isAdmin, router]);
+/////
   const dispatch = useDispatch();
   const data = useSelector((state) => state.cardsMaths.data);
-  //console.log("data de la page HomeForm.js : ",data)
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
-  const cards = cardsFiltre.filter((obj) => obj.repertoire === "ciel1");
+  const cards = cardsFiltre.filter((obj) => obj.repertoire === nomRepertoire);
 
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -38,7 +48,9 @@ const App = () => {
       if (response.ok) {
         dispatch(setCardsMaths({ ...payload, __source: "admin" }));
       } else {
-        setErrorMessage(payload?.error || "Erreur lors du chargement des cartes.");
+        setErrorMessage(
+          payload?.error || "Erreur lors du chargement des cartes."
+        );
       }
     } catch (err) {
       setErrorMessage("Erreur serveur.");
@@ -61,12 +73,15 @@ const App = () => {
   }, [cards]);
 
   useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
     if (data?.__source === "admin") {
       return; // payload admin deja present
     }
 
     fetchCards();
-  }, [data?.__source, fetchCards]);
+  }, [isAdmin, data?.__source, fetchCards]);
 
   const handleExternalTabChange = (index) => {
     setResetSignals((prev) => {
@@ -78,7 +93,7 @@ const App = () => {
   const getCardKey = (card, idx) => card?._id || card?.id || card?.num || idx;
 
   const handleAddCard = async () => {
-    const repertoire = (cards?.[0]?.repertoire || "ciel1").trim();
+    const repertoire = (cards?.[0]?.repertoire || nomRepertoire).trim();
 
     if (!repertoire) {
       setErrorMessage("Répertoire introuvable pour la création.");
@@ -94,7 +109,6 @@ const App = () => {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ repertoire }),
-
       });
       const payload = await response.json();
 
@@ -111,6 +125,10 @@ const App = () => {
       setCreating(false);
     }
   };
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <Layout>

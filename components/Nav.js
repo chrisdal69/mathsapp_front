@@ -21,22 +21,38 @@ export default function Nav() {
   const pathToKey = {
     "/": "1",
     "/admin": "1",
-    "/python": "2",
-    "/admin/python": "2",
-    "/signup": "3",
-    "/forgot": "3",
-    "/changepassword": "3",
+    "/signup": "4",
+    "/forgot": "4",
+    "/changepassword": "4",
   };
 
-  const selectedKey = pathToKey[router.pathname] || "1";
-  const mathsHref = isAdmin ? "/admin" : "/";
+  const keyByRepertoire = {
+    ciel1: "2",
+    python: "3",
+  };
+
+  const isDynamicRoute =
+    router.pathname === "/[repertoire]" ||
+    router.pathname === "/admin/[repertoire]";
+
+  const rawRepertoire = Array.isArray(router.query.repertoire)
+    ? router.query.repertoire[0]
+    : router.query.repertoire;
+
+  const selectedKey = !router.isReady
+    ? "1"
+    : isDynamicRoute
+    ? keyByRepertoire[rawRepertoire] || "1"
+    : pathToKey[router.pathname] || "1";
+  const accueilHref = isAdmin ? "/admin" : "/";
+  const mathsHref = isAdmin ? "/admin/ciel1" : "/ciel1";
   const pythonHref = isAdmin ? "/admin/python" : "/python";
   const items = [
-    { key: "1", label: <Link href={mathsHref}>Maths</Link> },
-    { key: "2", label: <Link href={pythonHref}>Python</Link> },
-    { key: "3", icon: <UserOutlined />, label: <Modal /> },
+    { key: "1", label: <Link href={accueilHref}>Accueil</Link> },
+    { key: "2", label: <Link href={mathsHref}>Maths</Link> },
+    { key: "3", label: <Link href={pythonHref}>Python</Link> },
+    { key: "4", icon: <UserOutlined />, label: <Modal /> },
   ];
-  console.log("target dans Nav.js : ", mathsHref);
 
   return (
     <Header style={{ display: "flex", alignItems: "center" }}>
