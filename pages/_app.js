@@ -64,7 +64,7 @@ function App({ Component, pageProps }) {
           {cssVars}
         </style>
         <div className={`${appFonts.sans.variable} ${appFonts.display.variable} ${appFonts.script.variable} app-root`}>
-          <Nav/>
+          {/* <Nav/> */}
           <Component {...pageProps} />
           <Footer/>
         </div>

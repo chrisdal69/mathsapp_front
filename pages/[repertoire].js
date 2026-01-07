@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import Home from "../components/Home";
+import Nav from "../components/Nav";
 
 function Page() {
   const { query, isReady } = useRouter();
@@ -11,7 +12,12 @@ function Page() {
     return <main className="mt-12">Chargement...</main>;
   }
 
-  return <Home repertoire={repertoire} />;
+  return (
+    <>
+      <Nav />
+      <Home repertoire={repertoire} />
+    </>
+  );
 }
 
 export default Page;
