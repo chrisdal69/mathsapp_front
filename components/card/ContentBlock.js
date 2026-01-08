@@ -106,6 +106,7 @@ export default function Contenu({
 }) {
   const [typing, setTyping] = useState(false);
   const [typedStep, setTypedStep] = useState(0);
+  const [revealImage, setRevealImage] = useState(false);
 
   const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
   const combinedText = useMemo(() => {
@@ -122,6 +123,10 @@ export default function Contenu({
     () => renderTypedInlineKatex(tokens, typedStep),
     [tokens, typedStep]
   );
+
+  useEffect(() => {
+    setRevealImage(true);
+  }, []);
 
   useEffect(() => {
     let timer;
@@ -157,6 +162,14 @@ export default function Contenu({
     setTyping(true);
   };
 
+  const handleMouseEnter = () => {
+    setTyping(true);
+  };
+
+  const handleMouseLeave = () => {
+    setTyping(false);
+  };
+
   return (
     <div className="group relative w-full min-h-[150px] ">
       <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5">
@@ -168,8 +181,7 @@ export default function Contenu({
       <motion.div
         className="absolute inset-0"
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
+        animate={revealImage ? "visible" : "hidden"}
         variants={{
           hidden: { clipPath: "inset(0 0 100% 0)" },
           visible: { clipPath: "inset(0 0 0% 0)" },
@@ -192,8 +204,8 @@ export default function Contenu({
 
       <div
         className="absolute inset-0 w-full h-full z-10 cursor-pointer"
-        onMouseEnter={() => setTyping(true)}
-        onMouseLeave={() => setTyping(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
       />
     </div>

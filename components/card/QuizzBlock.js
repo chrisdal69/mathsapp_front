@@ -450,8 +450,8 @@ export default function Quizz({
                           <Image
                             src={racine + q.image}
                             alt=""
-                            width={450}
-                            height={450}
+                            width={300}
+                            height={300}
                             loading="eager"
                             style={{
                               display: "block",
