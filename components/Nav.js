@@ -9,7 +9,7 @@ import Modal from "./Modal";
 
 const { Header } = Layout;
 
-export default function Nav() {
+export default function Nav(props) {
   const router = useRouter();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -55,12 +55,13 @@ export default function Nav() {
   ];
 
   const navColors = {
-    bg: "#e6eaea",
+    bg:props.bg,
     border: "#222",
     tabBorder: "#000",
     text: "#333",
     textSize: "18px",
-    selectedBg: "#c2cbcf",
+    //selectedBg: "#c2cbcf",
+    selectedBg:props.selectedBg,
     selectedText: "#0f172a",
     hoverBg: "#fff",
   };

@@ -14,7 +14,7 @@ function Page() {
 
   return (
     <>
-      <Nav />
+      <Nav bg="#e6eaea" selectedBg="#c2cbcf" />
       <Home repertoire={repertoire} />
     </>
   );

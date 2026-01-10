@@ -1,6 +1,5 @@
 ﻿import Image from "next/image";
-import { LoginOutlined } from "@ant-design/icons";
-import { Button } from "antd";
+import Nav from "../components/Nav";
 import { useEffect, useState } from "react";
 
 const WORD = "MathsApp.fr";
@@ -10,6 +9,23 @@ const BG_SOURCES = {
   medium: "/bgM.jpg",
   large: "/bgG.jpg",
 };
+const ANIMATION_TIMINGS = {
+  assembleDuration: 0.7,
+  assembleStagger: 0.7,
+  revealDelay: 0.2,
+  revealDuration: 1.5,
+  raiseDuration: 0.7,
+  raiseStagger: 0.12,
+  raisePause: 0.2,
+};
+const RAISE_START_MS = Math.round(
+  ((LETTERS.length - 1) * ANIMATION_TIMINGS.assembleStagger +
+    ANIMATION_TIMINGS.assembleDuration +
+    ANIMATION_TIMINGS.revealDelay +
+    ANIMATION_TIMINGS.revealDuration +
+    ANIMATION_TIMINGS.raisePause) *
+    1000
+);
 
 function mulberry32(seed) {
   let t = seed;
@@ -59,6 +75,7 @@ function pickBackground(width) {
 
 function Index() {
   const [bgSrc, setBgSrc] = useState(BG_SOURCES.medium);
+  const [showNav, setShowNav] = useState(false);
 
   useEffect(() => {
     const updateSource = () => {
@@ -71,8 +88,26 @@ function Index() {
     return () => window.removeEventListener("resize", updateSource);
   }, []);
 
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (prefersReducedMotion) {
+      setShowNav(true);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setShowNav(true);
+    }, RAISE_START_MS);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="page" style={{ "--count": LETTERS.length }}>
+      <div className="topBar">{showNav ? <Nav bg = "#ced5d5" selectedBg="#bec0b6" /> : null}</div>
       <div className="stage ">
         <div className="word" aria-label={WORD}>
           {LETTERS.map((letter, index) => {
@@ -104,11 +139,6 @@ function Index() {
             priority
           />
         </div>
-        <div className="ctaWrap">
-          <Button className="ctaButton" icon={<LoginOutlined />}>
-            Se connecter
-          </Button>
-        </div>
       </div>
 
       <style jsx>{`
@@ -124,32 +154,53 @@ function Index() {
           --stagger: 0.7s;
           --reveal-delay: 0.2s;
           --reveal-duration: 1.5s;
-          --wash-delay: calc(var(--assemble-total) + var(--reveal-delay));
-          --wash-duration: var(--reveal-duration);
           --raise-duration: 0.7s;
           --raise-stagger: 0.12s;
-          --top-line: 100px;
-          --top-shift: calc(var(--top-line) - 50vh);
           --word-size: clamp(2.2rem, 8.5vw, 7rem);
+          --header-height: 150px;
+          --hero-height: calc(100vh - var(--header-height));
+          --word-baseline: 0.8;
+          --top-line: calc(
+            (var(--header-height) - var(--word-size)) / 2 +
+              (var(--word-size) * var(--word-baseline))
+          );
+          --top-shift: calc(var(--top-line) - 50vh);
           --assemble-total: calc(
             (var(--count) - 1) * var(--stagger) + var(--duration)
           );
+          --wash-delay: calc(var(--assemble-total) + var(--reveal-delay));
+          --wash-duration: var(--reveal-duration);
           --raise-delay: calc(
             var(--assemble-total) + var(--reveal-delay) + var(--reveal-duration) +
               0.2s
           );
-          --raise-total: calc(
-            var(--raise-delay) + (var(--count) - 1) * var(--raise-stagger) +
-              var(--raise-duration)
-          );
-          --cta-delay: calc(var(--raise-total) + 0.2s);
-          --cta-duration: 0.6s;
         }
 
         .stage {
           width: 100vw;
           height: 100vh;
           position: relative;
+        }
+
+        .topBar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 0;
+          display: flex;
+          align-items: flex-start;
+          justify-content: stretch;
+          overflow: hidden;
+          background: #ced5d5;
+          z-index: 2;
+          animation: header-grow var(--reveal-duration)
+            cubic-bezier(0.2, 0.8, 0.2, 1) both;
+          animation-delay: calc(var(--assemble-total) + var(--reveal-delay));
+        }
+
+        .topBar :global(.nav-header) {
+          width: 100%;
         }
 
         .word {
@@ -163,6 +214,7 @@ function Index() {
           --spacing: 1.05ch;
           --half: calc((var(--count) - 1) * var(--spacing) / 2);
           z-index: 3;
+          pointer-events: none;
         }
 
         .letter {
@@ -184,36 +236,10 @@ function Index() {
           will-change: transform, opacity;
         }
 
-        .ctaWrap {
-          position: absolute;
-          left: 50%;
-          top: calc(var(--top-line) + var(--word-size) + 16px);
-          transform: translate(-50%, 20px);
-          z-index: 2;
-          opacity: 0;
-          clip-path: inset(0 0 100% 0);
-          animation: cta-in var(--cta-duration) cubic-bezier(0.2, 0.8, 0.2, 1)
-            both;
-          animation-delay: var(--cta-delay);
-          will-change: transform, opacity, clip-path;
-        }
-
-        :global(.ctaButton) {
-          padding: 0.85rem 2rem;
-          border-radius: 999px;
-          background: #111111;
-          color: #f6f4ef;
-          font-size: 1rem;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-        }
-
         .hero {
           position: absolute;
           left: 50%;
-          top: 50%;
+          top: calc(var(--header-height) + (var(--hero-height) * 0.5));
           width: 0;
           height: 0;
           transform: translate(-50%, -50%);
@@ -250,8 +276,17 @@ function Index() {
           }
           100% {
             width: 100vw;
-            height: 100vh;
+            height: var(--hero-height);
             opacity: 1;
+          }
+        }
+
+        @keyframes header-grow {
+          0% {
+            height: 0;
+          }
+          100% {
+            height: var(--header-height);
           }
         }
 
@@ -283,19 +318,6 @@ function Index() {
           }
         }
 
-        @keyframes cta-in {
-          0% {
-            transform: translate(-50%, 20px);
-            opacity: 0;
-            clip-path: inset(0 0 100% 0);
-          }
-          100% {
-            transform: translate(-50%, 0);
-            opacity: 1;
-            clip-path: inset(0 0 0 0);
-          }
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .letter {
             animation: none;
@@ -308,38 +330,20 @@ function Index() {
             color: var(--text-dark);
           }
 
-          .ctaWrap {
-            animation: none;
-            transform: translate(-50%, 0);
-            opacity: 1;
-            clip-path: inset(0 0 0 0);
-          }
-
           .hero {
             animation: none;
             width: 100vw;
-            height: 100vh;
+            height: var(--hero-height);
+            top: calc(var(--header-height) + (var(--hero-height) * 0.5));
             opacity: 1;
           }
-        }
 
-        @media (min-width: 768px) {
-          .page {
-            --top-line: 80px;
+          .topBar {
+            animation: none;
+            height: var(--header-height);
           }
         }
 
-        @media (min-width: 1200px) {
-          .page {
-            --top-line: 40px;
-          }
-        }
-
-        @media (min-width: 2000px) {
-          .page {
-            --top-line: 10px;
-          }
-        }
       `}</style>
     </div>
   );
