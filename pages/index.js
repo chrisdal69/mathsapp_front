@@ -62,12 +62,7 @@ function createOrder(count) {
 const RANDOM_POSITIONS = createPositions(LETTERS.length, 48, 48);
 const RANDOM_ORDER = createOrder(LETTERS.length);
 
-function pickBackground(width) {
-  if (width >= 800) {
-    return BG_SOURCES.large;
-  }
-  return BG_SOURCES.mobile;
-}
+
 
 function Index() {
   const [bgSrc, setBgSrc] = useState(BG_SOURCES.mobile);
@@ -77,13 +72,19 @@ function Index() {
   useEffect(() => {
     const updateLayout = () => {
       const { innerWidth: width, innerHeight: height } = window;
-      let value = width < 800 ? 0 : 150;
+      let value;
+      let nextSrc;
       if (width / height > 2.2) {
         value = 270;
+        nextSrc = BG_SOURCES.large;
+      }else if (width / height > 1){
+        nextSrc = BG_SOURCES.large;
+        value = 150;
+      }else{
+        value = 0;
+        nextSrc = BG_SOURCES.mobile
       }
-
       setDecalage(value);
-      const nextSrc = pickBackground(width);
       setBgSrc((current) => (current === nextSrc ? current : nextSrc));
     };
 
@@ -97,20 +98,54 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timerId;
 
-    if (prefersReducedMotion) {
-      setShowNav(true);
-      return undefined;
+    const scheduleNav = () => {
+      if (mediaQuery.matches) {
+        setShowNav(true);
+        return;
+      }
+
+      timerId = window.setTimeout(() => {
+        setShowNav(true);
+      }, RAISE_START_MS);
+    };
+
+    const handleChange = (event) => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+        timerId = undefined;
+      }
+
+      if (event.matches) {
+        setShowNav(true);
+        return;
+      }
+
+      setShowNav(false);
+      timerId = window.setTimeout(() => {
+        setShowNav(true);
+      }, RAISE_START_MS);
+    };
+
+    scheduleNav();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
     }
 
-    const timer = setTimeout(() => {
-      setShowNav(true);
-    }, RAISE_START_MS);
-
-    return () => clearTimeout(timer);
+    return () => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
   }, []);
 
   return (
