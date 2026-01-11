@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 const WORD = "MathsApp.fr";
 const LETTERS = Array.from(WORD);
 const BG_SOURCES = {
-  mobile: "/bgPP.jpg",
-  medium: "/bgM.jpg",
-  large: "/bgG.jpg",
+  mobile: "/bgMobile.jpg",
+  large: "/bgLarge.jpg",
 };
 const ANIMATION_TIMINGS = {
   assembleDuration: 0.45,
@@ -22,8 +21,7 @@ const RAISE_START_MS = Math.round(
   ((LETTERS.length - 1) * ANIMATION_TIMINGS.assembleStagger +
     ANIMATION_TIMINGS.assembleDuration +
     ANIMATION_TIMINGS.revealDelay +
-    ANIMATION_TIMINGS.revealDuration -
-    0.5 +
+    ANIMATION_TIMINGS.revealDuration +
     ANIMATION_TIMINGS.raisePause) *
     1000
 );
@@ -65,11 +63,8 @@ const RANDOM_POSITIONS = createPositions(LETTERS.length, 48, 48);
 const RANDOM_ORDER = createOrder(LETTERS.length);
 
 function pickBackground(width) {
-  if (width >= 1200) {
+  if (width >= 800) {
     return BG_SOURCES.large;
-  }
-  if (width >= 768) {
-    return BG_SOURCES.medium;
   }
   return BG_SOURCES.mobile;
 }
@@ -77,6 +72,13 @@ function pickBackground(width) {
 function Index() {
   const [bgSrc, setBgSrc] = useState(BG_SOURCES.medium);
   const [showNav, setShowNav] = useState(false);
+  const [decalage, setDecalage] = useState(0);
+
+  useEffect(() => {
+    let value = window.innerWidth < 800 ? 0 : 150;
+    if ((window.innerWidth/window.innerHeight)>2.2) {value = 270;}
+    setDecalage(value);
+  }, []);
 
   useEffect(() => {
     const updateSource = () => {
@@ -142,6 +144,7 @@ function Index() {
             sizes="100vw"
             className="heroImage"
             priority
+            objectFit="cover"
           />
         </div>
       </div>
@@ -150,9 +153,11 @@ function Index() {
         .page {
           min-height: 100vh;
           position: relative;
-          background: #f6f4ef;
+          background-color: var(--bg-start);
           color: #1a1a1a;
           overflow: hidden;
+          --bg-start: #f6f4ef;
+          --bg-phasec: #ced5d5;
           --text-dark: #1a1a1a;
           --text-light: #cfd6d6;
           --duration: 0.45s;
@@ -175,8 +180,10 @@ function Index() {
           --wash-duration: var(--reveal-duration);
           --raise-delay: calc(
             var(--assemble-total) + var(--reveal-delay) + var(--reveal-duration) +
-              var(--raise-pause) - 0.5s
+              var(--raise-pause)
           );
+          animation: page-bg 0.01s steps(1, end) both;
+          animation-delay: var(--raise-delay);
         }
 
         .stage {
@@ -242,9 +249,14 @@ function Index() {
           transform: translate(-50%, -50%);
           overflow: hidden;
           z-index: 1;
-          animation: reveal var(--reveal-duration)
-            cubic-bezier(0.2, 0.8, 0.2, 1) both;
-          animation-delay: calc(var(--assemble-total) + var(--reveal-delay));
+          animation-name: reveal, hero-slide;
+          animation-duration: var(--reveal-duration),
+            calc(var(--raise-duration) * 1.6);
+          animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1),
+            cubic-bezier(0.2, 0.6, 0.2, 1);
+          animation-delay: calc(var(--assemble-total) + var(--reveal-delay)),
+            var(--raise-delay);
+          animation-fill-mode: both, forwards;
         }
 
         :global(.heroImage) {
@@ -287,6 +299,24 @@ function Index() {
             transform: translateY(0);
             opacity: 1;
           }
+        }
+
+        @keyframes page-bg {
+          from {
+            background-color: var(--bg-start);
+          }
+          to {
+            background-color: var(--bg-phasec);
+          }
+        }
+
+        @keyframes hero-slide {
+          0% {
+            transform: translate(-50%, -50%);
+          }
+          100% {
+            transform: translate(-50%, calc(-50% + ${decalage}px));
+          }1920
         }
 
         @keyframes wash {
@@ -334,6 +364,7 @@ function Index() {
             width: 100vw;
             height: 100vh;
             top: 50%;
+            transform: translate(-50%, calc(-50% + 150px));
             opacity: 1;
           }
 
@@ -344,7 +375,7 @@ function Index() {
           }
         }
 
-        @media (max-width: 599px) {
+        @media (max-width: 800px) {
           .page {
             --word-size: calc(80vw / 6.8);
           }
