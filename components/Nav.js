@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Layout, Menu, theme } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { CloseOutlined, MenuOutlined, UserOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import Modal from "./Modal";
 const { Header } = Layout;
 
 export default function Nav(props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -60,31 +61,90 @@ export default function Nav(props) {
     tabBorder: "#000",
     text: "#333",
     textSize: "18px",
-    //selectedBg: "#c2cbcf",
     selectedBg:props.selectedBg,
     selectedText: "#0f172a",
     hoverBg: "#fff",
   };
 
   return (
-    <>
+    <div className="nav-root">
       <Header
         className="nav-header"
         style={{ display: "flex", alignItems: "center" }}
       >
         <Menu
-          className="nav-menu"
+          className="nav-menu nav-menu--desktop"
           theme="dark"
           mode="horizontal"
           selectedKeys={[selectedKey]}
           items={items}
           style={{ flex: 1, justifyContent: "flex-end" }}
         />
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={menuOpen}
+          aria-controls="nav-drawer"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <CloseOutlined /> : <MenuOutlined />}
+        </button>
       </Header>
+      <div
+        className={`nav-drawer ${menuOpen ? "nav-drawer--open" : ""}`}
+        id="nav-drawer"
+      >
+        <Menu
+          className="nav-menu nav-menu--mobile"
+          theme="dark"
+          mode="vertical"
+          selectedKeys={[selectedKey]}
+          items={items}
+          onClick={() => setMenuOpen(false)}
+        />
+      </div>
       <style jsx global>{`
+        .nav-root {
+          position: relative;
+        }
         .nav-header {
           background: ${navColors.bg};
           border-bottom: 0px solid ${navColors.border};
+        }
+        .nav-toggle {
+          border: none;
+          background: transparent;
+          color: ${navColors.text};
+          font-size: 24px;
+          width: 44px;
+          height: 44px;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          margin-left: -20px;
+        }
+        .nav-drawer {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 180px;
+          background: ${navColors.bg};
+          border-radius: 0 12px 12px 0;
+          padding: 13px 0;
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+          z-index: 10;
+          transform: translateX(-100%);
+          opacity: 0;
+          pointer-events: none;
+          transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 200ms ease;
+        }
+        .nav-drawer--open {
+          transform: translateX(0);
+          opacity: 1;
+          pointer-events: auto;
         }
         .nav-menu.ant-menu {
           background: transparent;
@@ -156,6 +216,68 @@ export default function Nav(props) {
         .nav-menu.ant-menu-dark .ant-menu-item:hover {
           background: ${navColors.hoverBg};
         }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:not(.ant-menu-item-selected):hover,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item-active {
+          background: ${navColors.hoverBg};
+        }
+        .nav-menu--mobile.ant-menu {
+          background: transparent;
+          border-right: none;
+          width: 100%;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item {
+          margin: 0;
+          width: 100%;
+          padding: 8px 12px;
+          height: auto;
+          line-height: 1.2;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .anticon {
+          white-space: nowrap;
+        }
+        .nav-menu--mobile.ant-menu-dark .nav-item {
+          overflow: visible;
+        }
+        .nav-menu--mobile.ant-menu-dark .nav-item::before {
+          display: none;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item::after,
+        .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item-selected::after {
+          border: none;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content {
+          display: block;
+          width: 100%;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > span,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > span {
+          padding: 0;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          padding: 6px 12px;
+          width: 50%;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          white-space: nowrap;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .ant-menu-title-content,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .anticon {
+          opacity: 1;
+          transform: none;
+          animation: none;
+        }
         @keyframes navBorderDown {
           from { transform: scaleY(0); }
           to { transform: scaleY(1); }
@@ -175,8 +297,24 @@ export default function Nav(props) {
             opacity: 1;
             transform: none;
           }
+          .nav-drawer {
+            transition: none;
+          }
+        }
+        @media (max-width: 770px) {
+          .nav-menu--desktop {
+            display: none;
+          }
+          .nav-toggle {
+            display: inline-flex;
+          }
+        }
+        @media (min-width: 771px) {
+          .nav-drawer {
+            display: none;
+          }
         }
       `}</style>
-    </>
+    </div>
   );
 }
