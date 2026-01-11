@@ -70,25 +70,30 @@ function pickBackground(width) {
 }
 
 function Index() {
-  const [bgSrc, setBgSrc] = useState(BG_SOURCES.medium);
+  const [bgSrc, setBgSrc] = useState(BG_SOURCES.mobile);
   const [showNav, setShowNav] = useState(false);
   const [decalage, setDecalage] = useState(0);
 
   useEffect(() => {
-    let value = window.innerWidth < 800 ? 0 : 150;
-    if ((window.innerWidth/window.innerHeight)>2.2) {value = 270;}
-    setDecalage(value);
-  }, []);
+    const updateLayout = () => {
+      const { innerWidth: width, innerHeight: height } = window;
+      let value = width < 800 ? 0 : 150;
+      if (width / height > 2.2) {
+        value = 270;
+      }
 
-  useEffect(() => {
-    const updateSource = () => {
-      const nextSrc = pickBackground(window.innerWidth);
+      setDecalage(value);
+      const nextSrc = pickBackground(width);
       setBgSrc((current) => (current === nextSrc ? current : nextSrc));
     };
 
-    updateSource();
-    window.addEventListener("resize", updateSource);
-    return () => window.removeEventListener("resize", updateSource);
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+    window.addEventListener("orientationchange", updateLayout);
+    return () => {
+      window.removeEventListener("resize", updateLayout);
+      window.removeEventListener("orientationchange", updateLayout);
+    };
   }, []);
 
   useEffect(() => {
@@ -144,7 +149,6 @@ function Index() {
             sizes="100vw"
             className="heroImage"
             priority
-            objectFit="cover"
           />
         </div>
       </div>
@@ -316,7 +320,7 @@ function Index() {
           }
           100% {
             transform: translate(-50%, calc(-50% + ${decalage}px));
-          }1920
+          }
         }
 
         @keyframes wash {
