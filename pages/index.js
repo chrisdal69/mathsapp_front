@@ -10,19 +10,20 @@ const BG_SOURCES = {
   large: "/bgG.jpg",
 };
 const ANIMATION_TIMINGS = {
-  assembleDuration: 0.7,
-  assembleStagger: 0.7,
-  revealDelay: 0.2,
+  assembleDuration: 0.45,
+  assembleStagger: 0.12,
+  revealDelay: 0,
   revealDuration: 1.5,
   raiseDuration: 0.7,
   raiseStagger: 0.12,
-  raisePause: 0.2,
+  raisePause: 0,
 };
 const RAISE_START_MS = Math.round(
   ((LETTERS.length - 1) * ANIMATION_TIMINGS.assembleStagger +
     ANIMATION_TIMINGS.assembleDuration +
     ANIMATION_TIMINGS.revealDelay +
-    ANIMATION_TIMINGS.revealDuration +
+    ANIMATION_TIMINGS.revealDuration -
+    0.5 +
     ANIMATION_TIMINGS.raisePause) *
     1000
 );
@@ -70,7 +71,7 @@ function pickBackground(width) {
   if (width >= 768) {
     return BG_SOURCES.medium;
   }
-  return BG_SOURCES.mobile;
+  return BG_SOURCES.medium;
 }
 
 function Index() {
@@ -107,7 +108,11 @@ function Index() {
 
   return (
     <div className="page" style={{ "--count": LETTERS.length }}>
-      <div className="topBar">{showNav ? <Nav bg = "#ced5d5" selectedBg="#bec0b6" /> : null}</div>
+      {showNav ? (
+        <div className="navWrap">
+          <Nav bg="#ced5d5" selectedBg="#bec0b6" />
+        </div>
+      ) : null}
       <div className="stage ">
         <div className="word" aria-label={WORD}>
           {LETTERS.map((letter, index) => {
@@ -150,20 +155,18 @@ function Index() {
           overflow: hidden;
           --text-dark: #1a1a1a;
           --text-light: #cfd6d6;
-          --duration: 0.7s;
-          --stagger: 0.7s;
-          --reveal-delay: 0.2s;
+          --duration: 0.45s;
+          --stagger: 0.12s;
+          --reveal-delay: 0s;
           --reveal-duration: 1.5s;
           --raise-duration: 0.7s;
           --raise-stagger: 0.12s;
+          --raise-pause: 0s;
           --word-size: clamp(2.2rem, 8.5vw, 7rem);
-          --header-height: 150px;
-          --hero-height: calc(100vh - var(--header-height));
-          --word-baseline: 0.8;
-          --top-line: calc(
-            (var(--header-height) - var(--word-size)) / 2 +
-              (var(--word-size) * var(--word-baseline))
-          );
+          --nav-height: 64px;
+          --nav-gap: 50px;
+          --top-line: calc(var(--nav-height) + var(--nav-gap));
+          --center-shift: calc(-0.5em - 5px);
           --top-shift: calc(var(--top-line) - 50vh);
           --assemble-total: calc(
             (var(--count) - 1) * var(--stagger) + var(--duration)
@@ -172,7 +175,7 @@ function Index() {
           --wash-duration: var(--reveal-duration);
           --raise-delay: calc(
             var(--assemble-total) + var(--reveal-delay) + var(--reveal-duration) +
-              0.2s
+              var(--raise-pause) - 0.5s
           );
         }
 
@@ -182,25 +185,19 @@ function Index() {
           position: relative;
         }
 
-        .topBar {
+        .navWrap {
           position: absolute;
           top: 0;
           left: 0;
           width: 100%;
-          height: 0;
-          display: flex;
-          align-items: flex-start;
-          justify-content: stretch;
-          overflow: hidden;
-          background: #ced5d5;
-          z-index: 2;
-          animation: header-grow var(--reveal-duration)
-            cubic-bezier(0.2, 0.8, 0.2, 1) both;
-          animation-delay: calc(var(--assemble-total) + var(--reveal-delay));
+          z-index: 4;
+          animation: nav-drop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
         }
 
-        .topBar :global(.nav-header) {
+        .navWrap :global(.nav-header) {
           width: 100%;
+          height: var(--nav-height);
+          line-height: var(--nav-height);
         }
 
         .word {
@@ -239,7 +236,7 @@ function Index() {
         .hero {
           position: absolute;
           left: 50%;
-          top: calc(var(--header-height) + (var(--hero-height) * 0.5));
+          top: 50%;
           width: 0;
           height: 0;
           transform: translate(-50%, -50%);
@@ -262,7 +259,7 @@ function Index() {
           100% {
             transform: translate(
               calc((var(--i) * var(--spacing)) - var(--half)),
-              0
+              var(--center-shift)
             );
             opacity: 1;
           }
@@ -276,17 +273,19 @@ function Index() {
           }
           100% {
             width: 100vw;
-            height: var(--hero-height);
+            height: 100vh;
             opacity: 1;
           }
         }
 
-        @keyframes header-grow {
+        @keyframes nav-drop {
           0% {
-            height: 0;
+            transform: translateY(-100%);
+            opacity: 0;
           }
           100% {
-            height: var(--header-height);
+            transform: translateY(0);
+            opacity: 1;
           }
         }
 
@@ -303,7 +302,7 @@ function Index() {
           0% {
             transform: translate(
               calc((var(--i) * var(--spacing)) - var(--half)),
-              0
+              var(--center-shift)
             );
             font-weight: 700;
             color: var(--text-light);
@@ -333,16 +332,18 @@ function Index() {
           .hero {
             animation: none;
             width: 100vw;
-            height: var(--hero-height);
-            top: calc(var(--header-height) + (var(--hero-height) * 0.5));
+            height: 100vh;
+            top: 50%;
             opacity: 1;
           }
 
-          .topBar {
+          .navWrap {
             animation: none;
-            height: var(--header-height);
+            transform: none;
+            opacity: 1;
           }
         }
+
 
       `}</style>
     </div>
