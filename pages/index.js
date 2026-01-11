@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const WORD = "MathsApp.fr";
 const LETTERS = Array.from(WORD);
 const BG_SOURCES = {
-  mobile: "/bgP.jpg",
+  mobile: "/bgPP.jpg",
   medium: "/bgM.jpg",
   large: "/bgG.jpg",
 };
@@ -71,7 +71,7 @@ function pickBackground(width) {
   if (width >= 768) {
     return BG_SOURCES.medium;
   }
-  return BG_SOURCES.medium;
+  return BG_SOURCES.mobile;
 }
 
 function Index() {
@@ -162,7 +162,7 @@ function Index() {
           --raise-duration: 0.7s;
           --raise-stagger: 0.12s;
           --raise-pause: 0s;
-          --word-size: clamp(2.2rem, 8.5vw, 7rem);
+          --word-size: clamp(3.5rem, 8.5vw, 7rem);
           --nav-height: 64px;
           --nav-gap: 50px;
           --top-line: calc(var(--nav-height) + var(--nav-gap));
