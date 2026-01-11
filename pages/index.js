@@ -344,6 +344,12 @@ function Index() {
           }
         }
 
+        @media (max-width: 599px) {
+          .page {
+            --word-size: calc(80vw / 6.8);
+          }
+        }
+
 
       `}</style>
     </div>
