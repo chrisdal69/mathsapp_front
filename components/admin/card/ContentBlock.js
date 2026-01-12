@@ -112,9 +112,7 @@ export default function Contenu({
   const [localPresentation, setLocalPresentation] = useState(
     Array.isArray(presentation) ? presentation : []
   );
-  const [localPlan, setLocalPlan] = useState(
-    Array.isArray(plan) ? plan : []
-  );
+  const [localPlan, setLocalPlan] = useState(Array.isArray(plan) ? plan : []);
   const [insertPositions, setInsertPositions] = useState({
     presentation: "end",
     plan: "end",
@@ -143,7 +141,9 @@ export default function Contenu({
     setLocalBg(nextBg);
   }, [bg]);
 
-  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+  const racine = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/${repertoire}/tag${num}/`;
 
   const toBlurFile = (filename) => {
     const lastDot = filename.lastIndexOf(".");
@@ -151,10 +151,7 @@ export default function Contenu({
     return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
   };
 
-  const blurBg = useMemo(
-    () => (localBg ? toBlurFile(localBg) : ""),
-    [localBg]
-  );
+  const blurBg = useMemo(() => (localBg ? toBlurFile(localBg) : ""), [localBg]);
   const cardId = _id || id;
 
   const listConfigs = {
@@ -234,8 +231,7 @@ export default function Contenu({
       return;
     }
 
-    const targetId =
-      updatedCard?._id || updatedCard?.id || _id || id;
+    const targetId = updatedCard?._id || updatedCard?.id || _id || id;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const targetRepertoire = updatedCard?.repertoire || repertoire || null;
@@ -243,8 +239,7 @@ export default function Contenu({
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
-        targetId &&
-        (card._id === targetId || card.id === targetId);
+        targetId && (card._id === targetId || card.id === targetId);
       const matchByComposite =
         !matchById &&
         targetId &&
@@ -292,9 +287,7 @@ export default function Contenu({
             ? updatedCard.presentation
             : []
         );
-        setLocalPlan(
-          Array.isArray(updatedCard.plan) ? updatedCard.plan : []
-        );
+        setLocalPlan(Array.isArray(updatedCard.plan) ? updatedCard.plan : []);
       } else {
         setListForType(type, nextList);
       }
@@ -522,7 +515,10 @@ export default function Contenu({
       { value: "end", label: "Fin (après le dernier)" },
     ];
     return (
-      <section key={type} className="mb-6 rounded-lg bg-white/60 p-1 md:p-4 shadow-sm">
+      <section
+        key={type}
+        className="mb-6 rounded-lg bg-white/60 p-1 md:p-4 shadow-sm"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <p className="text-base font-semibold text-gray-800">
             {config.title}
@@ -610,7 +606,9 @@ export default function Contenu({
                       content={renderEditContent(type, index)}
                     >
                       <Tooltip
-                        title={`Modifier ${config.label.toLowerCase()} ${index + 1}`}
+                        title={`Modifier ${config.label.toLowerCase()} ${
+                          index + 1
+                        }`}
                         mouseEnterDelay={0.3}
                       >
                         <Button
@@ -634,7 +632,9 @@ export default function Contenu({
                       content={renderDeleteContent(type, index)}
                     >
                       <Tooltip
-                        title={`Supprimer ${config.label.toLowerCase()} ${index + 1}`}
+                        title={`Supprimer ${config.label.toLowerCase()} ${
+                          index + 1
+                        }`}
                         mouseEnterDelay={0.3}
                       >
                         <Button

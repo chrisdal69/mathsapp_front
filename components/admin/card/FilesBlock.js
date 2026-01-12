@@ -1,7 +1,16 @@
 import { Fragment, useEffect, useState } from "react";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import { Button, Input, Popconfirm, Popover, Select, Tooltip, Upload, message } from "antd";
+import {
+  Button,
+  Input,
+  Popconfirm,
+  Popover,
+  Select,
+  Tooltip,
+  Upload,
+  message,
+} from "antd";
 import {
   PlusOutlined,
   UploadOutlined,
@@ -142,10 +151,24 @@ const BrandImg = ({ src, alt, title, className, fallback }) => {
 const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
   const e = (ext || "").toLowerCase();
   if (e === "py") {
-    return <img src="/icons/python.svg" alt="Python" title="Python" className={className} />;
+    return (
+      <img
+        src="/icons/python.svg"
+        alt="Python"
+        title="Python"
+        className={className}
+      />
+    );
   }
   if (e === "doc" || e === "docx") {
-    return <img src="/icons/word.svg" alt="Microsoft Word" title="Microsoft Word" className={className} />;
+    return (
+      <img
+        src="/icons/word.svg"
+        alt="Microsoft Word"
+        title="Microsoft Word"
+        className={className}
+      />
+    );
   }
   if (e === "pdf") {
     return (
@@ -154,9 +177,21 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
         alt="PDF"
         className={className}
         fallback={() => (
-          <svg viewBox="0 0 24 24" role="img" aria-label="PDF" className={className}>
+          <svg
+            viewBox="0 0 24 24"
+            role="img"
+            aria-label="PDF"
+            className={className}
+          >
             <rect x="2" y="2" width="20" height="20" rx="3" fill="#E11D2A" />
-            <text x="12" y="15" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">
+            <text
+              x="12"
+              y="15"
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="700"
+              fill="#fff"
+            >
               PDF
             </text>
           </svg>
@@ -171,12 +206,36 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
         alt="Microsoft Excel"
         className={className}
         fallback={() => (
-          <svg viewBox="0 0 24 24" role="img" aria-label="Excel" className={className}>
+          <svg
+            viewBox="0 0 24 24"
+            role="img"
+            aria-label="Excel"
+            className={className}
+          >
             <rect x="2" y="3" width="20" height="18" rx="2" fill="#107C41" />
-            <rect x="6" y="6" width="12" height="12" rx="1.5" fill="#fff" opacity="0.15" />
+            <rect
+              x="6"
+              y="6"
+              width="12"
+              height="12"
+              rx="1.5"
+              fill="#fff"
+              opacity="0.15"
+            />
             <path d="M8 8l5 4-5 4V8z" fill="#fff" />
-            <rect x="4" y="3" width="6" height="18" rx="1" fill="#0B5C30" opacity="0.9" />
-            <path d="M6.2 10.5l1.2 1.8 1.2-1.8h1.3l-1.8 2.7 1.8 2.7H8.6l-1.2-1.8-1.2 1.8H4.7l1.8-2.7-1.8-2.7h1.5z" fill="#fff" />
+            <rect
+              x="4"
+              y="3"
+              width="6"
+              height="18"
+              rx="1"
+              fill="#0B5C30"
+              opacity="0.9"
+            />
+            <path
+              d="M6.2 10.5l1.2 1.8 1.2-1.8h1.3l-1.8 2.7 1.8 2.7H8.6l-1.2-1.8-1.2 1.8H4.7l1.8-2.7-1.8-2.7h1.5z"
+              fill="#fff"
+            />
           </svg>
         )}
       />
@@ -193,13 +252,25 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
   }
   if (e === "md") {
     return (
-      <BrandImg src={`https://cdn.simpleicons.org/markdown/000000`} alt="Markdown" className={className} />
+      <BrandImg
+        src={`https://cdn.simpleicons.org/markdown/000000`}
+        alt="Markdown"
+        className={className}
+      />
     );
   }
   if (e === "zip" || e === "rar" || e === "7z") {
     return (
-      <svg viewBox="0 0 24 24" role="img" aria-label="Archive" className={className}>
-        <path d="M3 7a2 2 0 0 1 2-2h4.5l1.5 2H21a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z" fill="#F59E0B" />
+      <svg
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label="Archive"
+        className={className}
+      >
+        <path
+          d="M3 7a2 2 0 0 1 2-2h4.5l1.5 2H21a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"
+          fill="#F59E0B"
+        />
         <path d="M3 9h18v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9z" fill="#FBBF24" />
         <rect x="11" y="6" width="2" height="2" rx="0.5" fill="#374151" />
         <rect x="11" y="9" width="2" height="2" rx="0.5" fill="#374151" />
@@ -209,9 +280,20 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
       </svg>
     );
   }
-  if (e === "jpg" || e === "jpeg" || e === "png" || e === "gif" || e === "svg") {
+  if (
+    e === "jpg" ||
+    e === "jpeg" ||
+    e === "png" ||
+    e === "gif" ||
+    e === "svg"
+  ) {
     return (
-      <svg viewBox="0 0 24 24" role="img" aria-label="Image" className={className}>
+      <svg
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label="Image"
+        className={className}
+      >
         <rect x="2" y="2" width="20" height="20" rx="3" fill="#6D28D9" />
         <circle cx="9" cy="9" r="2" fill="#fff" />
         <path d="M4 18l5-5 3 3 3-3 5 5H4z" fill="#fff" />
@@ -220,7 +302,12 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
   }
   if (e === "mp4") {
     return (
-      <svg viewBox="0 0 24 24" role="img" aria-label="Video" className={className}>
+      <svg
+        viewBox="0 0 24 24"
+        role="img"
+        aria-label="Video"
+        className={className}
+      >
         <rect x="2" y="5" width="20" height="14" rx="2" fill="#2563EB" />
         <rect x="4" y="7" width="12" height="10" rx="1" fill="#1D4ED8" />
         <path d="M15 9.5l4 2.5-4 2.5v-5z" fill="#BFDBFE" />
@@ -228,7 +315,12 @@ const FileTypeIcon = ({ ext, className = "w-5 h-5" }) => {
     );
   }
   return (
-    <svg viewBox="0 0 24 24" role="img" aria-label="Fichier" className={className}>
+    <svg
+      viewBox="0 0 24 24"
+      role="img"
+      aria-label="Fichier"
+      className={className}
+    >
       <rect x="4" y="3" width="14" height="18" rx="2" fill="#9CA3AF" />
       <path d="M14 3v4a1 1 0 001 1h4" fill="#9CA3AF" />
       <path d="M14 3l5 5" stroke="#6B7280" strokeWidth="1" />
@@ -260,7 +352,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
 
-  const [localFiles, setLocalFiles] = useState(Array.isArray(fichiers) ? fichiers : []);
+  const [localFiles, setLocalFiles] = useState(
+    Array.isArray(fichiers) ? fichiers : []
+  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [hoverText, setHoverText] = useState("");
@@ -283,16 +377,20 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     setLocalFiles(Array.isArray(fichiers) ? fichiers : []);
   }, [fichiers]);
 
-  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+  const racine = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/${repertoire}/tag${num}/`;
 
   const syncCardsStore = (updatedCard, fallbackFiles) => {
     if (!cardsData || !Array.isArray(cardsData.result)) return;
     const targetId = updatedCard?._id || updatedCard?.id || cardId;
-    const targetNum = typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
+    const targetNum =
+      typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const targetRepertoire = updatedCard?.repertoire || repertoire;
     const patch = updatedCard || { fichiers: fallbackFiles };
     const nextResult = cardsData.result.map((card) => {
-      const matchById = targetId && (card._id === targetId || card.id === targetId);
+      const matchById =
+        targetId && (card._id === targetId || card.id === targetId);
       const matchByComposite =
         !matchById &&
         targetId &&
@@ -304,7 +402,6 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       return matchById || matchByComposite ? { ...card, ...patch } : card;
     });
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
-
   };
 
   const resetForm = () => {
@@ -424,7 +521,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       const updatedCard = payload?.result;
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
-        : (localFiles || []).map((f) => (f?.href === href ? { ...f, txt: trimmed } : f));
+        : (localFiles || []).map((f) =>
+            f?.href === href ? { ...f, txt: trimmed } : f
+          );
       setLocalFiles(nextFiles);
       syncCardsStore(updatedCard, nextFiles);
       message.success("Descriptif mis a jour.");
@@ -467,7 +566,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       const updatedCard = payload?.result;
       const nextFiles = Array.isArray(updatedCard?.fichiers)
         ? updatedCard.fichiers
-        : (localFiles || []).map((f) => (f?.href === href ? { ...f, hover: trimmed } : f));
+        : (localFiles || []).map((f) =>
+            f?.href === href ? { ...f, hover: trimmed } : f
+          );
       setLocalFiles(nextFiles);
       syncCardsStore(updatedCard, nextFiles);
       message.success("Texte de survol mis a jour.");
@@ -520,7 +621,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       message.success(nextVisible ? "Fichier visible." : "Fichier masque.");
     } catch (error) {
       console.error("Erreur lors du changement de visibilite", error);
-      message.error(error.message || "Erreur lors de la mise a jour de la visibilite.");
+      message.error(
+        error.message || "Erreur lors de la mise a jour de la visibilite."
+      );
     } finally {
       setVisibilityLoadingKey("");
     }
@@ -532,7 +635,11 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       arr.splice(0, 0, value);
       return arr;
     }
-    if (position === "end" || typeof position === "undefined" || position === null) {
+    if (
+      position === "end" ||
+      typeof position === "undefined" ||
+      position === null
+    ) {
       arr.push(value);
       return arr;
     }
@@ -557,9 +664,14 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
     const prevFiles = [...localFiles];
     const nextFiles = [...localFiles];
-    [nextFiles[index], nextFiles[targetIndex]] = [nextFiles[targetIndex], nextFiles[index]];
+    [nextFiles[index], nextFiles[targetIndex]] = [
+      nextFiles[targetIndex],
+      nextFiles[index],
+    ];
 
-    const hrefs = nextFiles.map((f) => (typeof f?.href === "string" ? f.href : ""));
+    const hrefs = nextFiles.map((f) =>
+      typeof f?.href === "string" ? f.href : ""
+    );
     if (hrefs.some((href) => !href)) {
       message.error("Certains fichiers n'ont pas d'identifiant valide.");
       return;
@@ -574,18 +686,23 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     setReorderKey(key);
 
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ hrefs }),
-      });
+      const response = await fetch(
+        `${urlFetch}/cards/${cardId}/files/reorder`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hrefs }),
+        }
+      );
       let payload = null;
       try {
         payload = await response.json();
       } catch (_) {}
       if (!response.ok) {
-        throw new Error(payload?.error || "Impossible de reordonner les fichiers.");
+        throw new Error(
+          payload?.error || "Impossible de reordonner les fichiers."
+        );
       }
       const updatedCard = payload?.result;
       const next = Array.isArray(updatedCard?.fichiers)
@@ -595,7 +712,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       syncCardsStore(updatedCard, next);
     } catch (error) {
       console.error("Erreur lors du reordonnancement des fichiers", error);
-      message.error(error.message || "Erreur lors du reordonnancement des fichiers.");
+      message.error(
+        error.message || "Erreur lors du reordonnancement des fichiers."
+      );
       setLocalFiles(prevFiles);
     } finally {
       setReorderKey("");
@@ -631,18 +750,21 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     try {
       const contentType = selectedFile.type || "application/octet-stream";
       const uploadDirect = async () => {
-        const signResponse = await fetch(`${urlFetch}/cards/${cardId}/files/sign`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            name: selectedFile.name,
-            type: contentType,
-            size: selectedFile.size,
-            repertoire,
-            num: `${normalizedNum}`,
-          }),
-        });
+        const signResponse = await fetch(
+          `${urlFetch}/cards/${cardId}/files/sign`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: selectedFile.name,
+              type: contentType,
+              size: selectedFile.size,
+              repertoire,
+              num: `${normalizedNum}`,
+            }),
+          }
+        );
         let signPayload = null;
         try {
           signPayload = await signResponse.json();
@@ -675,19 +797,22 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           throw err;
         }
 
-        const confirmResponse = await fetch(`${urlFetch}/cards/${cardId}/files/confirm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            fileName: signedFileName,
-            description: trimmedDescription,
-            hover: trimmedHover,
-            repertoire,
-            num: `${normalizedNum}`,
-            position: insertPosition,
-          }),
-        });
+        const confirmResponse = await fetch(
+          `${urlFetch}/cards/${cardId}/files/confirm`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              fileName: signedFileName,
+              description: trimmedDescription,
+              hover: trimmedHover,
+              repertoire,
+              num: `${normalizedNum}`,
+              position: insertPosition,
+            }),
+          }
+        );
         let confirmPayload = null;
         try {
           confirmPayload = await confirmResponse.json();
@@ -774,7 +899,8 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
   };
 
   const tab = (localFiles || []).map((elt, idx) => {
-    const name = elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
+    const name =
+      elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
     const href = elt?.href ? `${racine}${elt.href}` : "#";
     const deleteKey = `${elt?.href || idx}`;
     const isDeleting = deletingKey === deleteKey;
@@ -789,11 +915,17 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     const isVisible = elt?.visible !== false;
     const hoverText = typeof elt?.hover === "string" ? elt.hover.trim() : "";
 
-    const extFromHref = href.includes(".") ? href.split(".").pop().toLowerCase() : "";
-    const extFromName = name.includes(".") ? name.split(".").pop().toLowerCase() : "";
+    const extFromHref = href.includes(".")
+      ? href.split(".").pop().toLowerCase()
+      : "";
+    const extFromName = name.includes(".")
+      ? name.split(".").pop().toLowerCase()
+      : "";
     const ext = (extFromHref || extFromName || "").split(/[?#]/)[0];
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
-    const nameNode = <span className="break-words whitespace-normal">{name}</span>;
+    const nameNode = (
+      <span className="break-words whitespace-normal">{name}</span>
+    );
     const { nodes: hoverNodes, hasUnmatched: hoverHasUnmatched } =
       renderInlineKatex(hoverText);
     const hoverTitle = hoverText ? (
@@ -820,7 +952,12 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       nameNode
     );
     return (
-      <li key={`${elt?.href || idx}`} className={`flex items-center gap-2 py-1 px-2 ${idx % 2 === 1 ? "bg-gray-50" : ""}`}>
+      <li
+        key={`${elt?.href || idx}`}
+        className={`flex items-center gap-2 py-1 px-2 ${
+          idx % 2 === 1 ? "bg-gray-50" : ""
+        }`}
+      >
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <a
             href={href}
@@ -830,19 +967,30 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           >
             <span className="shrink-0 text-lg leading-none">{icon}</span>
             {nameWithHover}
-            {ext && <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>}
+            {ext && (
+              <span className="text-xs text-gray-500">
+                ({ext.toUpperCase()})
+              </span>
+            )}
           </a>
         </div>
         {elt?.href && (
           <Tooltip
-            title={isVisible ? "Masquer ce fichier" : "Rendre ce fichier visible"}
+            title={
+              isVisible ? "Masquer ce fichier" : "Rendre ce fichier visible"
+            }
             mouseEnterDelay={0.3}
           >
             <Button
               size="small"
               icon={isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
               loading={isVisibilityLoading}
-              disabled={isDeleting || isEditingLoading || isHoverEditingLoading || isReordering}
+              disabled={
+                isDeleting ||
+                isEditingLoading ||
+                isHoverEditingLoading ||
+                isReordering
+              }
               onClick={() => handleToggleVisibility(elt, deleteKey)}
             />
           </Tooltip>
@@ -977,7 +1125,12 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
               okButtonProps={{ loading: isDeleting, danger: true }}
               onConfirm={() => handleDeleteFile(elt, deleteKey)}
             >
-              <Button size="small" danger icon={<DeleteOutlined />} loading={isDeleting} />
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={isDeleting}
+              />
             </Popconfirm>
           </Tooltip>
         )}
@@ -1012,7 +1165,11 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="m-0 text-sm font-semibold text-gray-800">Fichiers</p>
         <Tooltip
-          title={isFormOpen ? "Fermer le formulaire d'ajout" : "Ajouter un nouveau fichier"}
+          title={
+            isFormOpen
+              ? "Fermer le formulaire d'ajout"
+              : "Ajouter un nouveau fichier"
+          }
           mouseEnterDelay={0.3}
         >
           <Button
@@ -1037,7 +1194,9 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
 
       <div
         className={`mb-4 overflow-hidden rounded border border-dashed border-gray-300 bg-white/60 shadow-sm transition-all duration-1000 ease-in-out ${
-          isFormOpen ? "max-h-[900px] opacity-100 p-3" : "max-h-0 opacity-0 p-0 pointer-events-none"
+          isFormOpen
+            ? "max-h-[900px] opacity-100 p-3"
+            : "max-h-0 opacity-0 p-0 pointer-events-none"
         }`}
         aria-hidden={!isFormOpen}
       >
@@ -1098,9 +1257,12 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
             <p className="ant-upload-drag-icon">
               <UploadOutlined />
             </p>
-            <p className="ant-upload-text">Glissez-deposez un fichier ou cliquez</p>
+            <p className="ant-upload-text">
+              Glissez-deposez un fichier ou cliquez
+            </p>
             <p className="ant-upload-hint">
-              Extensions autorisees : {ALLOWED_EXTENSIONS.join(", ")} - 100 Mo max
+              Extensions autorisees : {ALLOWED_EXTENSIONS.join(", ")} - 100 Mo
+              max
             </p>
           </Dragger>
           <div className="flex justify-end gap-2">
@@ -1131,7 +1293,11 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
           </div>
           {isSubmitting && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
-              <ClimbingBoxLoader color="#2563eb" size={14} speedMultiplier={1} />
+              <ClimbingBoxLoader
+                color="#2563eb"
+                size={14}
+                speedMultiplier={1}
+              />
             </div>
           )}
         </div>
@@ -1145,4 +1311,3 @@ export default function FilesBlock({ num, repertoire, fichiers, _id, id }) {
     </div>
   );
 }
-

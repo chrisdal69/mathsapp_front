@@ -108,7 +108,9 @@ export default function Contenu({
   const [typedStep, setTypedStep] = useState(0);
   const [revealImage, setRevealImage] = useState(false);
 
-  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+  const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/`;
+
+  
   const combinedText = useMemo(() => {
     const safePlan = Array.isArray(plan) ? plan : [];
     const safePresentation = Array.isArray(presentation) ? presentation : [];
