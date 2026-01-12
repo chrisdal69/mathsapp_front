@@ -127,12 +127,12 @@ export default function Nav(props) {
         }
         .nav-drawer {
           position: absolute;
-          top: 100%;
+          top: 80%;
           left: 0;
           width: 180px;
           background: ${navColors.bg};
-          border-radius: 0 12px 12px 0;
-          padding: 13px 0;
+          border-radius: 5px;
+          padding: 0px 0;
           box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
           z-index: 10;
           transform: translateX(-100%);
@@ -228,9 +228,15 @@ export default function Nav(props) {
         .nav-menu--mobile.ant-menu-dark .ant-menu-item {
           margin: 0;
           width: 100%;
-          padding: 8px 12px;
+          padding: 14px 12px;
           height: auto;
           line-height: 1.2;
+          border-bottom: 1px solid #111;
+          border-radius: 0;
+
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:last-child {
+          border-bottom: 0;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-item,
         .nav-menu--mobile.ant-menu-dark .ant-menu-item a,
@@ -266,8 +272,9 @@ export default function Nav(props) {
           padding: 0;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
-          padding: 6px 12px;
-          width: 50%;
+          padding: 6px 20px;
+          width: 70%;
+          margin-left:7px;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
           white-space: nowrap;
