@@ -38,7 +38,7 @@ const ANIMATION_END_MS = Math.round(
     ANIMATION_TIMINGS.raiseDuration) *
     1000
 );
-const BG_SWAP_LEAD_MS = 80;
+const BG_SWAP_DELAY_MS = RAISE_START_MS;
 
 function useMotionDelayState(delayMs, setState) {
   useEffect(() => {
@@ -136,7 +136,7 @@ function Index() {
   const [decalage, setDecalage] = useState(0);
   const [allowSpinner, setAllowSpinner] = useState(false);
   const [phaseBg, setPhaseBg] = useState(false);
-  const swapDelay = Math.max(0, RAISE_START_MS - BG_SWAP_LEAD_MS);
+  const swapDelay = Math.max(0, BG_SWAP_DELAY_MS);
   const dispatch = useDispatch();
   const cardsStatus = useSelector((state) => state.cardsMaths.status);
 
