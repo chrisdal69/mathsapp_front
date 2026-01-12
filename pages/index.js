@@ -380,6 +380,8 @@ function Index() {
           top: 50%;
           width: 0;
           height: 0;
+          min-width: 1px;
+          min-height: 1px;
           transform: translate(-50%, -50%);
           overflow: hidden;
           z-index: 1;
