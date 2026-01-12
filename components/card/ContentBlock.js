@@ -129,6 +129,13 @@ export default function Contenu({
   }, []);
 
   useEffect(() => {
+    if (!isExpanded) {
+      setTyping(false);
+      setTypedStep(0);
+    }
+  }, [isExpanded]);
+
+  useEffect(() => {
     let timer;
     if (typing) {
       setTypedStep(0);
@@ -157,6 +164,9 @@ export default function Contenu({
   };
 
   const blurBg = useMemo(() => toBlurFile(bg), [bg]);
+  const shouldHideImage = !isExpanded && typing;
+  const showExpandedOverlay = isExpanded && (typing || typedStep > 0);
+  const shouldShowText = typing || (isExpanded && typedStep > 0);
   const handleTouchStart = () => {
     if (!isExpanded) return;
     setTyping(true);
@@ -167,19 +177,20 @@ export default function Contenu({
   };
 
   const handleMouseLeave = () => {
+    if (isExpanded) return;
     setTyping(false);
   };
 
   return (
     <div className="group relative w-full min-h-[150px] ">
-      <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5">
-        {typing && (
+      <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5 relative z-20">
+        {shouldShowText && (
           <div className="break-words w-full min-w-0 ">{typedNodes}</div>
         )}
       </div>
 
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         initial="hidden"
         animate={revealImage ? "visible" : "hidden"}
         variants={{
@@ -197,13 +208,17 @@ export default function Contenu({
           blurDataURL={`${racine}${blurBg}`}
           sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className={`object-cover object-center transition-opacity duration-300 ease-out ${
-            typing ? "opacity-0 pointer-events-none" : "opacity-100"
+            shouldHideImage ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         />
       </motion.div>
 
+      {showExpandedOverlay && (
+        <div className="absolute inset-0 z-10 bg-gray-200/90 pointer-events-none" />
+      )}
+
       <div
-        className="absolute inset-0 w-full h-full z-10 cursor-pointer"
+        className="absolute inset-0 w-full h-full z-30 cursor-pointer"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}

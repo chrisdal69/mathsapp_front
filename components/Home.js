@@ -257,7 +257,7 @@ const App = ({ repertoire }) => {
                       animate={{
                         scale: isExpanded ? 1 : 0.98,
                         rotate: isExpanded ? 0 : tilt,
-                        y: isExpanded ? 0 : wobble * 40,
+                        y: isExpanded ? 0 : wobble * 10,
                         opacity: isExpanded ? 0 : 1,
                         boxShadow: isExpanded
                           ? "0 18px 50px rgba(0,0,0,0.18)"

@@ -113,7 +113,29 @@ const CardBlock = (data) => {
             : undefined
         }
       >
-        {contentList[activeTabKey]}
+        <div className={activeTabKey === "contenu" ? "" : "hidden"}>
+          {contentList.contenu}
+        </div>
+        {contentList.fichiers && (
+          <div className={activeTabKey === "fichiers" ? "" : "hidden"}>
+            {contentList.fichiers}
+          </div>
+        )}
+        {contentList.quizz && (
+          <div className={activeTabKey === "quizz" ? "" : "hidden"}>
+            {contentList.quizz}
+          </div>
+        )}
+        {contentList.cloud && (
+          <div className={activeTabKey === "cloud" ? "" : "hidden"}>
+            {contentList.cloud}
+          </div>
+        )}
+        {contentList.video && (
+          <div className={activeTabKey === "video" ? "" : "hidden"}>
+            {contentList.video}
+          </div>
+        )}
       </Card>
     </div>
   );
