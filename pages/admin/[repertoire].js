@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import HomeForm from "../../components/admin/HomeForm";
+import Nav from "../../components/Nav";
 
 function AdminPage() {
   const { query, isReady } = useRouter();
@@ -11,8 +12,12 @@ function AdminPage() {
     return <main className="mt-12">Chargement...</main>;
   }
 
-  return <HomeForm nomRepertoire={repertoire} />;
+  return (
+    <>
+      <Nav bg="#e6eaea" selectedBg="#c2cbcf" />
+      <HomeForm nomRepertoire={repertoire} />
+    </>
+  );
 }
 
 export default AdminPage;
-

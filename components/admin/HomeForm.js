@@ -188,7 +188,7 @@ const App = ({ nomRepertoire }) => {
         </div>
       </Content>
     </Layout>
-  );
-};
+  )
+}
 
 export default App;

@@ -45,7 +45,8 @@ export default function Nav(props) {
     : isDynamicRoute
     ? keyByRepertoire[rawRepertoire] || "1"
     : pathToKey[router.pathname] || "1";
-  const accueilHref = isAdmin ? "/admin" : "/";
+  //const accueilHref = isAdmin ? "/admin" : "/";
+  const accueilHref =  "/";
   const mathsHref = isAdmin ? "/admin/ciel1" : "/ciel1";
   const pythonHref = isAdmin ? "/admin/python" : "/python";
   const items = [
