@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
@@ -124,9 +124,14 @@ export default function Contenu({
     [tokens, typedStep]
   );
 
+  const contentRef = useRef(null);
+  const inView = useInView(contentRef, { once: true, amount: 0.3 });
+
   useEffect(() => {
-    setRevealImage(true);
-  }, []);
+    if (inView) {
+      setRevealImage(true);
+    }
+  }, [inView]);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -182,7 +187,7 @@ export default function Contenu({
   };
 
   return (
-    <div className="group relative w-full min-h-[150px] ">
+    <div ref={contentRef} className="group relative w-full min-h-[150px] ">
       <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5 relative z-20">
         {shouldShowText && (
           <div className="break-words w-full min-w-0 ">{typedNodes}</div>
