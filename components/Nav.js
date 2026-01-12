@@ -281,9 +281,20 @@ export default function Nav(props) {
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-item .ant-menu-title-content,
         .nav-menu--mobile.ant-menu-dark .ant-menu-item .anticon {
-          opacity: 1;
+          opacity: 0;
           transform: none;
           animation: none;
+        }
+        .nav-drawer--open
+          .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item
+          .ant-menu-title-content,
+        .nav-drawer--open
+          .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item
+          .anticon {
+          animation: navMobileTextIn 420ms ease forwards;
+          animation-delay: 160ms;
         }
         @keyframes navBorderDown {
           from { transform: scaleY(0); }
@@ -292,6 +303,10 @@ export default function Nav(props) {
         @keyframes navTextUp {
           from { opacity: 0; transform: translateY(100%); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes navMobileTextIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
           .nav-menu.ant-menu-dark .nav-item::before {
@@ -303,6 +318,17 @@ export default function Nav(props) {
             animation: none;
             opacity: 1;
             transform: none;
+          }
+          .nav-drawer--open
+            .nav-menu--mobile.ant-menu-dark
+            .ant-menu-item
+            .ant-menu-title-content,
+          .nav-drawer--open
+            .nav-menu--mobile.ant-menu-dark
+            .ant-menu-item
+            .anticon {
+            animation: none;
+            opacity: 1;
           }
           .nav-drawer {
             transition: none;
