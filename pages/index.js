@@ -1,6 +1,9 @@
 ﻿import Image from "next/image";
 import Nav from "../components/Nav";
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+import { fetchCardsMaths } from "../reducers/cardsMathsSlice";
 
 const WORD = "MathsApp.fr";
 const LETTERS = Array.from(WORD);
@@ -23,6 +26,16 @@ const RAISE_START_MS = Math.round(
     ANIMATION_TIMINGS.revealDelay +
     ANIMATION_TIMINGS.revealDuration +
     ANIMATION_TIMINGS.raisePause) *
+    1000
+);
+const ANIMATION_END_MS = Math.round(
+  ((LETTERS.length - 1) * ANIMATION_TIMINGS.assembleStagger +
+    ANIMATION_TIMINGS.assembleDuration +
+    ANIMATION_TIMINGS.revealDelay +
+    ANIMATION_TIMINGS.revealDuration +
+    ANIMATION_TIMINGS.raisePause +
+    (LETTERS.length - 1) * ANIMATION_TIMINGS.raiseStagger +
+    ANIMATION_TIMINGS.raiseDuration) *
     1000
 );
 
@@ -66,6 +79,15 @@ function Index() {
   const [bgSrc, setBgSrc] = useState(BG_SOURCES.mobile);
   const [showNav, setShowNav] = useState(false);
   const [decalage, setDecalage] = useState(0);
+  const [allowSpinner, setAllowSpinner] = useState(false);
+  const dispatch = useDispatch();
+  const cardsStatus = useSelector((state) => state.cardsMaths.status);
+
+  useEffect(() => {
+    if (cardsStatus === "idle") {
+      dispatch(fetchCardsMaths());
+    }
+  }, [cardsStatus, dispatch]);
 
   useEffect(() => {
     const updateLayout = () => {
@@ -146,11 +168,62 @@ function Index() {
     };
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timerId;
+
+    const scheduleSpinner = () => {
+      if (mediaQuery.matches) {
+        setAllowSpinner(true);
+        return;
+      }
+
+      timerId = window.setTimeout(() => {
+        setAllowSpinner(true);
+      }, ANIMATION_END_MS);
+    };
+
+    const handleChange = (event) => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+        timerId = undefined;
+      }
+
+      if (event.matches) {
+        setAllowSpinner(true);
+        return;
+      }
+
+      setAllowSpinner(false);
+      timerId = window.setTimeout(() => {
+        setAllowSpinner(true);
+      }, ANIMATION_END_MS);
+    };
+
+    scheduleSpinner();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+
+    return () => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, []);
+
   return (
     <div className="page" style={{ "--count": LETTERS.length }}>
       {showNav ? (
         <div className="navWrap">
-          <Nav bg="#ced5d5" selectedBg="#bec0b6" />
+          <Nav bg="#d0d9d8" selectedBg="#bec0b6" />
         </div>
       ) : null}
       <div className="stage ">
@@ -185,6 +258,12 @@ function Index() {
           />
         </div>
       </div>
+      {allowSpinner && cardsStatus === "loading" ? (
+        <div className="loadingOverlay">
+          <ClimbingBoxLoader color="#6C6C6C" size={12} />
+          <p className="loadingText">Chargement des cartes...</p>
+        </div>
+      ) : null}
 
       <style jsx>{`
         .page {
@@ -194,7 +273,7 @@ function Index() {
           color: #1a1a1a;
           overflow: hidden;
           --bg-start: #f6f4ef;
-          --bg-phasec: #ced5d5;
+          --bg-phasec: #d0d9d8;
           --text-dark: #1a1a1a;
           --text-light: #cfd6d6;
           --duration: 0.45s;
@@ -242,6 +321,25 @@ function Index() {
           width: 100%;
           height: var(--nav-height);
           line-height: var(--nav-height);
+        }
+
+        .loadingOverlay {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          gap: 14px;
+        }
+
+        .loadingText {
+          margin: 0;
+          font-size: 0.9rem;
+          color: #6b7280;
+          letter-spacing: 0.02em;
         }
 
         .word {
