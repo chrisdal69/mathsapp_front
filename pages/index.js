@@ -40,6 +40,60 @@ const ANIMATION_END_MS = Math.round(
 );
 const BG_SWAP_LEAD_MS = 80;
 
+function useMotionDelayState(delayMs, setState) {
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timerId;
+
+    const schedule = () => {
+      if (mediaQuery.matches) {
+        setState(true);
+        return;
+      }
+
+      setState(false);
+      timerId = window.setTimeout(() => {
+        setState(true);
+      }, delayMs);
+    };
+
+    const handleChange = (event) => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+        timerId = undefined;
+      }
+
+      if (event.matches) {
+        setState(true);
+        return;
+      }
+
+      setState(false);
+      timerId = window.setTimeout(() => {
+        setState(true);
+      }, delayMs);
+    };
+
+    schedule();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+
+    return () => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, [delayMs, setState]);
+}
+
 function mulberry32(seed) {
   let t = seed;
   return function () {
@@ -82,6 +136,7 @@ function Index() {
   const [decalage, setDecalage] = useState(0);
   const [allowSpinner, setAllowSpinner] = useState(false);
   const [phaseBg, setPhaseBg] = useState(false);
+  const swapDelay = Math.max(0, RAISE_START_MS - BG_SWAP_LEAD_MS);
   const dispatch = useDispatch();
   const cardsStatus = useSelector((state) => state.cardsMaths.status);
 
@@ -119,159 +174,9 @@ function Index() {
     };
   }, []);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let timerId;
-
-    const scheduleNav = () => {
-      if (mediaQuery.matches) {
-        setShowNav(true);
-        return;
-      }
-
-      timerId = window.setTimeout(() => {
-        setShowNav(true);
-      }, RAISE_START_MS);
-    };
-
-    const handleChange = (event) => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-        timerId = undefined;
-      }
-
-      if (event.matches) {
-        setShowNav(true);
-        return;
-      }
-
-      setShowNav(false);
-      timerId = window.setTimeout(() => {
-        setShowNav(true);
-      }, RAISE_START_MS);
-    };
-
-    scheduleNav();
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-    } else {
-      mediaQuery.addListener(handleChange);
-    }
-
-    return () => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-      }
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const swapDelay = Math.max(0, RAISE_START_MS - BG_SWAP_LEAD_MS);
-    let timerId;
-
-    const scheduleSwap = () => {
-      if (mediaQuery.matches) {
-        setPhaseBg(true);
-        return;
-      }
-
-      timerId = window.setTimeout(() => {
-        setPhaseBg(true);
-      }, swapDelay);
-    };
-
-    const handleChange = (event) => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-        timerId = undefined;
-      }
-
-      if (event.matches) {
-        setPhaseBg(true);
-        return;
-      }
-
-      setPhaseBg(false);
-      timerId = window.setTimeout(() => {
-        setPhaseBg(true);
-      }, swapDelay);
-    };
-
-    scheduleSwap();
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-    } else {
-      mediaQuery.addListener(handleChange);
-    }
-
-    return () => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-      }
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let timerId;
-
-    const scheduleSpinner = () => {
-      if (mediaQuery.matches) {
-        setAllowSpinner(true);
-        return;
-      }
-
-      timerId = window.setTimeout(() => {
-        setAllowSpinner(true);
-      }, ANIMATION_END_MS);
-    };
-
-    const handleChange = (event) => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-        timerId = undefined;
-      }
-
-      if (event.matches) {
-        setAllowSpinner(true);
-        return;
-      }
-
-      setAllowSpinner(false);
-      timerId = window.setTimeout(() => {
-        setAllowSpinner(true);
-      }, ANIMATION_END_MS);
-    };
-
-    scheduleSpinner();
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handleChange);
-    } else {
-      mediaQuery.addListener(handleChange);
-    }
-
-    return () => {
-      if (timerId) {
-        window.clearTimeout(timerId);
-      }
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener("change", handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
-    };
-  }, []);
+  useMotionDelayState(RAISE_START_MS, setShowNav);
+  useMotionDelayState(swapDelay, setPhaseBg);
+  useMotionDelayState(ANIMATION_END_MS, setAllowSpinner);
 
   return (
     <div
@@ -283,7 +188,7 @@ function Index() {
           <Nav bg="#d0d9d8" selectedBg="#bec0b6" />
         </div>
       ) : null}
-      <div className="stage ">
+      <div className="stage">
         <div className="word" aria-label={WORD}>
           {LETTERS.map((letter, index) => {
             const pos = RANDOM_POSITIONS[index];
@@ -562,7 +467,7 @@ function Index() {
           }
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 700px) {
           .page {
             --word-size: calc(90vw / 6.8);
             --center-shift: -0.5em;
