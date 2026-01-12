@@ -38,6 +38,7 @@ const ANIMATION_END_MS = Math.round(
     ANIMATION_TIMINGS.raiseDuration) *
     1000
 );
+const BG_SWAP_LEAD_MS = 80;
 
 function mulberry32(seed) {
   let t = seed;
@@ -80,6 +81,7 @@ function Index() {
   const [showNav, setShowNav] = useState(false);
   const [decalage, setDecalage] = useState(0);
   const [allowSpinner, setAllowSpinner] = useState(false);
+  const [phaseBg, setPhaseBg] = useState(false);
   const dispatch = useDispatch();
   const cardsStatus = useSelector((state) => state.cardsMaths.status);
 
@@ -170,6 +172,58 @@ function Index() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const swapDelay = Math.max(0, RAISE_START_MS - BG_SWAP_LEAD_MS);
+    let timerId;
+
+    const scheduleSwap = () => {
+      if (mediaQuery.matches) {
+        setPhaseBg(true);
+        return;
+      }
+
+      timerId = window.setTimeout(() => {
+        setPhaseBg(true);
+      }, swapDelay);
+    };
+
+    const handleChange = (event) => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+        timerId = undefined;
+      }
+
+      if (event.matches) {
+        setPhaseBg(true);
+        return;
+      }
+
+      setPhaseBg(false);
+      timerId = window.setTimeout(() => {
+        setPhaseBg(true);
+      }, swapDelay);
+    };
+
+    scheduleSwap();
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+
+    return () => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let timerId;
 
     const scheduleSpinner = () => {
@@ -220,7 +274,10 @@ function Index() {
   }, []);
 
   return (
-    <div className="page" style={{ "--count": LETTERS.length }}>
+    <div
+      className={`page${phaseBg ? " page--phase" : ""}`}
+      style={{ "--count": LETTERS.length }}
+    >
       {showNav ? (
         <div className="navWrap">
           <Nav bg="#d0d9d8" selectedBg="#bec0b6" />
@@ -298,14 +355,17 @@ function Index() {
             var(--assemble-total) + var(--reveal-delay) + var(--reveal-duration) +
               var(--raise-pause)
           );
-          animation: page-bg 0.01s steps(1, end) both;
-          animation-delay: var(--raise-delay);
+        }
+
+        .page--phase {
+          background-color: var(--bg-phasec);
         }
 
         .stage {
           width: 100vw;
           height: 100vh;
           position: relative;
+          z-index: 1;
         }
 
         .navWrap {
@@ -434,15 +494,6 @@ function Index() {
           100% {
             transform: translateY(0);
             opacity: 1;
-          }
-        }
-
-        @keyframes page-bg {
-          from {
-            background-color: var(--bg-start);
-          }
-          to {
-            background-color: var(--bg-phasec);
           }
         }
 
