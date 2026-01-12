@@ -116,18 +116,19 @@ export default function Nav(props) {
           border: none;
           background: transparent;
           color: ${navColors.text};
-          font-size: 24px;
+          font-size: 30px;
           width: 44px;
           height: 44px;
           display: none;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          margin-left: -20px;
+          margin-left: -30px;
+          margin-top: 10px;
         }
         .nav-drawer {
           position: absolute;
-          top: 80%;
+          top: 100%;
           left: 0;
           width: 180px;
           background: ${navColors.bg};
@@ -285,6 +286,18 @@ export default function Nav(props) {
           transform: none;
           animation: none;
         }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item {
+          --nav-mobile-delay: 0ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(2) {
+          --nav-mobile-delay: 80ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(3) {
+          --nav-mobile-delay: 160ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(4) {
+          --nav-mobile-delay: 240ms;
+        }
         .nav-drawer--open
           .nav-menu--mobile.ant-menu-dark
           .ant-menu-item
@@ -294,7 +307,7 @@ export default function Nav(props) {
           .ant-menu-item
           .anticon {
           animation: navMobileTextIn 420ms ease forwards;
-          animation-delay: 160ms;
+          animation-delay: calc(160ms + var(--nav-mobile-delay));
         }
         @keyframes navBorderDown {
           from { transform: scaleY(0); }

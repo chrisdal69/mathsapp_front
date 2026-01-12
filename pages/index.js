@@ -62,8 +62,6 @@ function createOrder(count) {
 const RANDOM_POSITIONS = createPositions(LETTERS.length, 48, 48);
 const RANDOM_ORDER = createOrder(LETTERS.length);
 
-
-
 function Index() {
   const [bgSrc, setBgSrc] = useState(BG_SOURCES.mobile);
   const [showNav, setShowNav] = useState(false);
@@ -77,12 +75,12 @@ function Index() {
       if (width / height > 2.2) {
         value = 270;
         nextSrc = BG_SOURCES.large;
-      }else if (width / height > 1){
+      } else if (width / height > 1) {
         nextSrc = BG_SOURCES.large;
         value = 150;
-      }else{
+      } else {
         value = 0;
-        nextSrc = BG_SOURCES.mobile
+        nextSrc = BG_SOURCES.mobile;
       }
       setDecalage(value);
       setBgSrc((current) => (current === nextSrc ? current : nextSrc));
@@ -271,8 +269,7 @@ function Index() {
           animation-duration: var(--duration), var(--wash-duration),
             var(--raise-duration);
           animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1),
-            cubic-bezier(0.2, 0.8, 0.2, 1),
-            cubic-bezier(0.2, 0.6, 0.2, 1);
+            cubic-bezier(0.2, 0.8, 0.2, 1), cubic-bezier(0.2, 0.6, 0.2, 1);
           animation-delay: calc(var(--i) * var(--stagger)), var(--wash-delay),
             calc(var(--raise-delay) + (var(--order) * var(--raise-stagger)));
           animation-fill-mode: both, both, forwards;
@@ -416,11 +413,13 @@ function Index() {
 
         @media (max-width: 800px) {
           .page {
-            --word-size: calc(80vw / 6.8);
+            --word-size: calc(90vw / 6.8);
+            --center-shift: -0.5em;
+          }
+          .word {
+            --half: calc((var(--count) - 1) * var(--spacing) / 2 + 0.5ch);
           }
         }
-
-
       `}</style>
     </div>
   );
