@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Nav from "../components/Nav";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -223,7 +223,7 @@ function Index() {
       </div>
       {allowSpinner && cardsStatus === "loading" ? (
         <div className="loadingOverlay">
-          <ClimbingBoxLoader color="#6C6C6C" size={12} />
+          <ClimbingBoxLoader color="#333" size={18} />
           <p className="loadingText">Chargement des cartes...</p>
         </div>
       ) : null}
@@ -292,6 +292,7 @@ function Index() {
         .loadingOverlay {
           position: absolute;
           inset: 0;
+          background-color: rgba(170, 170, 170, 0.5);
           z-index: 5;
           display: flex;
           flex-direction: column;
@@ -303,8 +304,8 @@ function Index() {
 
         .loadingText {
           margin: 0;
-          font-size: 0.9rem;
-          color: #6b7280;
+          font-size: 1.5rem;
+          color: #333;
           letter-spacing: 0.02em;
         }
 

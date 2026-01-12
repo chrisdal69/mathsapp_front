@@ -13,6 +13,9 @@ export const fetchCardsMaths = createAsyncThunk(
   "cardsMaths/fetchCardsMaths",
   async (_, { rejectWithValue }) => {
     try {
+      // pour tests loading
+      //await new Promise((resolve) => setTimeout(resolve, 10000));
+
       const response = await fetch(`${urlFetch}/cards`);
       const payload = await response.json();
 
