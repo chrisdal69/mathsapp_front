@@ -205,6 +205,7 @@ const App = ({ repertoire }) => {
                         onExpand={(tabKey) => handleExpand(key, tabKey)}
                         resetSignal={resetSignals[idx]}
                         onTabChangeExternal={() => handleExternalTabChange(idx)}
+                        contentHoverKeepsImage
                       />
                     </motion.div>
                   </motion.div>
@@ -272,6 +273,7 @@ const App = ({ repertoire }) => {
                         onExpand={(tabKey) => handleExpand(key, tabKey)}
                         resetSignal={resetSignals[idx]}
                         onTabChangeExternal={() => handleExternalTabChange(idx)}
+                        contentHoverKeepsImage
                       />
                     </motion.div>
                   </motion.div>
@@ -302,6 +304,7 @@ const App = ({ repertoire }) => {
                     onTabChangeExternal={() =>
                       handleExternalTabChange(expandedIndex)
                     }
+                    contentHoverKeepsImage
                   />
                 </motion.div>
               </motion.div>

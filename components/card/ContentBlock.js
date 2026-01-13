@@ -103,6 +103,7 @@ export default function Contenu({
   presentation,
   bg,
   isExpanded,
+  contentHoverKeepsImage,
 }) {
   const [typing, setTyping] = useState(false);
   const [typedStep, setTypedStep] = useState(0);
@@ -171,8 +172,14 @@ export default function Contenu({
   };
 
   const blurBg = useMemo(() => toBlurFile(bg), [bg]);
-  const shouldHideImage = !isExpanded && typing;
+  const hoverKeepsImage = !!contentHoverKeepsImage;
+  const shouldHideImage = !isExpanded && typing && !hoverKeepsImage;
   const showExpandedOverlay = isExpanded && (typing || typedStep > 0);
+  const showHoverOverlay = !isExpanded && hoverKeepsImage && typing;
+  const showOverlay = showExpandedOverlay || showHoverOverlay;
+  const overlayStyle = showHoverOverlay
+    ? { background: "rgba(255,255,255,0.7)" }
+    : { background: "rgba(229,229,229,0.9)" };
   const shouldShowText = typing || (isExpanded && typedStep > 0);
   const handleTouchStart = () => {
     if (!isExpanded) return;
@@ -220,8 +227,11 @@ export default function Contenu({
         />
       </motion.div>
 
-      {showExpandedOverlay && (
-        <div className="absolute inset-0 z-10 bg-gray-200/90 pointer-events-none" />
+      {showOverlay && (
+        <div
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={overlayStyle}
+        />
       )}
 
       <div
