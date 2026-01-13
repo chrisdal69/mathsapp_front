@@ -353,7 +353,7 @@ export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }
           </div>
           <div
             className="absolute inset-0 z-10 pointer-events-none"
-            style={{ background: "rgba(255,255,255,0.8)" }}
+            style={{ background: "rgba(255,255,255,0.9)" }}
           />
         </>
       )}

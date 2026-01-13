@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Button, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
+import Image from "next/image";
 
 function isFalsyString(v) {
   if (typeof v !== "string") return !v;
@@ -52,6 +53,10 @@ export default function Video({
   className,
   maxWidth = "800px",
   title = "Video",
+  num,
+  repertoire,
+  bg,
+  isExpanded,
 }) {
   const slides = useMemo(() => {
     if (!Array.isArray(video)) return [];
@@ -111,6 +116,21 @@ export default function Video({
     setLoaded(Array(slides.length).fill(false));
   }, [slides]);
 
+  const toBlurFile = (filename) => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+
+  const bgRoot = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/`;
+  const bgPath =
+    bg && repertoire ? `${repertoire}/tag${num}/${bg}` : bg || "";
+  const blurBgPath =
+    bg && repertoire ? `${repertoire}/tag${num}/${toBlurFile(bg)}` : "";
+  const showBackground = Boolean(isExpanded && bgPath);
+
   const pauseAt = (index) => {
     const slide = slides[index];
     const iframe = iframeRefs.current[index];
@@ -137,20 +157,40 @@ export default function Video({
   };
 
   return (
-    <div
-      className={`vb-wrap ${className || ""}`}
-      style={{ width: "100%", maxWidth, margin: "0 auto" }}
-    >
+    <div className="relative w-full">
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${bgRoot}${bgPath}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBgPath}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
       <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 8,
-          marginTop: 14,
-        }}
+        className={`vb-wrap ${className || ""} relative z-20 p-4`}
+        style={{ width: "100%", maxWidth, margin: "0 auto" }}
       >
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 8,
+            marginTop: 14,
+          }}
+        >
         {current > 0 && (
           <Button
             type="default"
@@ -239,123 +279,124 @@ export default function Video({
         )}
       </div>
 
-      <Carousel
-        ref={carouselRef}
-        dots
-        swipe
-        draggable
-        infinite={false}
-        beforeChange={(from, to) => {
-          pauseAt(from);
-          setCurrent(to);
-        }}
-        afterChange={(i) => setCurrent(i)}
-        adaptiveHeight
-      >
-        {slides.map((slide, idx) => {
-          const label = slide.txt || slide.label;
-          return (
-            <div
-              key={idx}
-              className="vb-slide"
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-                padding: 0,
-                margin: 0,
-              }}
-            >
-              {label ? <p className="text-center mb-2">{label}</p> : null}
+        <Carousel
+          ref={carouselRef}
+          dots
+          swipe
+          draggable
+          infinite={false}
+          beforeChange={(from, to) => {
+            pauseAt(from);
+            setCurrent(to);
+          }}
+          afterChange={(i) => setCurrent(i)}
+          adaptiveHeight
+        >
+          {slides.map((slide, idx) => {
+            const label = slide.txt || slide.label;
+            return (
               <div
-                className="vb-inner"
+                key={idx}
+                className="vb-slide"
                 style={{
-                  position: "relative",
+                  display: "flex",
+                  justifyContent: "center",
                   width: "100%",
-                  paddingTop: `${paddingTop}%`,
+                  padding: 0,
                   margin: 0,
-                  marginBottom: 8,
                 }}
               >
-                {!loaded[idx] && (
-                  <div
+                {label ? <p className="text-center mb-2">{label}</p> : null}
+                <div
+                  className="vb-inner"
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    paddingTop: `${paddingTop}%`,
+                    margin: 0,
+                    marginBottom: 8,
+                  }}
+                >
+                  {!loaded[idx] && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(255,255,255,0.85)",
+                        zIndex: 2,
+                      }}
+                    >
+                      <ClimbingBoxLoader color="#6C6C6C" size={11} />
+                    </div>
+                  )}
+                  <iframe
+                    ref={(el) => (iframeRefs.current[idx] = el)}
+                    src={slide.href}
+                    title={`${title} ${idx + 1}`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    onLoad={() => {
+                      setLoaded((prev) => {
+                        const next = prev.slice();
+                        next[idx] = true;
+                        return next;
+                      });
+                    }}
                     style={{
                       position: "absolute",
                       inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "rgba(255,255,255,0.85)",
-                      zIndex: 2,
+                      width: "100%",
+                      height: "100%",
+                      border: 0,
                     }}
-                  >
-                    <ClimbingBoxLoader color="#6C6C6C" size={11} />
-                  </div>
-                )}
-                <iframe
-                  ref={(el) => (iframeRefs.current[idx] = el)}
-                  src={slide.href}
-                  title={`${title} ${idx + 1}`}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                  onLoad={() => {
-                    setLoaded((prev) => {
-                      const next = prev.slice();
-                      next[idx] = true;
-                      return next;
-                    });
-                  }}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    border: 0,
-                  }}
-                
-                />
+                  
+                  />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </Carousel>
-      <style jsx>{`
-        @media (max-width: 640px) {
-          .vb-wrap {
-            max-width: 100% !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
+            );
+          })}
+        </Carousel>
+        <style jsx>{`
+          @media (max-width: 640px) {
+            .vb-wrap {
+              max-width: 100% !important;
+              margin-left: 0 !important;
+              margin-right: 0 !important;
+            }
+            .vb-slide {
+              justify-content: flex-start !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            .vb-inner {
+              width: 100% !important;
+            }
+            :global(.ant-carousel .slick-list) {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            :global(.ant-carousel .slick-track) {
+              margin: 0 !important;
+            }
+            :global(.ant-carousel .slick-slide) {
+              padding: 0 !important;
+            }
+            :global(.ant-carousel .slick-slide > div) {
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            :global(.ant-carousel .slick-slide > div > div) {
+              padding: 0 !important;
+              margin: 0 !important;
+            }
           }
-          .vb-slide {
-            justify-content: flex-start !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .vb-inner {
-            width: 100% !important;
-          }
-          :global(.ant-carousel .slick-list) {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          :global(.ant-carousel .slick-track) {
-            margin: 0 !important;
-          }
-          :global(.ant-carousel .slick-slide) {
-            padding: 0 !important;
-          }
-          :global(.ant-carousel .slick-slide > div) {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          :global(.ant-carousel .slick-slide > div > div) {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </div>
   );
 }

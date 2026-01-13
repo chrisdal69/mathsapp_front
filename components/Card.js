@@ -91,6 +91,7 @@ const CardBlock = (data) => {
   const isvideo = activeTabKey === "video";
   const isfichiers = activeTabKey === "fichiers";
   const isquizz = activeTabKey === "quizz";
+  const iscloud = activeTabKey === "cloud";
 
   return (
     <div
@@ -110,7 +111,7 @@ const CardBlock = (data) => {
         styles={
           iscontenu
             ? { body: { padding: 1 } }
-            : isvideo || isfichiers || isquizz
+            : isvideo || isfichiers || isquizz || iscloud
             ? { body: { padding: 0 } }
             : undefined
         }
