@@ -95,6 +95,8 @@ export default function Quizz({
   resultatQuizz,
   _id,
   id,
+  bg,
+  isExpanded,
 }) {
   const carouselRef = useRef(null);
   const preloadedImagesRef = useRef(new Set());
@@ -112,10 +114,20 @@ export default function Quizz({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/imagesQuizz/`;
+  const bgRoot = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/`;
 
   
   const { isAuthenticated } = useSelector((state) => state.auth);
   const cardId = _id || id;
+
+  const toBlurFile = (filename) => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+
+  const blurBg = bg ? toBlurFile(bg) : "";
+  const showBackground = Boolean(isExpanded && bg);
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
@@ -381,48 +393,68 @@ export default function Quizz({
   const showOverlay = submitting || historyLoading;
 
   return (
-    <div>
+    <div className="relative w-full">
       {contextHolder}
-      {evalQuizz === "attente" ? (
-        <p>Quizz en attente de validation.</p>
-      ) : canAccess ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            alignItems: "center",
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {showOverlay && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(255,255,255,0.7)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 10,
-              }}
-            >
-              <ClimbingBoxLoader color="#6C6C6C" size={12} />
-            </div>
-          )}
-          {/* Echelle de progression */}
-
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${bgRoot}${bg}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBg}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
+      <div className="relative z-20 p-4">
+        {evalQuizz === "attente" ? (
+          <p>Quizz en attente de validation.</p>
+        ) : canAccess ? (
           <div
             style={{
-              width: "100%",
               display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               justifyContent: "center",
-              marginBottom: 4,
-              marginTop: 14,
+              alignItems: "center",
+              width: "100%",
+              position: "relative",
             }}
           >
+            {showOverlay && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(255,255,255,0.7)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 10,
+                }}
+              >
+                <ClimbingBoxLoader color="#6C6C6C" size={12} />
+              </div>
+            )}
+            {/* Echelle de progression */}
+
+            <div
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: 4,
+                marginTop: 14,
+              }}
+            >
             {current > 0 && (
               <Button
                 type="default"
@@ -550,6 +582,7 @@ export default function Quizz({
                       maxWidth: "100%",
                       textAlign: "center",
                       padding: "0px",
+                      backgroundColor:"rgba(100,100,100,0.2)",
                     }}
                   >
                     <div style={{ position: "relative", marginBottom: 0 }}>
@@ -715,10 +748,11 @@ export default function Quizz({
               {scoreMessage && <p style={{ marginTop: 4 }}>{scoreMessage}</p>}
             </div>
           )}
-        </div>
-      ) : (
-        <p>Il faut etre connecte pour acceder au quizz.</p>
-      )}
+          </div>
+        ) : (
+          <p>Il faut etre connecte pour acceder au quizz.</p>
+        )}
+      </div>
     </div>
   );
 }

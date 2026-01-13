@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 
-export default function FilesBlock({ num, repertoire, fichiers }) {
+export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }) {
   const parseInlineKatex = (input) => {
     const tokens = [];
     const text = String(input ?? "");
@@ -285,6 +286,15 @@ export default function FilesBlock({ num, repertoire, fichiers }) {
     process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
   }/${repertoire}/tag${num}/`;
 
+  const toBlurFile = (filename) => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+
+  const blurBg = useMemo(() => (bg ? toBlurFile(bg) : ""), [bg]);
+  const showBackground = Boolean(isExpanded && bg);
+
   const tab = (fichiers || []).map((elt, idx) => {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
@@ -327,12 +337,35 @@ export default function FilesBlock({ num, repertoire, fichiers }) {
   });
 
   return (
-    <div className="p-2">
-      {tab && tab.length > 0 ? (
-        <ul className="list-none m-0 p-0 divide-y divide-gray-100">{tab}</ul>
-      ) : (
-        <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
+    <div className="relative w-full min-h-[150px]">
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${racine}${bg}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${racine}${blurBg}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.9)" }}
+          />
+        </>
       )}
+      <div className="relative z-20 p-4">
+        {tab && tab.length > 0 ? (
+          <ul className="list-none m-0 p-0 divide-y divide-gray-100">
+            {tab}
+          </ul>
+        ) : (
+          <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   Image,
   Tooltip,
 } from "antd";
+import NextImage from "next/image";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import {
   InboxOutlined,
@@ -46,7 +47,7 @@ const stripPrefix = (name = "") => {
   return parts.length > 1 ? parts.slice(1).join("___") : name;
 };
 
-const CloudBlock = ({ num, repertoire, _id }) => {
+const CloudBlock = ({ num, repertoire, _id, bg, isExpanded }) => {
   const [form] = Form.useForm();
   const [upload, setUpload] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -66,6 +67,16 @@ const CloudBlock = ({ num, repertoire, _id }) => {
 
   const dispatch = useDispatch();
   const deleteTimer = useRef(null);
+  const toBlurFile = (filename = "") => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+  const bgRoot = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/${repertoire}/tag${num}/`;
+  const blurBg = bg ? toBlurFile(bg) : "";
+  const showBackground = Boolean(isExpanded && bg);
   useEffect(() => {
     // Exécuté uniquement côté client
     const style = document.createElement("style");
@@ -445,7 +456,27 @@ const CloudBlock = ({ num, repertoire, _id }) => {
   }, [filesCloud, searchTerm, fileType, sortOrder]);
 
   return (
-    <div className="relative" aria-busy={upload}>
+    <div className="relative w-full" aria-busy={upload}>
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <NextImage
+              src={`${bgRoot}${bg}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBg}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
+      <div className="relative z-20 p-4">
       {!isAuthenticated && (
         <h1 className="text-3xl text-center p-4">
           Il faut d'abord se loguer pour pouvoir uploader
@@ -460,7 +491,12 @@ const CloudBlock = ({ num, repertoire, _id }) => {
             valuePropName="fileList"
             getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
           >
-            <Dragger multiple beforeUpload={() => false} disabled={upload}>
+            <Dragger
+              multiple
+              beforeUpload={() => false}
+              disabled={upload}
+              style={{ background: "rgba(255,255,255,0.7)" }}
+            >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
@@ -596,6 +632,7 @@ const CloudBlock = ({ num, repertoire, _id }) => {
               border: "1px solid #f0f0f0",
               borderRadius: "6px",
               padding: "4px 12px 4px 4px",
+              background: "rgba(255,255,255,0.7)",
             }}
             className="custom-scrollbar"
           >
@@ -716,8 +753,9 @@ const CloudBlock = ({ num, repertoire, _id }) => {
           </div>
         </Form>
       )}
+      </div>
       {upload && (
-        <div className="absolute inset-0 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+        <div className="absolute inset-0 z-30 rounded-xl bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
           <ClimbingBoxLoader color="#6C6C6C" size={12} speedMultiplier={1} />
         </div>
       )}
