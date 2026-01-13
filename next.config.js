@@ -4,7 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      new URL("https://storage.googleapis.com/mathsapp/**"),
+      new URL(`https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/**`),     
       new URL("https://upload.wikimedia.org/wikipedia/**"),
     ],
   },

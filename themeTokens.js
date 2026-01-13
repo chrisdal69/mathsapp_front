@@ -1,6 +1,6 @@
 const themeTokens = {
   colors: {
-    bg: '#FAFAFA',
+    bg: 'rgba(206,213,213,0.2)',
     surface: '#ffffff',
     primary: '#1f5eaa',
     text: '#222',

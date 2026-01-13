@@ -109,7 +109,9 @@ export default function Quizz({
   });
   const [resultsLoading, setResultsLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`;
+  const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/imagesQuizz/`;
+
+  
   const { isAuthenticated } = useSelector((state) => state.auth);
   const cardId = _id || id;
 

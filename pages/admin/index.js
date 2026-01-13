@@ -1,19 +1,28 @@
-import { useSelector } from "react-redux";
-import { useRouter } from "next/router";
 import { useEffect } from "react";
-import HomeForm from "../../components/admin/HomeForm";
+import { useRouter } from "next/router";
+import { useSelector } from "react-redux";
+import Nav from "../../components/Nav";
 
 export default function AdminPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useSelector((s) => s.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const isAdmin = isAuthenticated && user?.role === "admin";
 
   useEffect(() => {
     if (!isAdmin) {
-      router.replace("/"); // bloque l'accès aux non-admin
+      router.replace("/");
     }
   }, [isAdmin, router]);
 
-  if (!isAdmin) return null; // ou un loader
-  return <HomeForm />;
+  if (!isAdmin) {
+    return null;
+  }
+
+  return (
+    <div>
+      {" "}
+      <Nav bg="#ced5d5" selectedBg="#bec0b6" />
+      <p>Pas utilisé pour le moment</p>
+    </div>
+  );
 }

@@ -148,9 +148,12 @@ export default function Quizz({
   const [imageRatios, setImageRatios] = useState({});
 
   const cardId = _id || id;
+
   const racine = useMemo(
     () =>
-      `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/imagesQuizz/`,
+      `https://storage.googleapis.com/${
+        process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+      }/${repertoire}/tag${num}/imagesQuizz/`,
     [repertoire, num]
   );
 
@@ -182,10 +185,10 @@ export default function Quizz({
     carouselRef.current?.goTo(targetIndex);
   }, [quizzList.length]);
 
-const DOT = 10;
-const GAP = 20;
-const trackWidth =
-  (quizzList.length || 1) * DOT + Math.max(0, quizzList.length - 1) * GAP;
+  const DOT = 10;
+  const GAP = 20;
+  const trackWidth =
+    (quizzList.length || 1) * DOT + Math.max(0, quizzList.length - 1) * GAP;
 
   const reindexQuizz = (list) =>
     (Array.isArray(list) ? list : []).map((q, idx) => ({
@@ -232,12 +235,11 @@ const trackWidth =
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const targetRepertoire = updatedCard?.repertoire || repertoire;
-    const patch =
-      updatedCard || {
-        quizz: fallbackQuizz,
-        evalQuizz: localEvalQuizz,
-        resultatQuizz: localResultatQuizz,
-      };
+    const patch = updatedCard || {
+      quizz: fallbackQuizz,
+      evalQuizz: localEvalQuizz,
+      resultatQuizz: localResultatQuizz,
+    };
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
@@ -282,7 +284,9 @@ const trackWidth =
         body: JSON.stringify(payload),
       });
       if (response.status === 401 || response.status === 403) {
-        throw new Error("Session expirée ou droits insuffisants. Merci de vous reconnecter.");
+        throw new Error(
+          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+        );
       }
       let data = null;
       try {
@@ -514,7 +518,9 @@ const trackWidth =
         body: formData,
       });
       if (response.status === 401 || response.status === 403) {
-        throw new Error("Session expirée ou droits insuffisants. Merci de vous reconnecter.");
+        throw new Error(
+          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+        );
       }
       let data = null;
       try {
@@ -560,7 +566,9 @@ const trackWidth =
         }),
       });
       if (response.status === 401 || response.status === 403) {
-        throw new Error("Session expirée ou droits insuffisants. Merci de vous reconnecter.");
+        throw new Error(
+          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+        );
       }
       let data = null;
       try {
@@ -617,7 +625,9 @@ const trackWidth =
   const handlePasteFromClipboard = async (question) => {
     if (!question?.id || uploadingImageFor === question.id) return;
     if (!navigator?.clipboard?.read) {
-      message.error("Le collage direct n'est pas disponible sur ce navigateur.");
+      message.error(
+        "Le collage direct n'est pas disponible sur ce navigateur."
+      );
       return;
     }
 
@@ -631,7 +641,8 @@ const trackWidth =
         return;
       }
       const mime =
-        imageItem.types.find((type) => type.startsWith("image/")) || "image/png";
+        imageItem.types.find((type) => type.startsWith("image/")) ||
+        "image/png";
       const blob = await imageItem.getType(mime);
       if (!blob) return;
       const ext =
@@ -711,7 +722,7 @@ const trackWidth =
           width: "100%",
           display: "flex",
           justifyContent: "center",
-          alignItems:"center",
+          alignItems: "center",
           marginBottom: 12,
           marginTop: 12,
           gap: 5,
@@ -767,7 +778,7 @@ const trackWidth =
               justifyContent: "space-between",
               alignItems: "center",
               height: "100%",
-              width:"100%",
+              width: "100%",
             }}
           >
             {quizzList.map((q, idx) => {
@@ -904,7 +915,11 @@ const trackWidth =
           }
         >
           <Tooltip title="Supprimer la question courante" mouseEnterDelay={0.3}>
-            <Button danger icon={<DeleteOutlined />} disabled={!quizzList.length}>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              disabled={!quizzList.length}
+            >
               Supprimer la question
             </Button>
           </Tooltip>
@@ -996,7 +1011,10 @@ const trackWidth =
                                   Utiliser $...$ pour les formules inline.
                                 </p>
                                 <div className="flex justify-end gap-2">
-                                  <Tooltip title="Annuler" mouseEnterDelay={0.3}>
+                                  <Tooltip
+                                    title="Annuler"
+                                    mouseEnterDelay={0.3}
+                                  >
                                     <Button
                                       size="small"
                                       icon={<CloseOutlined />}
@@ -1065,338 +1083,373 @@ const trackWidth =
                       </div>
                     }
                   >
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-3">
-                      <div className=" space-y-2">
-                        <div className=" flex items-center justify-between">
-                          <p className="text-sm font-semibold text-gray-700">
-                            Image 
-                          </p>
-                          <div className="flex gap-2">
-                            <Upload {...buildUploadProps(q)}>
-                              <Tooltip title="Importer une image" mouseEnterDelay={0.3}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-3">
+                        <div className=" space-y-2">
+                          <div className=" flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-700">
+                              Image
+                            </p>
+                            <div className="flex gap-2">
+                              <Upload {...buildUploadProps(q)}>
+                                <Tooltip
+                                  title="Importer une image"
+                                  mouseEnterDelay={0.3}
+                                >
+                                  <Button
+                                    size="small"
+                                    icon={<UploadOutlined />}
+                                    loading={uploadingImageFor === q.id}
+                                    data-upload-question-index={idx}
+                                  >
+                                    Uploader
+                                  </Button>
+                                </Tooltip>
+                              </Upload>
+                              <Tooltip
+                                title="Coller une image"
+                                mouseEnterDelay={0.3}
+                              >
                                 <Button
                                   size="small"
-                                  icon={<UploadOutlined />}
-                                  loading={uploadingImageFor === q.id}
-                                  data-upload-question-index={idx}
+                                  onClick={() => handlePasteFromClipboard(q)}
+                                  disabled={uploadingImageFor === q.id}
                                 >
-                                  Uploader
+                                  Coller
                                 </Button>
                               </Tooltip>
-                            </Upload>
-                            <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
-                              <Button
-                                size="small"
-                                onClick={() => handlePasteFromClipboard(q)}
-                                disabled={uploadingImageFor === q.id}
+                              <Tooltip
+                                title="Supprimer l'image"
+                                mouseEnterDelay={0.3}
                               >
-                                Coller
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title="Supprimer l'image" mouseEnterDelay={0.3}>
-                              <Button
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                loading={isAction(
-                                  getActionKey("delete-image", q.id)
-                                )}
-                                disabled={!q.image}
-                                onClick={() => handleDeleteImage(q)}
-                              />
-                            </Tooltip>
+                                <Button
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  loading={isAction(
+                                    getActionKey("delete-image", q.id)
+                                  )}
+                                  disabled={!q.image}
+                                  onClick={() => handleDeleteImage(q)}
+                                />
+                              </Tooltip>
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
-                          style={{
-                            width: "90%",
-                            //maxWidth: PREVIEW_IMAGE_WIDTH,
-                            margin: "auto"
-                          }}
-                        >
-                          {q.image ? (
-                            <Image
-                              src={`${racine}${q.image}`}
-                              alt=""
-                              width={PREVIEW_IMAGE_WIDTH}
-                              height={previewHeight}
-                              onLoadingComplete={(img) =>
-                                recordImageRatio(q.id, img)
-                              }
-                              style={{
-                                width: "100%",
-                                height: "auto",
-                              }}
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-500">
-                              Aucune image
-                            </span>
+                          <div
+                            className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
+                            style={{
+                              width: "90%",
+                              //maxWidth: PREVIEW_IMAGE_WIDTH,
+                              margin: "auto",
+                            }}
+                          >
+                            {q.image ? (
+                              <Image
+                                src={`${racine}${q.image}`}
+                                alt=""
+                                width={PREVIEW_IMAGE_WIDTH}
+                                height={previewHeight}
+                                onLoadingComplete={(img) =>
+                                  recordImageRatio(q.id, img)
+                                }
+                                style={{
+                                  width: "100%",
+                                  height: "auto",
+                                }}
+                              />
+                            ) : (
+                              <span className="text-xs text-gray-500">
+                                Aucune image
+                              </span>
+                            )}
+                          </div>
+                          {q.image && (
+                            <p className="text-xs text-gray-500 break-all">
+                              {q.image}
+                            </p>
                           )}
                         </div>
-                        {q.image && (
-                          <p className="text-xs text-gray-500 break-all">
-                            {q.image}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-gray-700">
+                            Options
                           </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-700">
-                          Options
-                        </p>
-                        <Popover
-                          trigger="click"
-                          open={optionInsert.qid === q.id}
-                          onOpenChange={(visible) => {
-                            if (visible) {
-                              setOptionInsert({
-                                qid: q.id,
-                                position: "end",
-                                value: "",
-                              });
-                            } else if (optionInsert.qid === q.id) {
-                              setOptionInsert({
-                                qid: null,
-                                position: "end",
-                                value: "",
-                              });
-                            }
-                          }}
-                          content={
-                            <div className="w-72 space-y-2">
-                              <Input
-                                placeholder="Nouvelle option"
-                                value={optionInsert.value}
-                                maxLength={300}
-                                onChange={(e) =>
-                                  setOptionInsert((prev) => ({
-                                    ...prev,
-                                    value: e.target.value,
-                                  }))
-                                }
-                              />
-                              <Select
-                                className="w-full"
-                                value={optionInsert.position}
-                                options={optionInsertionOptions(q)}
-                                onChange={(value) =>
-                                  setOptionInsert((prev) => ({
-                                    ...prev,
-                                    position: value,
-                                  }))
-                                }
-                              />
-                              <div className="flex justify-end gap-2">
-                                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
-                                  <Button
-                                    size="small"
-                                    icon={<CloseOutlined />}
-                                    onClick={() =>
-                                      setOptionInsert({
-                                        qid: null,
-                                        position: "end",
-                                        value: "",
-                                      })
-                                    }
-                                  >
-                                    Annuler
-                                  </Button>
-                                </Tooltip>
-                                <Tooltip title="Ajouter l'option" mouseEnterDelay={0.3}>
-                                  <Button
-                                    size="small"
-                                    type="primary"
-                                    icon={<CheckOutlined />}
-                                    loading={isAction(
-                                      getActionKey("add-option", q.id)
-                                    )}
-                                    onClick={handleAddOption}
-                                  >
-                                    Valider
-                                  </Button>
-                                </Tooltip>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <Tooltip title="Ajouter une option" mouseEnterDelay={0.3}>
-                            <Button size="small" icon={<PlusOutlined />}>
-                              Ajouter une option
-                            </Button>
-                          </Tooltip>
-                        </Popover>
-                      </div>
-
-                      <ul className="space-y-2">
-                        {(q.options || []).map((op, optionIndex) => {
-                          const editOpen =
-                            editOption.qid === q.id &&
-                            editOption.index === optionIndex;
-                          const optionValue = editOpen
-                            ? editOption.value
-                            : op || "";
-                          const {
-                            nodes: optionNodes,
-                            hasUnmatched: optionHasError,
-                          } = renderInlineKatex(optionValue);
-                          return (
-                            <li
-                              key={`${q.id}-${optionIndex}`}
-                              className="flex flex-col gap-1 rounded border border-gray-200 bg-white px-2 py-1 sm:flex-row sm:items-start sm:justify-between"
-                            >
-                              <div className="flex-1 flex items-start gap-2">
-                                <Radio
-                                  checked={q.correct === optionIndex}
-                                  onChange={() =>
-                                    handleSelectCorrect(q.id, optionIndex)
+                          <Popover
+                            trigger="click"
+                            open={optionInsert.qid === q.id}
+                            onOpenChange={(visible) => {
+                              if (visible) {
+                                setOptionInsert({
+                                  qid: q.id,
+                                  position: "end",
+                                  value: "",
+                                });
+                              } else if (optionInsert.qid === q.id) {
+                                setOptionInsert({
+                                  qid: null,
+                                  position: "end",
+                                  value: "",
+                                });
+                              }
+                            }}
+                            content={
+                              <div className="w-72 space-y-2">
+                                <Input
+                                  placeholder="Nouvelle option"
+                                  value={optionInsert.value}
+                                  maxLength={300}
+                                  onChange={(e) =>
+                                    setOptionInsert((prev) => ({
+                                      ...prev,
+                                      value: e.target.value,
+                                    }))
                                   }
                                 />
-                                <div>
-                                  <p className="text-xs text-gray-500">
-                                    Option {optionIndex + 1}
-                                  </p>
-                                  <p className="whitespace-pre-line break-words text-sm text-gray-800">
-                                    {optionValue ? (
-                                      optionNodes
-                                    ) : (
-                                      <span className="text-gray-400">vide</span>
-                                    )}
-                                    {optionValue && optionHasError && (
-                                      <span
-                                        style={{
-                                          color: "#ff4d4f",
-                                          marginLeft: 6,
-                                          fontSize: 12,
-                                        }}
-                                      >
-                                        ($ non ferme)
-                                      </span>
-                                    )}
-                                  </p>
+                                <Select
+                                  className="w-full"
+                                  value={optionInsert.position}
+                                  options={optionInsertionOptions(q)}
+                                  onChange={(value) =>
+                                    setOptionInsert((prev) => ({
+                                      ...prev,
+                                      position: value,
+                                    }))
+                                  }
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <Tooltip
+                                    title="Annuler"
+                                    mouseEnterDelay={0.3}
+                                  >
+                                    <Button
+                                      size="small"
+                                      icon={<CloseOutlined />}
+                                      onClick={() =>
+                                        setOptionInsert({
+                                          qid: null,
+                                          position: "end",
+                                          value: "",
+                                        })
+                                      }
+                                    >
+                                      Annuler
+                                    </Button>
+                                  </Tooltip>
+                                  <Tooltip
+                                    title="Ajouter l'option"
+                                    mouseEnterDelay={0.3}
+                                  >
+                                    <Button
+                                      size="small"
+                                      type="primary"
+                                      icon={<CheckOutlined />}
+                                      loading={isAction(
+                                        getActionKey("add-option", q.id)
+                                      )}
+                                      onClick={handleAddOption}
+                                    >
+                                      Valider
+                                    </Button>
+                                  </Tooltip>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Popover
-                                  trigger="click"
-                                  open={editOpen}
-                                  onOpenChange={(visible) => {
-                                    if (visible) {
-                                      setEditOption({
-                                        qid: q.id,
-                                        index: optionIndex,
-                                        value: op || "",
-                                      });
-                                    } else if (editOpen) {
-                                      setEditOption({
-                                        qid: null,
-                                        index: null,
-                                        value: "",
-                                      });
-                                    }
-                                  }}
-                                  content={
-                                    <div className="w-64 space-y-2">
-                                      <Input.TextArea
-                                        value={editOption.value}
-                                        maxLength={300}
-                                        autoSize={{ minRows: 3, maxRows: 6 }}
-                                        onChange={(e) =>
-                                          setEditOption((prev) => ({
-                                            ...prev,
-                                            value: e.target.value,
-                                          }))
-                                        }
-                                      />
-                                      <div className="flex justify-end gap-2">
-                                        <Tooltip title="Annuler" mouseEnterDelay={0.3}>
-                                          <Button
-                                            size="small"
-                                            icon={<CloseOutlined />}
-                                            onClick={() =>
-                                              setEditOption({
-                                                qid: null,
-                                                index: null,
-                                                value: "",
-                                              })
-                                            }
-                                          >
-                                            Annuler
-                                          </Button>
-                                        </Tooltip>
-                                        <Tooltip title="Valider la modification" mouseEnterDelay={0.3}>
-                                          <Button
-                                            size="small"
-                                            type="primary"
-                                            icon={<CheckOutlined />}
-                                            loading={isAction(
-                                              getActionKey(
-                                                "edit-option",
-                                                q.id,
-                                                optionIndex
-                                              )
-                                            )}
-                                            onClick={handleEditOption}
-                                          >
-                                            Valider
-                                          </Button>
-                                        </Tooltip>
-                                      </div>
-                                    </div>
-                                  }
-                                >
-                                  <Tooltip title="Modifier cette option" mouseEnterDelay={0.3}>
-                                    <Button size="small" icon={<EditOutlined />} />
-                                  </Tooltip>
-                                </Popover>
-                                <Tooltip title="Supprimer cette option" mouseEnterDelay={0.3}>
-                                  <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    loading={isAction(
-                                      getActionKey(
-                                        "delete-option",
-                                        q.id,
-                                        optionIndex
-                                      )
-                                    )}
-                                    onClick={() =>
-                                      handleDeleteOption(q.id, optionIndex)
+                            }
+                          >
+                            <Tooltip
+                              title="Ajouter une option"
+                              mouseEnterDelay={0.3}
+                            >
+                              <Button size="small" icon={<PlusOutlined />}>
+                                Ajouter une option
+                              </Button>
+                            </Tooltip>
+                          </Popover>
+                        </div>
+
+                        <ul className="space-y-2">
+                          {(q.options || []).map((op, optionIndex) => {
+                            const editOpen =
+                              editOption.qid === q.id &&
+                              editOption.index === optionIndex;
+                            const optionValue = editOpen
+                              ? editOption.value
+                              : op || "";
+                            const {
+                              nodes: optionNodes,
+                              hasUnmatched: optionHasError,
+                            } = renderInlineKatex(optionValue);
+                            return (
+                              <li
+                                key={`${q.id}-${optionIndex}`}
+                                className="flex flex-col gap-1 rounded border border-gray-200 bg-white px-2 py-1 sm:flex-row sm:items-start sm:justify-between"
+                              >
+                                <div className="flex-1 flex items-start gap-2">
+                                  <Radio
+                                    checked={q.correct === optionIndex}
+                                    onChange={() =>
+                                      handleSelectCorrect(q.id, optionIndex)
                                     }
                                   />
-                                </Tooltip>
-                              </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">
+                                      Option {optionIndex + 1}
+                                    </p>
+                                    <p className="whitespace-pre-line break-words text-sm text-gray-800">
+                                      {optionValue ? (
+                                        optionNodes
+                                      ) : (
+                                        <span className="text-gray-400">
+                                          vide
+                                        </span>
+                                      )}
+                                      {optionValue && optionHasError && (
+                                        <span
+                                          style={{
+                                            color: "#ff4d4f",
+                                            marginLeft: 6,
+                                            fontSize: 12,
+                                          }}
+                                        >
+                                          ($ non ferme)
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Popover
+                                    trigger="click"
+                                    open={editOpen}
+                                    onOpenChange={(visible) => {
+                                      if (visible) {
+                                        setEditOption({
+                                          qid: q.id,
+                                          index: optionIndex,
+                                          value: op || "",
+                                        });
+                                      } else if (editOpen) {
+                                        setEditOption({
+                                          qid: null,
+                                          index: null,
+                                          value: "",
+                                        });
+                                      }
+                                    }}
+                                    content={
+                                      <div className="w-64 space-y-2">
+                                        <Input.TextArea
+                                          value={editOption.value}
+                                          maxLength={300}
+                                          autoSize={{ minRows: 3, maxRows: 6 }}
+                                          onChange={(e) =>
+                                            setEditOption((prev) => ({
+                                              ...prev,
+                                              value: e.target.value,
+                                            }))
+                                          }
+                                        />
+                                        <div className="flex justify-end gap-2">
+                                          <Tooltip
+                                            title="Annuler"
+                                            mouseEnterDelay={0.3}
+                                          >
+                                            <Button
+                                              size="small"
+                                              icon={<CloseOutlined />}
+                                              onClick={() =>
+                                                setEditOption({
+                                                  qid: null,
+                                                  index: null,
+                                                  value: "",
+                                                })
+                                              }
+                                            >
+                                              Annuler
+                                            </Button>
+                                          </Tooltip>
+                                          <Tooltip
+                                            title="Valider la modification"
+                                            mouseEnterDelay={0.3}
+                                          >
+                                            <Button
+                                              size="small"
+                                              type="primary"
+                                              icon={<CheckOutlined />}
+                                              loading={isAction(
+                                                getActionKey(
+                                                  "edit-option",
+                                                  q.id,
+                                                  optionIndex
+                                                )
+                                              )}
+                                              onClick={handleEditOption}
+                                            >
+                                              Valider
+                                            </Button>
+                                          </Tooltip>
+                                        </div>
+                                      </div>
+                                    }
+                                  >
+                                    <Tooltip
+                                      title="Modifier cette option"
+                                      mouseEnterDelay={0.3}
+                                    >
+                                      <Button
+                                        size="small"
+                                        icon={<EditOutlined />}
+                                      />
+                                    </Tooltip>
+                                  </Popover>
+                                  <Tooltip
+                                    title="Supprimer cette option"
+                                    mouseEnterDelay={0.3}
+                                  >
+                                    <Button
+                                      size="small"
+                                      danger
+                                      icon={<DeleteOutlined />}
+                                      loading={isAction(
+                                        getActionKey(
+                                          "delete-option",
+                                          q.id,
+                                          optionIndex
+                                        )
+                                      )}
+                                      onClick={() =>
+                                        handleDeleteOption(q.id, optionIndex)
+                                      }
+                                    />
+                                  </Tooltip>
+                                </div>
+                              </li>
+                            );
+                          })}
+                          {!q.options?.length && (
+                            <li className="text-sm text-gray-500">
+                              Aucune option pour le moment.
                             </li>
-                          );
-                        })}
-                        {!q.options?.length && (
-                          <li className="text-sm text-gray-500">
-                            Aucune option pour le moment.
-                          </li>
-                        )}
-                      </ul>
+                          )}
+                        </ul>
 
-                      <div className="rounded border border-gray-200 bg-gray-50 px-2 py-2 text-sm">
-                        <p className="m-0 text-xs text-gray-600">
-                          Selectionner la bonne reponse
-                        </p>
-                        <p className="m-0 text-xs text-gray-500">
-                          {Number.isInteger(q.correct)
-                            ? `Option ${q.correct + 1}`
-                            : "Aucune selection"}
-                        </p>
+                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-2 text-sm">
+                          <p className="m-0 text-xs text-gray-600">
+                            Selectionner la bonne reponse
+                          </p>
+                          <p className="m-0 text-xs text-gray-500">
+                            {Number.isInteger(q.correct)
+                              ? `Option ${q.correct + 1}`
+                              : "Aucune selection"}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </div>
-            );
-          })}
+                  </Card>
+                </div>
+              );
+            })}
           </Carousel>
         </div>
       </div>

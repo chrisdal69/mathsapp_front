@@ -5,11 +5,8 @@ import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
-import { setCardsMaths } from "../reducers/cardsMathsSlice";
+import { fetchCardsMaths } from "../reducers/cardsMathsSlice";
 
-const NODE_ENV = process.env.NODE_ENV;
-const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
-const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const CARD_MIN_WIDTH = 380;
 
 const App = ({ repertoire }) => {
@@ -18,12 +15,10 @@ const App = ({ repertoire }) => {
   } = theme.useToken();
 
   const dispatch = useDispatch();
-  const data = useSelector((state) => state.cardsMaths.data);
+  const { data, status, error } = useSelector((state) => state.cardsMaths);
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
   const cards = cardsFiltre.filter((obj) => obj.repertoire === repertoire);
 
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
   const [resetSignals, setResetSignals] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [expandedTabKey, setExpandedTabKey] = useState("contenu");
@@ -45,44 +40,12 @@ const App = ({ repertoire }) => {
   }, [cards]);
 
   useEffect(() => {
-    if (!Array.isArray(data) || data.length !== 0) {
-      return; // le store contient deja autre chose, on ne refetch pas
+    if (status !== "idle") {
+      return;
     }
 
-    let cancelled = false;
-
-    const fetchCards = async () => {
-      setLoading(true);
-      setErrorMessage(null);
-      try {
-        const response = await fetch(`${urlFetch}/cards`);
-        const payload = await response.json();
-        if (cancelled) return;
-
-        if (response.ok) {
-          dispatch(setCardsMaths(payload));
-          console.log("payload : ", payload);
-        } else {
-          setErrorMessage(
-            payload?.error || "Erreur lors du chargement des cartes."
-          );
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setErrorMessage("Erreur serveur.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchCards();
-    return () => {
-      cancelled = true;
-    };
-  }, [data, dispatch, urlFetch]);
+    dispatch(fetchCardsMaths());
+  }, [status, dispatch]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -167,6 +130,9 @@ const App = ({ repertoire }) => {
     (card, idx) => getCardKey(card, idx) === expandedId
   );
   const expandedCard = expandedIndex >= 0 ? cards[expandedIndex] : null;
+  const isLoading = status === "loading" || status === "idle";
+  const hasError = status === "failed";
+
   return (
     <Layout>
       <Content>
@@ -181,7 +147,7 @@ const App = ({ repertoire }) => {
             }}
             className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-6 items-start "
           >
-            {loading && (
+            {isLoading && (
               <div className="col-span-full flex flex-col items-center py-10">
                 <ClimbingBoxLoader color="#6C6C6C" size={12} />
                 <p className="mt-4 text-sm text-gray-500">
@@ -190,16 +156,16 @@ const App = ({ repertoire }) => {
               </div>
             )}
 
-            {!loading && errorMessage && (
+            {!isLoading && hasError && (
               <p className="col-span-full text-red-500 text-sm">
-                {errorMessage}
+                {error || "Erreur lors du chargement des cartes."}
               </p>
             )}
-            {!loading && cards.length > 0 && showAccueil && (
+            {!isLoading && !hasError && cards.length > 0 && showAccueil && (
               <Accueil titre={cards[0]?.titre} />
             )}
-            {!loading &&
-              !errorMessage &&
+            {!isLoading &&
+              !hasError &&
               cards.slice(0, 1).map((card, idx) => {
                 const key = getCardKey(card, idx);
                 const isExpanded = expandedId === key;
@@ -245,7 +211,7 @@ const App = ({ repertoire }) => {
                 );
               })}
 
-            {!loading && !errorMessage && !cards.length && (
+            {!isLoading && !hasError && !cards.length && (
               <p className="col-span-full text-gray-500 text-sm">
                 Aucune carte a afficher.
               </p>
@@ -261,8 +227,8 @@ const App = ({ repertoire }) => {
             }}
             className="py-5 md:p-5 grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-0 md:gap-6 items-start"
           >
-            {!loading &&
-              !errorMessage &&
+            {!isLoading &&
+              !hasError &&
               cards.slice(1).map((card, idx) => {
                 const key = getCardKey(card, idx);
                 const isExpanded = expandedId === key;
@@ -291,7 +257,7 @@ const App = ({ repertoire }) => {
                       animate={{
                         scale: isExpanded ? 1 : 0.98,
                         rotate: isExpanded ? 0 : tilt,
-                        y: isExpanded ? 0 : wobble * 40,
+                        y: isExpanded ? 0 : wobble * 10,
                         opacity: isExpanded ? 0 : 1,
                         boxShadow: isExpanded
                           ? "0 18px 50px rgba(0,0,0,0.18)"

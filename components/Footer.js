@@ -7,7 +7,7 @@ const App = () => {
     token: { colorTextSecondary },
   } = theme.useToken();
   return (
-    <Footer style={{  textAlign: "center", background: "#001529",color:colorTextSecondary }} className="mt-20 p-0">
+    <Footer style={{  borderTop:"1px solid #333",  textAlign: "center", background: "#ced5d5",color:colorTextSecondary }} className="mt-0 p-0">
       MathsApp ©{new Date().getFullYear()}
     </Footer>
   );

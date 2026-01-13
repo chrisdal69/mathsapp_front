@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Layout, Menu, theme } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { CloseOutlined, MenuOutlined, UserOutlined } from "@ant-design/icons";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
@@ -9,7 +9,8 @@ import Modal from "./Modal";
 
 const { Header } = Layout;
 
-export default function Nav() {
+export default function Nav(props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -21,32 +22,346 @@ export default function Nav() {
   const pathToKey = {
     "/": "1",
     "/admin": "1",
-    "/python": "2",
-    "/admin/python": "2",
-    "/signup": "3",
-    "/forgot": "3",
-    "/changepassword": "3",
+    "/signup": "4",
+    "/forgot": "4",
+    "/changepassword": "4",
   };
 
-  const selectedKey = pathToKey[router.pathname] || "1";
-  const mathsHref = isAdmin ? "/admin" : "/";
+  const keyByRepertoire = {
+    ciel1: "2",
+    python: "3",
+  };
+
+  const isDynamicRoute =
+    router.pathname === "/[repertoire]" ||
+    router.pathname === "/admin/[repertoire]";
+
+  const rawRepertoire = Array.isArray(router.query.repertoire)
+    ? router.query.repertoire[0]
+    : router.query.repertoire;
+
+  const selectedKey = !router.isReady
+    ? "1"
+    : isDynamicRoute
+    ? keyByRepertoire[rawRepertoire] || "1"
+    : pathToKey[router.pathname] || "1";
+  //const accueilHref = isAdmin ? "/admin" : "/";
+  const accueilHref =  "/";
+  const mathsHref = isAdmin ? "/admin/ciel1" : "/ciel1";
   const pythonHref = isAdmin ? "/admin/python" : "/python";
   const items = [
-    { key: "1", label: <Link href={mathsHref}>Maths</Link> },
-    { key: "2", label: <Link href={pythonHref}>Python</Link> },
-    { key: "3", icon: <UserOutlined />, label: <Modal /> },
+    { key: "1", label: <Link href={accueilHref}>Accueil</Link>, className: "nav-item" },
+    { key: "2", label: <Link href={mathsHref}>Maths</Link>, className: "nav-item" },
+    { key: "3", label: <Link href={pythonHref}>Python</Link>, className: "nav-item" },
+    { key: "4", icon: <UserOutlined />, label: <Modal />, className: "nav-item nav-item--last" },
   ];
-  console.log("target dans Nav.js : ", mathsHref);
+
+  const navColors = {
+    bg:props.bg,
+    border: "#222",
+    tabBorder: "#000",
+    text: "#333",
+    textSize: "18px",
+    selectedBg:props.selectedBg,
+    selectedText: "#0f172a",
+    hoverBg: "#fff",
+  };
 
   return (
-    <Header style={{ display: "flex", alignItems: "center" }}>
-      <Menu
-        theme="dark"
-        mode="horizontal"
-        selectedKeys={[selectedKey]}
-        items={items}
-        style={{ flex: 1, justifyContent: "flex-end" }}
-      />
-    </Header>
+    <div className="nav-root">
+      <Header
+        className="nav-header"
+        style={{ display: "flex", alignItems: "center" }}
+      >
+        <Menu
+          className="nav-menu nav-menu--desktop"
+          theme="dark"
+          mode="horizontal"
+          selectedKeys={[selectedKey]}
+          items={items}
+          style={{ flex: 1, justifyContent: "flex-end" }}
+        />
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={menuOpen}
+          aria-controls="nav-drawer"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <CloseOutlined /> : <MenuOutlined />}
+        </button>
+      </Header>
+      <div
+        className={`nav-drawer ${menuOpen ? "nav-drawer--open" : ""}`}
+        id="nav-drawer"
+      >
+        <Menu
+          className="nav-menu nav-menu--mobile"
+          theme="dark"
+          mode="vertical"
+          selectedKeys={[selectedKey]}
+          items={items}
+          onClick={() => setMenuOpen(false)}
+        />
+      </div>
+      <style jsx global>{`
+        .nav-root {
+          position: relative;
+        }
+        .nav-header {
+          background: ${navColors.bg};
+          border-bottom: 0px solid ${navColors.border};
+        }
+        .nav-toggle {
+          border: none;
+          background: transparent;
+          color: ${navColors.text};
+          font-size: 30px;
+          width: 44px;
+          height: 44px;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          margin-left: -30px;
+          margin-top: 10px;
+        }
+        .nav-drawer {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 180px;
+          background: ${navColors.bg};
+          border-radius: 5px;
+          padding: 0px 0;
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+          z-index: 10;
+          transform: translateX(-100%);
+          opacity: 0;
+          pointer-events: none;
+          transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 200ms ease;
+        }
+        .nav-drawer--open {
+          transform: translateX(0);
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .nav-menu.ant-menu {
+          background: transparent;
+          --nav-border-duration: 650ms;
+          --nav-text-duration: 900ms;
+          --nav-text-delay: calc(var(--nav-border-duration) + 140ms);
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item,
+        .nav-menu.ant-menu-dark .ant-menu-item a,
+        .nav-menu.ant-menu-dark .ant-menu-item .anticon {
+          color: ${navColors.text};
+          font-size: ${navColors.textSize};
+        }
+        .nav-menu.ant-menu-dark .nav-item {
+          position: relative;
+          overflow: hidden;
+        }
+        .nav-menu.ant-menu-dark .nav-item::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 1px;
+          height: 100%;
+          background: #111;
+          transform: scaleY(0);
+          transform-origin: top;
+          animation: navBorderDown var(--nav-border-duration)
+            cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .nav-menu.ant-menu-dark .nav-item--last::before {
+          display: none;
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item {
+          --nav-item-delay: 0ms;
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item:nth-child(2) {
+          --nav-item-delay: 80ms;
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item:nth-child(3) {
+          --nav-item-delay: 160ms;
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item:nth-child(4) {
+          --nav-item-delay: 240ms;
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item .ant-menu-title-content,
+        .nav-menu.ant-menu-dark .ant-menu-item .anticon {
+          display: inline-block;
+          opacity: 0;
+          transform: translateY(100%);
+          animation: navTextUp var(--nav-text-duration)
+            cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          animation-delay: calc(var(--nav-text-delay) + var(--nav-item-delay));
+          will-change: transform, opacity;
+        }
+
+        .nav-menu.ant-menu-dark .ant-menu-item-selected {
+          background: ${navColors.selectedBg};
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item-selected a,
+        .nav-menu.ant-menu-dark .ant-menu-item-selected .anticon {
+          color: ${navColors.selectedText};
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item::after,
+        .nav-menu.ant-menu-dark .ant-menu-item-active::after,
+        .nav-menu.ant-menu-dark .ant-menu-item-selected::after {
+          border-color: ${navColors.tabBorder};
+        }
+        .nav-menu.ant-menu-dark .ant-menu-item:hover {
+          background: ${navColors.hoverBg};
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:not(.ant-menu-item-selected):hover,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item-active {
+          background: ${navColors.hoverBg};
+        }
+        .nav-menu--mobile.ant-menu {
+          background: transparent;
+          border-right: none;
+          width: 100%;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item {
+          margin: 0;
+          width: 100%;
+          padding: 14px 12px;
+          height: auto;
+          line-height: 1.2;
+          border-bottom: 1px solid #111;
+          border-radius: 0;
+
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:last-child {
+          border-bottom: 0;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .anticon {
+          white-space: nowrap;
+        }
+        .nav-menu--mobile.ant-menu-dark .nav-item {
+          overflow: visible;
+        }
+        .nav-menu--mobile.ant-menu-dark .nav-item::before {
+          display: none;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item::after,
+        .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item-selected::after {
+          border: none;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content {
+          display: block;
+          width: 100%;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > span,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          display: block;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > a,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > span {
+          padding: 0;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          padding: 6px 20px;
+          width: 70%;
+          margin-left:7px;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
+          white-space: nowrap;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .ant-menu-title-content,
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item .anticon {
+          opacity: 0;
+          transform: none;
+          animation: none;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item {
+          --nav-mobile-delay: 0ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(2) {
+          --nav-mobile-delay: 80ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(3) {
+          --nav-mobile-delay: 160ms;
+        }
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item:nth-child(4) {
+          --nav-mobile-delay: 240ms;
+        }
+        .nav-drawer--open
+          .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item
+          .ant-menu-title-content,
+        .nav-drawer--open
+          .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item
+          .anticon {
+          animation: navMobileTextIn 420ms ease forwards;
+          animation-delay: calc(160ms + var(--nav-mobile-delay));
+        }
+        @keyframes navBorderDown {
+          from { transform: scaleY(0); }
+          to { transform: scaleY(1); }
+        }
+        @keyframes navTextUp {
+          from { opacity: 0; transform: translateY(100%); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes navMobileTextIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nav-menu.ant-menu-dark .nav-item::before {
+            animation: none;
+            transform: scaleY(1);
+          }
+          .nav-menu.ant-menu-dark .ant-menu-item .ant-menu-title-content,
+          .nav-menu.ant-menu-dark .ant-menu-item .anticon {
+            animation: none;
+            opacity: 1;
+            transform: none;
+          }
+          .nav-drawer--open
+            .nav-menu--mobile.ant-menu-dark
+            .ant-menu-item
+            .ant-menu-title-content,
+          .nav-drawer--open
+            .nav-menu--mobile.ant-menu-dark
+            .ant-menu-item
+            .anticon {
+            animation: none;
+            opacity: 1;
+          }
+          .nav-drawer {
+            transition: none;
+          }
+        }
+        @media (max-width: 770px) {
+          .nav-menu--desktop {
+            display: none;
+          }
+          .nav-toggle {
+            display: inline-flex;
+          }
+        }
+        @media (min-width: 771px) {
+          .nav-drawer {
+            display: none;
+          }
+        }
+      `}</style>
+    </div>
   );
 }

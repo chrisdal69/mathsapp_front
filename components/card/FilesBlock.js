@@ -2,8 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 
-export default function FilesBlock({ num,repertoire,fichiers }) {
-
+export default function FilesBlock({ num, repertoire, fichiers }) {
   const parseInlineKatex = (input) => {
     const tokens = [];
     const text = String(input ?? "");
@@ -282,14 +281,15 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
       </svg>
     );
   };
-  const racine=`https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+  const racine = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/${repertoire}/tag${num}/`;
 
   const tab = (fichiers || []).map((elt, idx) => {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
-    const href = racine+elt.href || "#";
-    const hoverText =
-      typeof elt?.hover === "string" ? elt.hover.trim() : "";
+    const href = racine + elt.href || "#";
+    const hoverText = typeof elt?.hover === "string" ? elt.hover.trim() : "";
 
     const extFromHref = href.includes(".")
       ? href.split(".").pop().toLowerCase()
@@ -326,17 +326,13 @@ export default function FilesBlock({ num,repertoire,fichiers }) {
     );
   });
 
-return (
-      <div className="p-2">
-        {tab && tab.length > 0 ? (
-          <ul className="list-none m-0 p-0 divide-y divide-gray-100">
-            {tab}
-          </ul>
-        ) : (
-          <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
-        )}
-      </div>
-    )
-
-
+  return (
+    <div className="p-2">
+      {tab && tab.length > 0 ? (
+        <ul className="list-none m-0 p-0 divide-y divide-gray-100">{tab}</ul>
+      ) : (
+        <p className="text-gray-600 text-sm">Aucun fichier disponible.</p>
+      )}
+    </div>
+  );
 }

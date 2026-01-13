@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
@@ -108,7 +108,9 @@ export default function Contenu({
   const [typedStep, setTypedStep] = useState(0);
   const [revealImage, setRevealImage] = useState(false);
 
-  const racine = `https://storage.googleapis.com/mathsapp/${repertoire}/tag${num}/`;
+  const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/`;
+
+  
   const combinedText = useMemo(() => {
     const safePlan = Array.isArray(plan) ? plan : [];
     const safePresentation = Array.isArray(presentation) ? presentation : [];
@@ -123,6 +125,22 @@ export default function Contenu({
     () => renderTypedInlineKatex(tokens, typedStep),
     [tokens, typedStep]
   );
+
+  const contentRef = useRef(null);
+  const inView = useInView(contentRef, { once: true, amount: 0.3 });
+
+  useEffect(() => {
+    if (inView) {
+      setRevealImage(true);
+    }
+  }, [inView]);
+
+  useEffect(() => {
+    if (!isExpanded) {
+      setTyping(false);
+      setTypedStep(0);
+    }
+  }, [isExpanded]);
 
   useEffect(() => {
     setRevealImage(true);
@@ -157,6 +175,9 @@ export default function Contenu({
   };
 
   const blurBg = useMemo(() => toBlurFile(bg), [bg]);
+  const shouldHideImage = !isExpanded && typing;
+  const showExpandedOverlay = isExpanded && (typing || typedStep > 0);
+  const shouldShowText = typing || (isExpanded && typedStep > 0);
   const handleTouchStart = () => {
     if (!isExpanded) return;
     setTyping(true);
@@ -167,19 +188,20 @@ export default function Contenu({
   };
 
   const handleMouseLeave = () => {
+    if (isExpanded) return;
     setTyping(false);
   };
 
   return (
-    <div className="group relative w-full min-h-[150px] ">
-      <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5">
-        {typing && (
+    <div ref={contentRef} className="group relative w-full min-h-[150px] ">
+      <div className="flex flex-col break-words whitespace-pre-line min-w-0 mx-5 relative z-20">
+        {shouldShowText && (
           <div className="break-words w-full min-w-0 ">{typedNodes}</div>
         )}
       </div>
 
       <motion.div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         initial="hidden"
         animate={revealImage ? "visible" : "hidden"}
         variants={{
@@ -197,13 +219,17 @@ export default function Contenu({
           blurDataURL={`${racine}${blurBg}`}
           sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className={`object-cover object-center transition-opacity duration-300 ease-out ${
-            typing ? "opacity-0 pointer-events-none" : "opacity-100"
+            shouldHideImage ? "opacity-0 pointer-events-none" : "opacity-100"
           }`}
         />
       </motion.div>
 
+      {showExpandedOverlay && (
+        <div className="absolute inset-0 z-10 bg-gray-200/90 pointer-events-none" />
+      )}
+
       <div
-        className="absolute inset-0 w-full h-full z-10 cursor-pointer"
+        className="absolute inset-0 w-full h-full z-30 cursor-pointer"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}

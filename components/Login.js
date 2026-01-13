@@ -70,12 +70,18 @@ export default function Login(props) {
         const fromPath = router.asPath;
 
         const target = (() => {
-          if (response.role !== "admin")
-            return fromPath === "/python" ? "/python" : "/";
-          if (fromPath === "/python") return "/admin/python";
-          return "/admin";
+          if (response.role !== "admin") {
+            if (fromPath === "/") {return "/" }
+            if (fromPath === "/ciel1") {return "/ciel1" }
+            if (fromPath === "/python") {return "/python" }
+            return "/";
+          } else {
+            if (fromPath === "/") {return "/" }
+            if (fromPath === "/ciel1") {return "/admin/ciel1" }
+            if (fromPath === "/python") {return "/admin/python" }
+            return "/admin";
+          }
         })();
-        console.log("target dans Login.js : ",target)
         router.push(target);
       } else {
         setServerMessage(response.message || "Erreur de connexion.");
