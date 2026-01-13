@@ -99,6 +99,7 @@ export default function Quizz({
   const carouselRef = useRef(null);
   const preloadedImagesRef = useRef(new Set());
   const imageWheelHandlersRef = useRef(new Map());
+  const lastTapRef = useRef(new Map());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
@@ -142,18 +143,11 @@ export default function Quizz({
 
   const clampScale = (value) => Math.max(1, Math.min(3, value));
 
-  const handleImageDoubleClick = (event, qid) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const rect = event.currentTarget.getBoundingClientRect();
+  const toggleZoomAt = (qid, rect, clientX, clientY) => {
     let origin = "50% 50%";
-    if (rect.width && rect.height) {
-      const x = clampPercent(
-        ((event.clientX - rect.left) / rect.width) * 100
-      );
-      const y = clampPercent(
-        ((event.clientY - rect.top) / rect.height) * 100
-      );
+    if (rect?.width && rect?.height) {
+      const x = clampPercent(((clientX - rect.left) / rect.width) * 100);
+      const y = clampPercent(((clientY - rect.top) / rect.height) * 100);
       origin = `${x}% ${y}%`;
     }
     setZoomOrigins((prev) => ({ ...prev, [qid]: origin }));
@@ -161,6 +155,41 @@ export default function Quizz({
       const currentScale = prev[qid] ?? 1;
       const nextScale = currentScale > 1 ? 1 : 2;
       return { ...prev, [qid]: nextScale };
+    });
+  };
+
+  const handleImageDoubleClick = (event, qid) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleZoomAt(qid, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+  };
+
+  const handleImageTouchStart = (event, qid) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const now = Date.now();
+    const lastTap = lastTapRef.current.get(qid);
+    const isQuick = lastTap && now - lastTap.time <= 300;
+    const distance = lastTap
+      ? Math.hypot(touch.clientX - lastTap.x, touch.clientY - lastTap.y)
+      : Infinity;
+
+    if (isQuick && distance <= 24) {
+      event.preventDefault();
+      toggleZoomAt(
+        qid,
+        event.currentTarget.getBoundingClientRect(),
+        touch.clientX,
+        touch.clientY
+      );
+      lastTapRef.current.delete(qid);
+      return;
+    }
+
+    lastTapRef.current.set(qid, {
+      time: now,
+      x: touch.clientX,
+      y: touch.clientY,
     });
   };
 
@@ -533,10 +562,14 @@ export default function Quizz({
                             boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                             cursor: isZoomed ? "zoom-out" : "zoom-in",
                             overscrollBehavior: "contain",
+                            touchAction: "manipulation",
                           }}
                           ref={setImageContainerRef(q.id)}
                           onDoubleClick={(event) =>
                             handleImageDoubleClick(event, q.id)
+                          }
+                          onTouchStart={(event) =>
+                            handleImageTouchStart(event, q.id)
                           }
                         >
                           <Image
