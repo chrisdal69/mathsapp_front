@@ -98,6 +98,7 @@ export default function Quizz({
 }) {
   const carouselRef = useRef(null);
   const preloadedImagesRef = useRef(new Set());
+  const imageWheelHandlersRef = useRef(new Map());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
@@ -164,9 +165,18 @@ export default function Quizz({
   };
 
   const handleImageWheel = (event, qid) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const rect = event.currentTarget.getBoundingClientRect();
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const target = event.currentTarget || event.target;
+    const rect = target?.getBoundingClientRect?.();
+    if (!rect) return;
     if (rect.width && rect.height) {
       const x = clampPercent(
         ((event.clientX - rect.left) / rect.width) * 100
@@ -184,6 +194,28 @@ export default function Quizz({
       return { ...prev, [qid]: nextScale };
     });
   };
+
+  const setImageContainerRef = (qid) => (node) => {
+    const existing = imageWheelHandlersRef.current.get(qid);
+    if (existing?.node && existing?.handler) {
+      existing.node.removeEventListener("wheel", existing.handler);
+      imageWheelHandlersRef.current.delete(qid);
+    }
+    if (!node) return;
+    const handler = (event) => handleImageWheel(event, qid);
+    node.addEventListener("wheel", handler, { passive: false });
+    imageWheelHandlersRef.current.set(qid, { node, handler });
+  };
+
+  useEffect(
+    () => () => {
+      imageWheelHandlersRef.current.forEach(({ node, handler }) => {
+        node.removeEventListener("wheel", handler);
+      });
+      imageWheelHandlersRef.current.clear();
+    },
+    []
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -500,11 +532,12 @@ export default function Quizz({
                             overflow: "hidden",
                             boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                             cursor: isZoomed ? "zoom-out" : "zoom-in",
+                            overscrollBehavior: "contain",
                           }}
+                          ref={setImageContainerRef(q.id)}
                           onDoubleClick={(event) =>
                             handleImageDoubleClick(event, q.id)
                           }
-                          onWheel={(event) => handleImageWheel(event, q.id)}
                         >
                           <Image
                             src={racine + q.image}
