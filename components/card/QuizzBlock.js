@@ -98,9 +98,13 @@ export default function Quizz({
 }) {
   const carouselRef = useRef(null);
   const preloadedImagesRef = useRef(new Set());
+  const imageWheelHandlersRef = useRef(new Map());
+  const lastTapRef = useRef(new Map());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
   const [hovered, setHovered] = useState(null);
+  const [zoomScales, setZoomScales] = useState({});
+  const [zoomOrigins, setZoomOrigins] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [scoreMessage, setScoreMessage] = useState("");
   const [historyMessage, setHistoryMessage] = useState("");
@@ -134,6 +138,113 @@ export default function Quizz({
   const handleSelect = (qid, value) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
+
+  const clampPercent = (value) => Math.max(0, Math.min(100, value));
+
+  const clampScale = (value) => Math.max(1, Math.min(3, value));
+
+  const toggleZoomAt = (qid, rect, clientX, clientY) => {
+    let origin = "50% 50%";
+    if (rect?.width && rect?.height) {
+      const x = clampPercent(((clientX - rect.left) / rect.width) * 100);
+      const y = clampPercent(((clientY - rect.top) / rect.height) * 100);
+      origin = `${x}% ${y}%`;
+    }
+    setZoomOrigins((prev) => ({ ...prev, [qid]: origin }));
+    setZoomScales((prev) => {
+      const currentScale = prev[qid] ?? 1;
+      const nextScale = currentScale > 1 ? 1 : 2;
+      return { ...prev, [qid]: nextScale };
+    });
+  };
+
+  const handleImageDoubleClick = (event, qid) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleZoomAt(qid, event.currentTarget.getBoundingClientRect(), event.clientX, event.clientY);
+  };
+
+  const handleImageTouchStart = (event, qid) => {
+    if (!event.touches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const now = Date.now();
+    const lastTap = lastTapRef.current.get(qid);
+    const isQuick = lastTap && now - lastTap.time <= 300;
+    const distance = lastTap
+      ? Math.hypot(touch.clientX - lastTap.x, touch.clientY - lastTap.y)
+      : Infinity;
+
+    if (isQuick && distance <= 24) {
+      event.preventDefault();
+      toggleZoomAt(
+        qid,
+        event.currentTarget.getBoundingClientRect(),
+        touch.clientX,
+        touch.clientY
+      );
+      lastTapRef.current.delete(qid);
+      return;
+    }
+
+    lastTapRef.current.set(qid, {
+      time: now,
+      x: touch.clientX,
+      y: touch.clientY,
+    });
+  };
+
+  const handleImageWheel = (event, qid) => {
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const target = event.currentTarget || event.target;
+    const rect = target?.getBoundingClientRect?.();
+    if (!rect) return;
+    if (rect.width && rect.height) {
+      const x = clampPercent(
+        ((event.clientX - rect.left) / rect.width) * 100
+      );
+      const y = clampPercent(
+        ((event.clientY - rect.top) / rect.height) * 100
+      );
+      setZoomOrigins((prev) => ({ ...prev, [qid]: `${x}% ${y}%` }));
+    }
+
+    const delta = event.deltaY < 0 ? 0.2 : -0.2;
+    setZoomScales((prev) => {
+      const currentScale = prev[qid] ?? 1;
+      const nextScale = clampScale(currentScale + delta);
+      return { ...prev, [qid]: nextScale };
+    });
+  };
+
+  const setImageContainerRef = (qid) => (node) => {
+    const existing = imageWheelHandlersRef.current.get(qid);
+    if (existing?.node && existing?.handler) {
+      existing.node.removeEventListener("wheel", existing.handler);
+      imageWheelHandlersRef.current.delete(qid);
+    }
+    if (!node) return;
+    const handler = (event) => handleImageWheel(event, qid);
+    node.addEventListener("wheel", handler, { passive: false });
+    imageWheelHandlersRef.current.set(qid, { node, handler });
+  };
+
+  useEffect(
+    () => () => {
+      imageWheelHandlersRef.current.forEach(({ node, handler }) => {
+        node.removeEventListener("wheel", handler);
+      });
+      imageWheelHandlersRef.current.clear();
+    },
+    []
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -425,6 +536,8 @@ export default function Quizz({
             {quizz.map((q) => {
               const { nodes: questionJsx, hasUnmatched: questionHasError } =
                 renderInlineKatex(q.question);
+              const scale = zoomScales[q.id] ?? 1;
+              const isZoomed = scale > 1;
               return (
                 <div
                   key={q.id}
@@ -447,7 +560,17 @@ export default function Quizz({
                             borderRadius: 8,
                             overflow: "hidden",
                             boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
+                            cursor: isZoomed ? "zoom-out" : "zoom-in",
+                            overscrollBehavior: "contain",
+                            touchAction: "manipulation",
                           }}
+                          ref={setImageContainerRef(q.id)}
+                          onDoubleClick={(event) =>
+                            handleImageDoubleClick(event, q.id)
+                          }
+                          onTouchStart={(event) =>
+                            handleImageTouchStart(event, q.id)
+                          }
                         >
                           <Image
                             src={racine + q.image}
@@ -459,8 +582,13 @@ export default function Quizz({
                               display: "block",
                               margin: 0,
                               transition: "transform 200ms ease",
-                              transform:
-                                hovered === q.id ? "scale(1.04)" : "scale(1)",
+                              transform: isZoomed
+                                ? `scale(${scale})`
+                                : hovered === q.id
+                                ? "scale(1.04)"
+                                : "scale(1)",
+                              transformOrigin:
+                                zoomOrigins[q.id] || "50% 50%",
                             }}
                             onMouseEnter={() => setHovered(q.id)}
                             onMouseLeave={() => setHovered(null)}

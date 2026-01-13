@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Layout, theme } from "antd";
+import { Layout, theme, Button } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 const { Content } = Layout;
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import Card from "./Card";
@@ -205,6 +206,7 @@ const App = ({ repertoire }) => {
                         onExpand={(tabKey) => handleExpand(key, tabKey)}
                         resetSignal={resetSignals[idx]}
                         onTabChangeExternal={() => handleExternalTabChange(idx)}
+                        contentHoverKeepsImage
                       />
                     </motion.div>
                   </motion.div>
@@ -272,6 +274,7 @@ const App = ({ repertoire }) => {
                         onExpand={(tabKey) => handleExpand(key, tabKey)}
                         resetSignal={resetSignals[idx]}
                         onTabChangeExternal={() => handleExternalTabChange(idx)}
+                        contentHoverKeepsImage
                       />
                     </motion.div>
                   </motion.div>
@@ -290,10 +293,31 @@ const App = ({ repertoire }) => {
               >
                 <motion.div
                   layoutId={`card-${expandedId}`}
-                  className="w-full max-w-5xl"
+                  className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-y-auto"
                   transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <motion.div
+                    style={{
+                      position: "absolute",
+                      top: 20,
+                      right: 20,
+                      zIndex: 50,
+                    }}
+                    whileHover={{ scale: 1.2 }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  >
+                    <Button
+                      type="text"
+                      shape="circle"
+                      icon={<CloseOutlined />}
+                      aria-label="Fermer la carte"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCollapse();
+                      }}
+                    />
+                  </motion.div>
                   <Card
                     {...expandedCard}
                     isExpanded={true}
@@ -302,6 +326,7 @@ const App = ({ repertoire }) => {
                     onTabChangeExternal={() =>
                       handleExternalTabChange(expandedIndex)
                     }
+                    contentHoverKeepsImage
                   />
                 </motion.div>
               </motion.div>
