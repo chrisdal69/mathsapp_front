@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 
@@ -82,6 +82,10 @@ const renderInlineKatex = (input) => {
 
 function Flip({ q, racine, index }) {
   const [flipped, setFlipped] = useState(false);
+  const imageWheelHandlersRef = useRef(new Map());
+  const flipWheelRef = useRef(null);
+  const [zoomScales, setZoomScales] = useState({});
+  const [zoomOrigins, setZoomOrigins] = useState({});
 
   const questionText = String(q?.question ?? "").trim();
   const answerText = String(q?.reponse ?? "").trim();
@@ -100,11 +104,89 @@ function Flip({ q, racine, index }) {
     letterSpacing: "0.02em",
   };
 
-  const renderFace = ({ text, imageSrc, imageAlt, isBack }) => {
+  const clampPercent = (value) => Math.max(0, Math.min(100, value));
+
+  const clampScale = (value) => Math.max(1, Math.min(3, value));
+
+  const handleImageWheel = (event, key) => {
+    if (!key) return;
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const target = event.currentTarget || event.target;
+    const rect = target?.getBoundingClientRect?.();
+    if (!rect) return;
+    if (rect.width && rect.height) {
+      const x = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
+      const y = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
+      setZoomOrigins((prev) => ({ ...prev, [key]: `${x}% ${y}%` }));
+    }
+
+    const delta = event.deltaY < 0 ? 0.2 : -0.2;
+    setZoomScales((prev) => {
+      const currentScale = prev[key] ?? 1;
+      const nextScale = clampScale(currentScale + delta);
+      return { ...prev, [key]: nextScale };
+    });
+  };
+
+  const setImageContainerRef = (key) => (node) => {
+    const existing = imageWheelHandlersRef.current.get(key);
+    if (existing?.node && existing?.handler) {
+      existing.node.removeEventListener("wheel", existing.handler);
+      imageWheelHandlersRef.current.delete(key);
+    }
+    if (!node) return;
+    const handler = (event) => handleImageWheel(event, key);
+    node.addEventListener("wheel", handler, { passive: false });
+    imageWheelHandlersRef.current.set(key, { node, handler });
+  };
+
+  useEffect(
+    () => () => {
+      imageWheelHandlersRef.current.forEach(({ node, handler }) => {
+        node.removeEventListener("wheel", handler);
+      });
+      imageWheelHandlersRef.current.clear();
+    },
+    []
+  );
+
+  useEffect(() => {
+    const node = flipWheelRef.current;
+    if (!node) return undefined;
+    const handler = (event) => {
+      const target = event.target;
+      if (!target?.closest?.("[data-zoom-wheel='true']")) return;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      if (typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+      }
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    };
+    node.addEventListener("wheel", handler, { passive: false });
+    return () => {
+      node.removeEventListener("wheel", handler);
+    };
+  }, []);
+
+  const renderFace = ({ text, imageSrc, imageAlt, isBack, zoomKey }) => {
     const hasText = text.length > 0;
     const hasImage = Boolean(imageSrc);
     const textOnly = hasText && !hasImage;
     const { nodes } = hasText ? renderInlineKatex(text) : { nodes: null };
+    const scale = zoomScales[zoomKey] ?? 1;
+    const isZoomed = scale > 1;
 
     const faceStyle = {
       backfaceVisibility: "hidden",
@@ -146,6 +228,10 @@ function Flip({ q, racine, index }) {
       flex: "1 1 0",
       minHeight: hasText ? 0 : "100%",
       height: hasText ? "auto" : "100%",
+      overflow: "hidden",
+      cursor: isZoomed ? "zoom-out" : "zoom-in",
+      overscrollBehavior: "contain",
+      touchAction: "manipulation",
     };
 
     return (
@@ -153,13 +239,22 @@ function Flip({ q, racine, index }) {
         <div style={contentStyle}>
           {hasText && <p style={textStyle}>{nodes}</p>}
           {hasImage && (
-            <div style={imageWrapperStyle}>
+            <div
+              style={imageWrapperStyle}
+              ref={setImageContainerRef(zoomKey)}
+              data-zoom-wheel="true"
+            >
               <Image
                 src={imageSrc}
                 alt={imageAlt}
                 fill
                 sizes="(max-width: 640px) 100vw, 300px"
-                style={{ objectFit: "contain" }}
+                style={{
+                  objectFit: "contain",
+                  transition: "transform 200ms ease",
+                  transform: isZoomed ? `scale(${scale})` : "scale(1)",
+                  transformOrigin: zoomOrigins[zoomKey] || "50% 50%",
+                }}
               />
             </div>
           )}
@@ -173,6 +268,7 @@ function Flip({ q, racine, index }) {
       <p style={labelStyle}>{labelText}</p>
       <div style={{ position: "relative", marginBottom: 0, width: "100%" }}>
         <motion.div
+          ref={flipWheelRef}
           onClick={() => setFlipped(!flipped)}
           style={{
             width: "100%",
@@ -199,12 +295,14 @@ function Flip({ q, racine, index }) {
             imageSrc: questionImage,
             imageAlt: "Image question",
             isBack: false,
+            zoomKey: "question",
           })}
           {renderFace({
             text: answerText,
             imageSrc: answerImage,
             imageAlt: "Image reponse",
             isBack: true,
+            zoomKey: "answer",
           })}
           </motion.div>
         </motion.div>
