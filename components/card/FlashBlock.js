@@ -20,7 +20,7 @@ export default function FlashBlock({
   }/${repertoire}/tag${num}/`;
   const racine = `https://storage.googleapis.com/${
     process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
-  }/${repertoire}/tag${num}/imagesQuizz/`;
+  }/${repertoire}/tag${num}/imagesFlash/`;
 
   const toBlurFile = (filename) => {
     const lastDot = filename.lastIndexOf(".");

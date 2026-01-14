@@ -3,18 +3,7 @@ import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Button,
-  Card,
-  Carousel,
-  Input,
-  message,
-  Popover,
-  Radio,
-  Select,
-  Tooltip,
-  Upload,
-} from "antd";
+import { Button, Card, Carousel, Input, message, Popover, Select, Tooltip, Upload } from "antd";
 import {
   CheckOutlined,
   CloseOutlined,
@@ -24,13 +13,12 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
-const MAX_QUIZZ_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_FLASH_IMAGE_BYTES = 4 * 1024 * 1024;
 const PREVIEW_IMAGE_WIDTH = 250;
 
 const parseInlineKatex = (input) => {
@@ -109,44 +97,20 @@ const renderInlineKatex = (input) => {
   return { nodes, hasUnmatched };
 };
 
-export default function FlashBlock({
-  num,
-  repertoire,
-  flash,
-  quizz,
-  evalQuizz,
-  resultatQuizz,
-  _id,
-  id,
-}) {
+export default function FlashBlock({ num, repertoire, flash, _id, id }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const carouselRef = useRef(null);
   const pendingSlideRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
-  const [quizzList, setQuizzList] = useState(Array.isArray(quizz) ? quizz : []);
-  const [localEvalQuizz, setLocalEvalQuizz] = useState(evalQuizz || "non");
-  const [localResultatQuizz, setLocalResultatQuizz] = useState(!!resultatQuizz);
-
-  const [addQuestionOpen, setAddQuestionOpen] = useState(false);
-  const [deleteQuestionOpen, setDeleteQuestionOpen] = useState(false);
-  const [questionInsertPos, setQuestionInsertPos] = useState("end");
-
-  const [editQuestion, setEditQuestion] = useState({ id: null, value: "" });
-  const [editOption, setEditOption] = useState({
-    qid: null,
-    index: null,
-    value: "",
-  });
-  const [optionInsert, setOptionInsert] = useState({
-    qid: null,
-    position: "end",
-    value: "",
-  });
+  const [flashList, setFlashList] = useState(Array.isArray(flash) ? flash : []);
+  const [addCardOpen, setAddCardOpen] = useState(false);
+  const [deleteCardOpen, setDeleteCardOpen] = useState(false);
+  const [insertPos, setInsertPos] = useState("end");
+  const [editText, setEditText] = useState({ id: null, field: null, value: "" });
   const [actionKey, setActionKey] = useState("");
   const [uploadingImageFor, setUploadingImageFor] = useState("");
-  const [imageRatios, setImageRatios] = useState({});
 
   const cardId = _id || id;
 
@@ -154,50 +118,45 @@ export default function FlashBlock({
     () =>
       `https://storage.googleapis.com/${
         process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
-      }/${repertoire}/tag${num}/imagesQuizz/`,
+      }/${repertoire}/tag${num}/imagesFlash/`,
     [repertoire, num]
   );
 
   useEffect(() => {
-    setQuizzList(Array.isArray(quizz) ? quizz : []);
-  }, [quizz]);
+    setFlashList(Array.isArray(flash) ? flash : []);
+  }, [flash]);
 
-  useEffect(() => {
-    setLocalEvalQuizz(evalQuizz || "non");
-  }, [evalQuizz]);
-
-  useEffect(() => {
-    setLocalResultatQuizz(!!resultatQuizz);
-  }, [resultatQuizz]);
-
-  // Reposition the carousel after the slide list changes (e.g. after adding a question).
   useEffect(() => {
     if (pendingSlideRef.current === null) return;
-    if (!quizzList.length) {
+    if (!flashList.length) {
       pendingSlideRef.current = null;
       return;
     }
     const targetIndex = Math.min(
       Math.max(0, pendingSlideRef.current),
-      quizzList.length - 1
+      flashList.length - 1
     );
     pendingSlideRef.current = null;
     setCurrent(targetIndex);
     carouselRef.current?.goTo(targetIndex);
-  }, [quizzList.length]);
+  }, [flashList.length]);
 
   const DOT = 10;
   const GAP = 20;
   const trackWidth =
-    (quizzList.length || 1) * DOT + Math.max(0, quizzList.length - 1) * GAP;
+    (flashList.length || 1) * DOT + Math.max(0, flashList.length - 1) * GAP;
 
-  const reindexQuizz = (list) =>
-    (Array.isArray(list) ? list : []).map((q, idx) => ({
-      ...q,
-      id: `q${idx + 1}`,
-      options: Array.isArray(q.options) ? q.options : [],
-      image: q.image || "",
-    }));
+  const reindexFlash = (list) =>
+    (Array.isArray(list) ? list : []).map((item, idx) => {
+      const trimmedId = typeof item?.id === "string" ? item.id.trim() : "";
+      return {
+        id: trimmedId || `f${idx + 1}`,
+        question: typeof item?.question === "string" ? item.question : "",
+        imquestion: typeof item?.imquestion === "string" ? item.imquestion : "",
+        reponse: typeof item?.reponse === "string" ? item.reponse : "",
+        imreponse: typeof item?.imreponse === "string" ? item.imreponse : "",
+      };
+    });
 
   const resolveInsertIndex = (list, pos) => {
     const length = Array.isArray(list) ? list.length : 0;
@@ -215,32 +174,13 @@ export default function FlashBlock({
 
   const isAction = (key) => actionKey === key;
 
-  const recordImageRatio = (questionId, image) => {
-    if (!questionId || !image) return;
-    const rawWidth = image.naturalWidth ?? image.width;
-    const rawHeight = image.naturalHeight ?? image.height;
-    const naturalWidth = Number(rawWidth);
-    const naturalHeight = Number(rawHeight);
-    if (!naturalWidth || !naturalHeight) return;
-    const ratio = Number((naturalWidth / naturalHeight).toFixed(4));
-    if (!Number.isFinite(ratio) || ratio <= 0) return;
-    setImageRatios((prev) => {
-      if (prev[questionId] === ratio) return prev;
-      return { ...prev, [questionId]: ratio };
-    });
-  };
-
-  const syncCardsStore = (updatedCard, fallbackQuizz) => {
+  const syncCardsStore = (updatedCard, fallbackFlash) => {
     if (!cardsData || !Array.isArray(cardsData.result)) return;
     const targetId = updatedCard?._id || updatedCard?.id || cardId;
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const targetRepertoire = updatedCard?.repertoire || repertoire;
-    const patch = updatedCard || {
-      quizz: fallbackQuizz,
-      evalQuizz: localEvalQuizz,
-      resultatQuizz: localResultatQuizz,
-    };
+    const patch = updatedCard || { flash: fallbackFlash };
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
@@ -259,9 +199,9 @@ export default function FlashBlock({
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
   };
 
-  const persistQuizz = async (
-    nextQuizz,
-    { evalValue, resultValue, successMessage } = {},
+  const persistFlash = async (
+    nextFlash,
+    { successMessage } = {},
     loadingKey = ""
   ) => {
     if (!cardId) {
@@ -270,15 +210,12 @@ export default function FlashBlock({
     }
 
     const payload = {
-      quizz: reindexQuizz(nextQuizz ?? quizzList),
-      evalQuizz: evalValue ?? localEvalQuizz,
-      resultatQuizz:
-        typeof resultValue === "boolean" ? resultValue : localResultatQuizz,
+      flash: reindexFlash(nextFlash ?? flashList),
     };
 
     setActionKey(loadingKey);
     try {
-      const response = await fetch(`${urlFetch}/quizzs/${cardId}`, {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/flash`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -286,7 +223,7 @@ export default function FlashBlock({
       });
       if (response.status === 401 || response.status === 403) {
         throw new Error(
-          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
         );
       }
       let data = null;
@@ -301,28 +238,18 @@ export default function FlashBlock({
         );
       }
       const updatedCard = data?.result;
-      if (updatedCard?.quizz) {
-        setQuizzList(Array.isArray(updatedCard.quizz) ? updatedCard.quizz : []);
+      if (updatedCard?.flash) {
+        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
       } else {
-        setQuizzList(payload.quizz);
+        setFlashList(payload.flash);
       }
-      if (updatedCard?.evalQuizz) {
-        setLocalEvalQuizz(updatedCard.evalQuizz);
-      } else if (evalValue) {
-        setLocalEvalQuizz(evalValue);
-      }
-      if (typeof updatedCard?.resultatQuizz !== "undefined") {
-        setLocalResultatQuizz(!!updatedCard.resultatQuizz);
-      } else if (typeof resultValue === "boolean") {
-        setLocalResultatQuizz(resultValue);
-      }
-      syncCardsStore(updatedCard, payload.quizz);
+      syncCardsStore(updatedCard, payload.flash);
       if (successMessage) {
         message.success(successMessage);
       }
       return true;
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde du quizz :", error);
+      console.error("Erreur lors de la sauvegarde des flash cards :", error);
       message.error(error.message || "Erreur lors de la sauvegarde.");
       return false;
     } finally {
@@ -336,191 +263,162 @@ export default function FlashBlock({
   };
 
   const handleNext = () => {
-    setCurrent((c) => Math.min(quizzList.length - 1, c + 1));
+    setCurrent((c) => Math.min(flashList.length - 1, c + 1));
     carouselRef.current?.next();
   };
 
-  const handleAddQuestion = async () => {
-    const insertIndex = resolveInsertIndex(quizzList, questionInsertPos);
-    pendingSlideRef.current = insertIndex;
-    const blank = {
-      id: "",
-      question: "",
-      image: "",
-      options: [],
-      correct: null,
-    };
-    const next = [...quizzList];
-    next.splice(insertIndex, 0, blank);
-    const ok = await persistQuizz(
-      next,
-      { successMessage: "Question ajoutee." },
-      "add-question"
-    );
-    if (ok) {
-      setAddQuestionOpen(false);
-      setQuestionInsertPos("end");
-      setCurrent(insertIndex);
-      carouselRef.current?.goTo(insertIndex);
-    } else {
-      pendingSlideRef.current = null;
-    }
-  };
-
-  const handleDeleteQuestion = async () => {
-    if (!quizzList.length) {
-      setDeleteQuestionOpen(false);
+  const handleAddCard = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
       return;
     }
-    const next = quizzList.filter((_, idx) => idx !== current);
-    const ok = await persistQuizz(
-      next,
-      { successMessage: "Question supprimee." },
-      "delete-question"
-    );
-    if (ok) {
-      const nextIndex = Math.max(0, current - 1);
-      setCurrent(nextIndex);
-      carouselRef.current?.goTo(nextIndex);
-      setDeleteQuestionOpen(false);
-    }
-  };
-
-  const handleSaveQuestion = async (qid, valueOverride) => {
-    const targetId = qid || editQuestion.id;
-    if (!targetId) return;
-    const fallbackQuestion =
-      quizzList.find((q) => q.id === targetId)?.question || "";
-    const value = (
-      valueOverride ??
-      editQuestion.value ??
-      fallbackQuestion
-    ).trim();
-    const next = quizzList.map((q) =>
-      q.id === targetId ? { ...q, question: value } : q
-    );
-    const ok = await persistQuizz(
-      next,
-      { successMessage: "Intitule mis a jour." },
-      getActionKey("question", targetId)
-    );
-    if (ok) {
-      setEditQuestion({ id: null, value: "" });
-    }
-  };
-
-  const handleAddOption = async () => {
-    if (!optionInsert.qid) return;
-    const value = optionInsert.value || "";
-    const next = quizzList.map((q) => {
-      if (q.id !== optionInsert.qid) return q;
-      const insertIndex = resolveInsertIndex(
-        q.options || [],
-        optionInsert.position
-      );
-      const options = Array.isArray(q.options) ? [...q.options] : [];
-      const adjustedCorrect =
-        Number.isInteger(q.correct) && q.correct >= insertIndex
-          ? q.correct + 1
-          : q.correct;
-      options.splice(insertIndex, 0, value);
-      return { ...q, options, correct: adjustedCorrect };
-    });
-    const ok = await persistQuizz(
-      next,
-      { successMessage: "Option ajoutee." },
-      getActionKey("add-option", optionInsert.qid)
-    );
-    if (ok) {
-      setOptionInsert({ qid: null, position: "end", value: "" });
-    }
-  };
-
-  const handleEditOption = async () => {
-    if (!editOption.qid || editOption.index === null) return;
-    const value = editOption.value || "";
-    const next = quizzList.map((q) => {
-      if (q.id !== editOption.qid) return q;
-      const options = Array.isArray(q.options) ? [...q.options] : [];
-      options[editOption.index] = value;
-      return { ...q, options };
-    });
-    const ok = await persistQuizz(
-      next,
-      { successMessage: "Option mise a jour." },
-      getActionKey("edit-option", editOption.qid, editOption.index)
-    );
-    if (ok) {
-      setEditOption({ qid: null, index: null, value: "" });
-    }
-  };
-
-  const handleDeleteOption = async (qid, index) => {
-    const next = quizzList.map((q) => {
-      if (q.id !== qid) return q;
-      const options = Array.isArray(q.options)
-        ? q.options.filter((_, idx) => idx !== index)
-        : [];
-      let correct = q.correct;
-      if (Number.isInteger(correct)) {
-        if (correct === index) {
-          correct = null;
-        } else if (correct > index) {
-          correct = correct - 1;
-        }
+    const insertIndex = resolveInsertIndex(flashList, insertPos);
+    pendingSlideRef.current = insertIndex;
+    setActionKey("add-flash");
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/flash`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ position: insertPos }),
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
+        );
       }
-      return { ...q, options, correct };
-    });
-    await persistQuizz(
-      next,
-      { successMessage: "Option supprimee." },
-      getActionKey("delete-option", qid, index)
-    );
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible d'ajouter la flash card.");
+      }
+      const updatedCard = data?.result;
+      if (updatedCard?.flash) {
+        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
+        syncCardsStore(updatedCard, updatedCard.flash);
+      }
+      message.success("Flash card ajoutee.");
+      setAddCardOpen(false);
+      setInsertPos("end");
+    } catch (error) {
+      console.error("Erreur lors de l'ajout d'une flash card :", error);
+      message.error(error.message || "Erreur lors de l'ajout.");
+      pendingSlideRef.current = null;
+    } finally {
+      setActionKey("");
+    }
   };
 
-  const handleSelectCorrect = async (qid, optionIndex) => {
-    const next = quizzList.map((q) =>
-      q.id === qid ? { ...q, correct: optionIndex } : q
-    );
-    await persistQuizz(
-      next,
-      { successMessage: "Reponse correcte mise a jour." },
-      getActionKey("correct", qid, optionIndex)
-    );
+  const handleDeleteCard = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    if (!flashList.length) {
+      setDeleteCardOpen(false);
+      return;
+    }
+    const nextIndex = Math.max(0, current - 1);
+    pendingSlideRef.current = nextIndex;
+    setActionKey("delete-flash");
+    try {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/flash`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          index: current,
+          flashId: flashList[current]?.id,
+        }),
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
+        );
+      }
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_) {}
+      if (!response.ok) {
+        throw new Error(data?.error || "Impossible de supprimer la flash card.");
+      }
+      const updatedCard = data?.result;
+      if (updatedCard?.flash) {
+        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
+        syncCardsStore(updatedCard, updatedCard.flash);
+      }
+      message.success("Flash card supprimee.");
+      setDeleteCardOpen(false);
+    } catch (error) {
+      console.error("Erreur lors de la suppression d'une flash card :", error);
+      message.error(error.message || "Erreur lors de la suppression.");
+      pendingSlideRef.current = null;
+    } finally {
+      setActionKey("");
+    }
   };
 
-  const handleUploadImage = async (question, file) => {
-    if (!question?.id || !file) return;
+  const handleSaveText = async (flashId, field, valueOverride) => {
+    if (!flashId || !field) return;
+    const fallbackValue =
+      flashList.find((q) => q.id === flashId)?.[field] || "";
+    const value = (valueOverride ?? editText.value ?? fallbackValue).trim();
+    const next = flashList.map((q) =>
+      q.id === flashId ? { ...q, [field]: value } : q
+    );
+    const ok = await persistFlash(
+      next,
+      {
+        successMessage:
+          field === "question"
+            ? "Question mise a jour."
+            : "Reponse mise a jour.",
+      },
+      getActionKey(field, flashId)
+    );
+    if (ok) {
+      setEditText({ id: null, field: null, value: "" });
+    }
+  };
+
+  const handleUploadImage = async (flashItem, field, file) => {
+    if (!flashItem?.id || !file || !field) return;
     const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
     if (!ALLOWED_IMAGE_EXT.includes(ext)) {
       message.error("Image non autorisee (jpg ou png).");
       return;
     }
-    if (file.size && file.size > MAX_QUIZZ_IMAGE_BYTES) {
-      message.error("Fichier trop volumineux (4 Mo max)");
+    if (file.size && file.size > MAX_FLASH_IMAGE_BYTES) {
+      message.error("Fichier trop volumineux (4 Mo max).");
       return;
     }
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
       return;
     }
-    setUploadingImageFor(question.id);
+
+    const uploadKey = getActionKey("upload", flashItem.id, field);
+    setUploadingImageFor(uploadKey);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("questionId", question.id);
+    formData.append("flashId", flashItem.id);
+    formData.append("field", field);
     formData.append("repertoire", repertoire || "");
     formData.append("num", `${num}`);
 
     try {
-      const response = await fetch(`${urlFetch}/quizzs/${cardId}/image`, {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/flash/image`, {
         method: "POST",
         credentials: "include",
         body: formData,
       });
       if (response.status === 401 || response.status === 403) {
         throw new Error(
-          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
         );
       }
       let data = null;
@@ -531,44 +429,45 @@ export default function FlashBlock({
         throw new Error(data?.error || "Upload impossible.");
       }
       const updatedCard = data?.result;
-      if (updatedCard?.quizz) {
-        setQuizzList(Array.isArray(updatedCard.quizz) ? updatedCard.quizz : []);
-        syncCardsStore(updatedCard, updatedCard.quizz);
+      if (updatedCard?.flash) {
+        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
+        syncCardsStore(updatedCard, updatedCard.flash);
       }
       message.success("Image importee.");
     } catch (error) {
-      console.error("Erreur upload image quizz", error);
+      console.error("Erreur upload image flash", error);
       message.error(error.message || "Erreur lors de l'upload.");
     } finally {
       setUploadingImageFor("");
     }
   };
 
-  const handleDeleteImage = async (question) => {
-    if (!question?.id || !question?.image) {
+  const handleDeleteImage = async (flashItem, field) => {
+    if (!flashItem?.id || !field || !flashItem?.[field]) {
       return;
     }
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
       return;
     }
-    const key = getActionKey("delete-image", question.id);
+    const key = getActionKey("delete-image", flashItem.id, field);
     setActionKey(key);
     try {
-      const response = await fetch(`${urlFetch}/quizzs/${cardId}/image`, {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/flash/image`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          questionId: question.id,
-          image: question.image,
+          flashId: flashItem.id,
+          field,
+          image: flashItem[field],
           repertoire: repertoire || "",
           num,
         }),
       });
       if (response.status === 401 || response.status === 403) {
         throw new Error(
-          "Session expirée ou droits insuffisants. Merci de vous reconnecter."
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
         );
       }
       let data = null;
@@ -579,21 +478,23 @@ export default function FlashBlock({
         throw new Error(data?.error || "Suppression impossible.");
       }
       const updatedCard = data?.result;
-      if (updatedCard?.quizz) {
-        setQuizzList(Array.isArray(updatedCard.quizz) ? updatedCard.quizz : []);
-        syncCardsStore(updatedCard, updatedCard.quizz);
+      if (updatedCard?.flash) {
+        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
+        syncCardsStore(updatedCard, updatedCard.flash);
       }
       message.success("Image supprimee.");
     } catch (error) {
-      console.error("Erreur suppression image quizz", error);
+      console.error("Erreur suppression image flash", error);
       message.error(error.message || "Erreur lors de la suppression.");
     } finally {
       setActionKey("");
     }
   };
 
-  const handlePasteImage = (question, event) => {
-    if (!question?.id || uploadingImageFor === question.id) return;
+  const handlePasteImage = (flashItem, field, event) => {
+    if (!flashItem?.id || !field) return;
+    const uploadKey = getActionKey("upload", flashItem.id, field);
+    if (uploadingImageFor === uploadKey) return;
     const items = Array.from(event.clipboardData?.items || []);
     const imageItem = items.find((item) => item.type?.startsWith("image/"));
     if (!imageItem) return;
@@ -620,11 +521,13 @@ export default function FlashBlock({
         ? blob.name
         : `capture-${Date.now()}${ext}`;
     const file = new File([blob], name, { type: mime });
-    handleUploadImage(question, file);
+    handleUploadImage(flashItem, field, file);
   };
 
-  const handlePasteFromClipboard = async (question) => {
-    if (!question?.id || uploadingImageFor === question.id) return;
+  const handlePasteFromClipboard = async (flashItem, field) => {
+    if (!flashItem?.id || !field) return;
+    const uploadKey = getActionKey("upload", flashItem.id, field);
+    if (uploadingImageFor === uploadKey) return;
     if (!navigator?.clipboard?.read) {
       message.error(
         "Le collage direct n'est pas disponible sur ce navigateur."
@@ -658,9 +561,9 @@ export default function FlashBlock({
       }
       const name = `capture-${Date.now()}${ext}`;
       const file = new File([blob], name, { type: mime });
-      handleUploadImage(question, file);
+      handleUploadImage(flashItem, field, file);
     } catch (error) {
-      console.error("Erreur collage image quizz", error);
+      console.error("Erreur collage image flash", error);
       message.error("Erreur lors du collage.");
     }
   };
@@ -668,626 +571,425 @@ export default function FlashBlock({
   useEffect(() => {
     const handlePaste = (event) => {
       const active = document.activeElement;
-      const indexAttr = active?.getAttribute?.("data-upload-question-index");
+      const indexAttr = active?.getAttribute?.("data-upload-flash-index");
+      const fieldAttr = active?.getAttribute?.("data-upload-flash-field");
       if (indexAttr === null || typeof indexAttr === "undefined") return;
+      if (fieldAttr !== "imquestion" && fieldAttr !== "imreponse") return;
       const index = Number(indexAttr);
       if (Number.isNaN(index)) return;
-      const question = quizzList[index];
-      if (!question) return;
-      handlePasteImage(question, event);
+      const item = flashList[index];
+      if (!item) return;
+      handlePasteImage(item, fieldAttr, event);
     };
 
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [quizzList, handlePasteImage]);
+  }, [flashList, handlePasteImage]);
 
-  const questionInsertionOptions = useMemo(() => {
+  const insertionOptions = useMemo(() => {
     const options = [{ value: "start", label: "Debut (avant la premiere)" }];
-    quizzList.forEach((q, idx) =>
-      options.push({ value: idx, label: `Apres question ${idx + 1}` })
+    flashList.forEach((_, idx) =>
+      options.push({ value: idx, label: `Apres carte ${idx + 1}` })
     );
     options.push({ value: "end", label: "Fin (apres la derniere)" });
     return options;
-  }, [quizzList]);
+  }, [flashList]);
 
-  const optionInsertionOptions = (q) => {
-    const opts = [{ value: "start", label: "Debut (avant la premiere)" }];
-    (q.options || []).forEach((_, idx) =>
-      opts.push({ value: idx, label: `Apres option ${idx + 1}` })
-    );
-    opts.push({ value: "end", label: "Fin (apres la derniere)" });
-    return opts;
-  };
-
-  const buildUploadProps = (question) => ({
+  const buildUploadProps = (flashItem, field) => ({
     accept: ALLOWED_IMAGE_EXT.join(","),
-    maxCount: 1,
-    beforeUpload: (file) => {
-      handleUploadImage(question, file);
-      return Upload.LIST_IGNORE;
-    },
     showUploadList: false,
+    beforeUpload: (file) => {
+      handleUploadImage(flashItem, field, file);
+      return false;
+    },
   });
 
   return (
     <div className="relative w-full">
-      {actionKey && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
-          <ClimbingBoxLoader color="#2563eb" size={12} />
-        </div>
-      )}
-
-      {/* Barre de progression */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 12,
-          marginTop: 12,
-          gap: 5,
-          padding: "1px 0px 0px 1px ",
-          maxWidth: "100%",
-        }}
-      >
-        {current > 0 && quizzList.length > 0 && (
-          <Tooltip title="Question pr\u00e9c\u00e9dente" mouseEnterDelay={0.3}>
-            <Button
-              type="default"
-              shape="circle"
-              onClick={handlePrev}
-              style={{
-                position: "relative",
-                top: "14px",
-                zIndex: 2,
-                background: "#fff",
-                transform: "translateY(-50%)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-              }}
-              aria-label="Precedent"
-            >
-              <ChevronLeft size={18} />
-            </Button>
-          </Tooltip>
-        )}
-
+      <div className="relative z-20 p-4">
         <div
           style={{
-            position: "relative",
-            width: "80%",
-            maxWidth: 500,
-            height: 24,
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            position: "relative",
           }}
         >
           <div
             style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              top: "50%",
-              height: 2,
-              background: "#e5e5e5",
-              transform: "translateY(-50%)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              height: "100%",
               width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: 4,
+              marginTop: 14,
             }}
           >
-            {quizzList.map((q, idx) => {
-              const isCurrent = idx === current;
-              const size = DOT + 4;
-              const bg = isCurrent ? "#595959" : "#1890ff";
-              return (
-                <div
-                  key={q.id || idx}
-                  role="button"
-                  onClick={() => {
-                    setCurrent(idx);
-                    carouselRef.current?.goTo(idx);
-                  }}
-                  style={{
-                    width: size,
-                    height: size,
-                    borderRadius: "50%",
-                    backgroundColor: bg,
-                    border: "1px solid #bfbfbf",
-                    boxSizing: "border-box",
-                    cursor: "pointer",
-                  }}
-                  aria-label={`Aller a la question ${idx + 1}`}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {current < quizzList.length - 1 && quizzList.length > 0 && (
-          <Tooltip title="Question suivante" mouseEnterDelay={0.3}>
-            <Button
-              type="default"
-              shape="circle"
-              onClick={handleNext}
+            {current > 0 && flashList.length > 0 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handlePrev}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginRight: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Precedent"
+              >
+                <ChevronLeft size={18} />
+              </Button>
+            )}
+            <div
               style={{
                 position: "relative",
-                top: "14px",
-                zIndex: 2,
-                background: "#fff",
-                transform: "translateY(-50%)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                width: trackWidth,
+                height: 12,
               }}
-              aria-label="Suivant"
             >
-              <ChevronRight size={18} />
-            </Button>
-          </Tooltip>
-        )}
-      </div>
-
-      {/* Actions question */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Popover
-          trigger="click"
-          open={addQuestionOpen}
-          onOpenChange={setAddQuestionOpen}
-          content={
-            <div className="w-72 space-y-2">
-              <p className="m-0 text-sm text-gray-700">
-                Choisir l'emplacement de la nouvelle question.
-              </p>
-              <Select
-                className="w-full"
-                value={questionInsertPos}
-                options={questionInsertionOptions}
-                onChange={setQuestionInsertPos}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  top: "50%",
+                  height: 1,
+                  background: "#e5e5e5",
+                  transform: "translateY(-50%)",
+                }}
               />
-              <div className="flex justify-end gap-2">
-                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
-                  <Button
-                    size="small"
-                    icon={<CloseOutlined />}
-                    onClick={() => setAddQuestionOpen(false)}
-                  >
-                    Annuler
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Valider l'ajout" mouseEnterDelay={0.3}>
-                  <Button
-                    size="small"
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    loading={isAction("add-question")}
-                    onClick={handleAddQuestion}
-                  >
-                    Ajouter
-                  </Button>
-                </Tooltip>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  height: "100%",
+                }}
+              >
+                {flashList.map((q, idx) => {
+                  const isCurrent = idx === current;
+                  const size = isCurrent ? DOT + 4 : DOT;
+                  const dotColor = isCurrent ? "#595959" : "#d9d9d9";
+                  return (
+                    <div
+                      key={q.id || `flash-${idx}`}
+                      role="button"
+                      onClick={() => {
+                        setCurrent(idx);
+                        carouselRef.current?.goTo(idx);
+                      }}
+                      style={{
+                        width: size,
+                        height: size,
+                        borderRadius: "50%",
+                        backgroundColor: dotColor,
+                        border: "1px solid #bfbfbf",
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                      }}
+                      aria-label={`Aller a la carte ${idx + 1}`}
+                    />
+                  );
+                })}
               </div>
             </div>
-          }
-        >
-          <Tooltip title="Ajouter une nouvelle question" mouseEnterDelay={0.3}>
-            <Button type="primary" icon={<PlusOutlined />}>
-              Ajouter une Flash Card
-            </Button>
-          </Tooltip>
-        </Popover>
+            {current < flashList.length - 1 && flashList.length > 0 && (
+              <Button
+                type="default"
+                shape="circle"
+                onClick={handleNext}
+                style={{
+                  position: "relative",
+                  top: "3px",
+                  marginLeft: "20px",
+                  zIndex: 2,
+                  background: "#fff",
+                  transform: "translateY(-50%)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}
+                aria-label="Suivant"
+              >
+                <ChevronRight size={18} />
+              </Button>
+            )}
+          </div>
 
-        <Popover
-          trigger="click"
-          open={deleteQuestionOpen}
-          onOpenChange={setDeleteQuestionOpen}
-          content={
-            <div className="w-64 space-y-2">
-              <p className="m-0 text-sm text-gray-700">
-                Supprimer completement la Flash Card {current + 1} ?
-              </p>
-              <div className="flex justify-end gap-2">
-                <Tooltip title="Annuler" mouseEnterDelay={0.3}>
-                  <Button
+          <div className="flex flex-wrap items-center justify-center gap-2 pb-3">
+            <Popover
+              placement="bottom"
+              trigger="click"
+              open={addCardOpen}
+              onOpenChange={(visible) => setAddCardOpen(visible)}
+              content={
+                <div className="flex flex-col gap-2" style={{ maxWidth: 260 }}>
+                  <p className="text-sm">
+                    Choisir l'emplacement de la nouvelle flash card.
+                  </p>
+                  <Select
                     size="small"
-                    icon={<CloseOutlined />}
-                    onClick={() => setDeleteQuestionOpen(false)}
-                  >
-                    Annuler
-                  </Button>
-                </Tooltip>
-                <Tooltip title="Supprimer cette question" mouseEnterDelay={0.3}>
-                  <Button
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    loading={isAction("delete-question")}
-                    onClick={handleDeleteQuestion}
-                  >
-                    Supprimer
-                  </Button>
-                </Tooltip>
-              </div>
-            </div>
-          }
-        >
-          <Tooltip title="Supprimer la question courante" mouseEnterDelay={0.3}>
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              disabled={!quizzList.length}
+                    value={insertPos}
+                    options={insertionOptions}
+                    onChange={(value) => setInsertPos(value)}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="small" onClick={() => setAddCardOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      loading={isAction("add-flash")}
+                      onClick={handleAddCard}
+                    >
+                      Ajouter
+                    </Button>
+                  </div>
+                </div>
+              }
             >
-              Supprimer la question
-            </Button>
-          </Tooltip>
-        </Popover>
-      </div>
+              <Tooltip title="Ajouter une flash card" mouseEnterDelay={0.3}>
+                <Button type="dashed" icon={<PlusOutlined />}>
+                  Ajouter une Flash Card
+                </Button>
+              </Tooltip>
+            </Popover>
 
-      {/* Carousel responsive */}
-      <div className="w-full flex justify-center px-2 sm:px-4">
-        <div style={{ width: "100%", maxWidth: 1200 }}>
-          <Carousel
-            ref={carouselRef}
-            dots
-            swipe
-            draggable
-            infinite={false}
-            beforeChange={(_, to) => setCurrent(to)}
-            afterChange={(i) => setCurrent(i)}
-            adaptiveHeight
-            className="w-full"
-          >
-            {quizzList.map((q, idx) => {
-              const initialQuestionValue = q.question || "";
-              const isEditingQuestion = editQuestion.id === q.id;
-              const questionValue = isEditingQuestion
-                ? editQuestion.value
-                : initialQuestionValue;
-              const isQuestionEmpty = !questionValue.trim();
-              const hasQuestionChanged = questionValue !== initialQuestionValue;
-              const disableQuestionSave =
-                isQuestionEmpty || !hasQuestionChanged;
-              const { nodes: questionNodes, hasUnmatched: questionHasError } =
-                renderInlineKatex(questionValue);
-              const ratio = imageRatios[q.id];
-              const previewHeight = ratio
-                ? Math.max(1, Math.round(PREVIEW_IMAGE_WIDTH / ratio))
-                : PREVIEW_IMAGE_WIDTH;
-              return (
-                <div
-                  key={q.id || idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    width: "100%",
-                  }}
+            <Popover
+              placement="bottom"
+              trigger="click"
+              open={deleteCardOpen}
+              onOpenChange={(visible) => setDeleteCardOpen(visible)}
+              content={
+                <div className="flex flex-col gap-2" style={{ maxWidth: 260 }}>
+                  <p className="text-sm">Supprimer la flash card courante ?</p>
+                  <div className="flex justify-end gap-2">
+                    <Button size="small" onClick={() => setDeleteCardOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button
+                      size="small"
+                      danger
+                      type="primary"
+                      icon={<DeleteOutlined />}
+                      loading={isAction("delete-flash")}
+                      onClick={handleDeleteCard}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
+              }
+            >
+              <Tooltip title="Supprimer la flash card" mouseEnterDelay={0.3}>
+                <Button
+                  danger
+                  type="primary"
+                  icon={<DeleteOutlined />}
+                  disabled={!flashList.length}
                 >
-                  <Card
-                    style={{
-                      margin: "8px auto",
-                      width: "100%",
-                      maxWidth: "1100px",
-                      minWidth: "280px",
-                      padding: "8px",
-                    }}
-                    title={
-                      <div className="flex w-full flex-col gap-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <label className="text-sm font-normal text-gray-700">
-                            Question {idx + 1} ({q.id || `q${idx + 1}`}) :
-                          </label>
-                          <Popover
-                            trigger="click"
-                            open={isEditingQuestion}
-                            onOpenChange={(visible) => {
-                              if (visible) {
-                                setEditQuestion({
-                                  id: q.id,
-                                  value: initialQuestionValue,
-                                });
-                              } else if (isEditingQuestion) {
-                                setEditQuestion({ id: null, value: "" });
-                              }
-                            }}
-                            content={
-                              <div className="w-80 space-y-2">
-                                <Input.TextArea
-                                  autoSize={{ minRows: 3, maxRows: 6 }}
-                                  className="!font-normal"
-                                  value={questionValue}
-                                  maxLength={500}
-                                  placeholder="Texte et formules avec $...$"
-                                  onChange={(e) =>
-                                    setEditQuestion({
-                                      id: q.id,
-                                      value: e.target.value,
-                                    })
-                                  }
-                                />
-                                <p className="text-xs text-gray-500">
-                                  Utiliser $...$ pour les formules inline.
-                                </p>
-                                <div className="flex justify-end gap-2">
-                                  <Tooltip
-                                    title="Annuler"
-                                    mouseEnterDelay={0.3}
-                                  >
-                                    <Button
-                                      size="small"
-                                      icon={<CloseOutlined />}
-                                      onClick={() =>
-                                        setEditQuestion({ id: null, value: "" })
-                                      }
-                                    >
-                                      Annuler
-                                    </Button>
-                                  </Tooltip>
-                                  <Tooltip
-                                    title="Valider la modification"
-                                    mouseEnterDelay={0.3}
-                                  >
-                                    <Button
-                                      size="small"
-                                      type="primary"
-                                      icon={<CheckOutlined />}
-                                      loading={isAction(
-                                        getActionKey("question", q.id)
-                                      )}
-                                      disabled={disableQuestionSave}
-                                      onClick={() =>
-                                        handleSaveQuestion(q.id, questionValue)
-                                      }
-                                    >
-                                      Valider
-                                    </Button>
-                                  </Tooltip>
-                                </div>
-                              </div>
-                            }
-                          >
-                            <Tooltip
-                              title={
-                                isQuestionEmpty
-                                  ? "Saisir la question"
-                                  : "Modifier la question"
-                              }
-                              mouseEnterDelay={0.3}
-                            >
-                              <Button size="small" icon={<EditOutlined />} />
-                            </Tooltip>
-                          </Popover>
-                        </div>
-                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
-                          {isQuestionEmpty ? (
-                            <span className="text-gray-400">
-                              Aucun intitule
-                            </span>
-                          ) : (
-                            questionNodes
-                          )}
-                          {questionHasError && (
-                            <span
-                              style={{
-                                color: "#ff4d4f",
-                                marginLeft: 6,
-                                fontSize: 12,
-                              }}
-                            >
-                              ($ non ferme)
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-start justify-between gap-2">
-                          <label className="text-sm font-normal text-gray-700">
-                            Réponse {idx + 1} ({q.id || `q${idx + 1}`}) :
-                          </label>
-                          <Popover
-                            trigger="click"
-                            open={isEditingQuestion}
-                            onOpenChange={(visible) => {
-                              if (visible) {
-                                setEditQuestion({
-                                  id: q.id,
-                                  value: initialQuestionValue,
-                                });
-                              } else if (isEditingQuestion) {
-                                setEditQuestion({ id: null, value: "" });
-                              }
-                            }}
-                            content={
-                              <div className="w-80 space-y-2">
-                                <Input.TextArea
-                                  autoSize={{ minRows: 3, maxRows: 6 }}
-                                  className="!font-normal"
-                                  value={questionValue}
-                                  maxLength={500}
-                                  placeholder="Texte et formules avec $...$"
-                                  onChange={(e) =>
-                                    setEditQuestion({
-                                      id: q.id,
-                                      value: e.target.value,
-                                    })
-                                  }
-                                />
-                                <p className="text-xs text-gray-500">
-                                  Utiliser $...$ pour les formules inline.
-                                </p>
-                                <div className="flex justify-end gap-2">
-                                  <Tooltip
-                                    title="Annuler"
-                                    mouseEnterDelay={0.3}
-                                  >
-                                    <Button
-                                      size="small"
-                                      icon={<CloseOutlined />}
-                                      onClick={() =>
-                                        setEditQuestion({ id: null, value: "" })
-                                      }
-                                    >
-                                      Annuler
-                                    </Button>
-                                  </Tooltip>
-                                  <Tooltip
-                                    title="Valider la modification"
-                                    mouseEnterDelay={0.3}
-                                  >
-                                    <Button
-                                      size="small"
-                                      type="primary"
-                                      icon={<CheckOutlined />}
-                                      loading={isAction(
-                                        getActionKey("question", q.id)
-                                      )}
-                                      disabled={disableQuestionSave}
-                                      onClick={() =>
-                                        handleSaveQuestion(q.id, questionValue)
-                                      }
-                                    >
-                                      Valider
-                                    </Button>
-                                  </Tooltip>
-                                </div>
-                              </div>
-                            }
-                          >
-                            <Tooltip
-                              title={
-                                isQuestionEmpty
-                                  ? "Saisir la question"
-                                  : "Modifier la question"
-                              }
-                              mouseEnterDelay={0.3}
-                            >
-                              <Button size="small" icon={<EditOutlined />} />
-                            </Tooltip>
-                          </Popover>
-                        </div>
-                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
-                          {isQuestionEmpty ? (
-                            <span className="text-gray-400">
-                              Aucun intitule
-                            </span>
-                          ) : (
-                            questionNodes
-                          )}
-                          {questionHasError && (
-                            <span
-                              style={{
-                                color: "#ff4d4f",
-                                marginLeft: 6,
-                                fontSize: 12,
-                              }}
-                            >
-                              ($ non ferme)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                    }
+                  Supprimer cette Flash Card
+                </Button>
+              </Tooltip>
+            </Popover>
+          </div>
+
+          {flashList.length === 0 ? (
+            <Card className="w-full max-w-2xl text-center">
+              <p className="text-sm text-gray-500">Aucune flash card.</p>
+            </Card>
+          ) : (
+            <Carousel
+              ref={carouselRef}
+              dots
+              swipe
+              draggable
+              infinite={false}
+              beforeChange={(_, to) => setCurrent(to)}
+              afterChange={(i) => setCurrent(i)}
+              adaptiveHeight
+              className="max-w-xs sm:max-w-2xl"
+            >
+              {flashList.map((q, idx) => {
+                const initialQuestionValue = q.question || "";
+                const initialReponseValue = q.reponse || "";
+                const isEditingQuestion =
+                  editText.id === q.id && editText.field === "question";
+                const isEditingReponse =
+                  editText.id === q.id && editText.field === "reponse";
+                const questionValue = isEditingQuestion
+                  ? editText.value
+                  : initialQuestionValue;
+                const reponseValue = isEditingReponse
+                  ? editText.value
+                  : initialReponseValue;
+                const isQuestionEmpty = !questionValue.trim();
+                const isReponseEmpty = !reponseValue.trim();
+                const hasQuestionChanged =
+                  questionValue !== initialQuestionValue;
+                const hasReponseChanged = reponseValue !== initialReponseValue;
+                const { nodes: questionNodes, hasUnmatched: questionHasError } =
+                  renderInlineKatex(questionValue);
+                const { nodes: reponseNodes, hasUnmatched: reponseHasError } =
+                  renderInlineKatex(reponseValue);
+                const questionImageKey = getActionKey(
+                  "upload",
+                  q.id,
+                  "imquestion"
+                );
+                const reponseImageKey = getActionKey(
+                  "upload",
+                  q.id,
+                  "imreponse"
+                );
+                return (
+                  <div
+                    key={q.id || `flash-${idx}`}
+                    style={{ display: "flex", justifyContent: "center" }}
                   >
-                    <div className="flex">
-                      <div className="grid gap-4 md:grid-cols-2 ">
-                        <div className="space-y-3">
-                          <div className=" space-y-2">
-                            <div className=" flex items-center justify-between">
-                              <p className="text-sm font-semibold text-gray-700">
-                                Question
-                              </p>
-                              <div className="flex gap-2">
-                                <Upload {...buildUploadProps(q)}>
-                                  <Tooltip
-                                    title="Importer une image"
-                                    mouseEnterDelay={0.3}
-                                  >
-                                    <Button
-                                      size="small"
-                                      icon={<UploadOutlined />}
-                                      loading={uploadingImageFor === q.id}
-                                      data-upload-question-index={idx}
-                                    >
-                                      Uploader
-                                    </Button>
-                                  </Tooltip>
-                                </Upload>
-                                <Tooltip
-                                  title="Coller une image"
-                                  mouseEnterDelay={0.3}
-                                >
-                                  <Button
-                                    size="small"
-                                    onClick={() => handlePasteFromClipboard(q)}
-                                    disabled={uploadingImageFor === q.id}
-                                  >
-                                    Coller
-                                  </Button>
-                                </Tooltip>
-                                <Tooltip
-                                  title="Supprimer l'image"
-                                  mouseEnterDelay={0.3}
-                                >
-                                  <Button
-                                    size="small"
-                                    danger
-                                    icon={<DeleteOutlined />}
-                                    loading={isAction(
-                                      getActionKey("delete-image", q.id)
-                                    )}
-                                    disabled={!q.image}
-                                    onClick={() => handleDeleteImage(q)}
-                                  />
-                                </Tooltip>
-                              </div>
-                            </div>
-                            <div
-                              className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
-                              style={{
-                                width: "90%",
-                                //maxWidth: PREVIEW_IMAGE_WIDTH,
-                                margin: "auto",
-                              }}
-                            >
-                              {q.image ? (
-                                <Image
-                                  src={`${racine}${q.image}`}
-                                  alt=""
-                                  width={PREVIEW_IMAGE_WIDTH}
-                                  height={previewHeight}
-                                  onLoadingComplete={(img) =>
-                                    recordImageRatio(q.id, img)
-                                  }
-                                  style={{
-                                    width: "100%",
-                                    height: "auto",
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-xs text-gray-500">
-                                  Aucune image
-                                </span>
-                              )}
-                            </div>
-                            {q.image && (
-                              <p className="text-xs text-gray-500 break-all">
-                                {q.image}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    <Card
+                      style={{
+                        margin: "4px auto",
+                        width: "100%",
+                        maxWidth: "100%",
+                        textAlign: "center",
+                        padding: "0px",
+                        backgroundColor: "rgba(100,100,100,0.2)",
+                      }}
+                    >
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-3">
-                          <div className=" space-y-2">
-                            <div className=" flex items-center justify-between">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-700">
+                              Question
+                            </p>
+                            <Popover
+                              trigger="click"
+                              open={isEditingQuestion}
+                              onOpenChange={(visible) => {
+                                if (visible) {
+                                  setEditText({
+                                    id: q.id,
+                                    field: "question",
+                                    value: initialQuestionValue,
+                                  });
+                                } else if (isEditingQuestion) {
+                                  setEditText({
+                                    id: null,
+                                    field: null,
+                                    value: "",
+                                  });
+                                }
+                              }}
+                              content={
+                                <div className="w-80 space-y-2">
+                                  <Input.TextArea
+                                    autoSize={{ minRows: 3, maxRows: 6 }}
+                                    className="!font-normal"
+                                    value={questionValue}
+                                    maxLength={500}
+                                    placeholder="Texte et formules avec $...$"
+                                    onChange={(e) =>
+                                      setEditText({
+                                        id: q.id,
+                                        field: "question",
+                                        value: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <p className="text-xs text-gray-500">
+                                    Utiliser $...$ pour les formules inline.
+                                  </p>
+                                  <div className="flex justify-end gap-2">
+                                    <Tooltip
+                                      title="Annuler"
+                                      mouseEnterDelay={0.3}
+                                    >
+                                      <Button
+                                        size="small"
+                                        icon={<CloseOutlined />}
+                                        onClick={() =>
+                                          setEditText({
+                                            id: null,
+                                            field: null,
+                                            value: "",
+                                          })
+                                        }
+                                      >
+                                        Annuler
+                                      </Button>
+                                    </Tooltip>
+                                    <Tooltip
+                                      title="Valider la modification"
+                                      mouseEnterDelay={0.3}
+                                    >
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        icon={<CheckOutlined />}
+                                        loading={isAction(
+                                          getActionKey("question", q.id)
+                                        )}
+                                        disabled={!hasQuestionChanged}
+                                        onClick={() =>
+                                          handleSaveText(
+                                            q.id,
+                                            "question",
+                                            questionValue
+                                          )
+                                        }
+                                      >
+                                        Valider
+                                      </Button>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+                              }
+                            >
+                              <Tooltip
+                                title={
+                                  isQuestionEmpty
+                                    ? "Saisir la question"
+                                    : "Modifier la question"
+                                }
+                                mouseEnterDelay={0.3}
+                              >
+                                <Button size="small" icon={<EditOutlined />} />
+                              </Tooltip>
+                            </Popover>
+                          </div>
+                          <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                            {isQuestionEmpty ? (
+                              <span className="text-gray-400">
+                                Aucun intitule
+                              </span>
+                            ) : (
+                              questionNodes
+                            )}
+                            {questionHasError && (
+                              <span
+                                style={{
+                                  color: "#ff4d4f",
+                                  marginLeft: 6,
+                                  fontSize: 12,
+                                }}
+                              >
+                                ($ non ferme)
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
                               <p className="text-sm font-semibold text-gray-700">
-                                Réponse
+                                Image question
                               </p>
                               <div className="flex gap-2">
-                                <Upload {...buildUploadProps(q)}>
+                                <Upload {...buildUploadProps(q, "imquestion")}>
                                   <Tooltip
                                     title="Importer une image"
                                     mouseEnterDelay={0.3}
@@ -1295,8 +997,9 @@ export default function FlashBlock({
                                     <Button
                                       size="small"
                                       icon={<UploadOutlined />}
-                                      loading={uploadingImageFor === q.id}
-                                      data-upload-question-index={idx}
+                                      loading={uploadingImageFor === questionImageKey}
+                                      data-upload-flash-index={idx}
+                                      data-upload-flash-field="imquestion"
                                     >
                                       Uploader
                                     </Button>
@@ -1308,8 +1011,12 @@ export default function FlashBlock({
                                 >
                                   <Button
                                     size="small"
-                                    onClick={() => handlePasteFromClipboard(q)}
-                                    disabled={uploadingImageFor === q.id}
+                                    onClick={() =>
+                                      handlePasteFromClipboard(q, "imquestion")
+                                    }
+                                    disabled={uploadingImageFor === questionImageKey}
+                                    data-upload-flash-index={idx}
+                                    data-upload-flash-field="imquestion"
                                   >
                                     Coller
                                   </Button>
@@ -1323,10 +1030,10 @@ export default function FlashBlock({
                                     danger
                                     icon={<DeleteOutlined />}
                                     loading={isAction(
-                                      getActionKey("delete-image", q.id)
+                                      getActionKey("delete-image", q.id, "imquestion")
                                     )}
-                                    disabled={!q.image}
-                                    onClick={() => handleDeleteImage(q)}
+                                    disabled={!q.imquestion}
+                                    onClick={() => handleDeleteImage(q, "imquestion")}
                                   />
                                 </Tooltip>
                               </div>
@@ -1335,19 +1042,15 @@ export default function FlashBlock({
                               className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
                               style={{
                                 width: "90%",
-                                //maxWidth: PREVIEW_IMAGE_WIDTH,
                                 margin: "auto",
                               }}
                             >
-                              {q.image ? (
+                              {q.imquestion ? (
                                 <Image
-                                  src={`${racine}${q.image}`}
+                                  src={`${racine}${q.imquestion}`}
                                   alt=""
                                   width={PREVIEW_IMAGE_WIDTH}
-                                  height={previewHeight}
-                                  onLoadingComplete={(img) =>
-                                    recordImageRatio(q.id, img)
-                                  }
+                                  height={PREVIEW_IMAGE_WIDTH}
                                   style={{
                                     width: "100%",
                                     height: "auto",
@@ -1359,20 +1062,227 @@ export default function FlashBlock({
                                 </span>
                               )}
                             </div>
-                            {q.image && (
+                            {q.imquestion && (
                               <p className="text-xs text-gray-500 break-all">
-                                {q.image}
+                                {q.imquestion}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-gray-700">
+                              Reponse
+                            </p>
+                            <Popover
+                              trigger="click"
+                              open={isEditingReponse}
+                              onOpenChange={(visible) => {
+                                if (visible) {
+                                  setEditText({
+                                    id: q.id,
+                                    field: "reponse",
+                                    value: initialReponseValue,
+                                  });
+                                } else if (isEditingReponse) {
+                                  setEditText({
+                                    id: null,
+                                    field: null,
+                                    value: "",
+                                  });
+                                }
+                              }}
+                              content={
+                                <div className="w-80 space-y-2">
+                                  <Input.TextArea
+                                    autoSize={{ minRows: 3, maxRows: 6 }}
+                                    className="!font-normal"
+                                    value={reponseValue}
+                                    maxLength={500}
+                                    placeholder="Texte et formules avec $...$"
+                                    onChange={(e) =>
+                                      setEditText({
+                                        id: q.id,
+                                        field: "reponse",
+                                        value: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <p className="text-xs text-gray-500">
+                                    Utiliser $...$ pour les formules inline.
+                                  </p>
+                                  <div className="flex justify-end gap-2">
+                                    <Tooltip
+                                      title="Annuler"
+                                      mouseEnterDelay={0.3}
+                                    >
+                                      <Button
+                                        size="small"
+                                        icon={<CloseOutlined />}
+                                        onClick={() =>
+                                          setEditText({
+                                            id: null,
+                                            field: null,
+                                            value: "",
+                                          })
+                                        }
+                                      >
+                                        Annuler
+                                      </Button>
+                                    </Tooltip>
+                                    <Tooltip
+                                      title="Valider la modification"
+                                      mouseEnterDelay={0.3}
+                                    >
+                                      <Button
+                                        size="small"
+                                        type="primary"
+                                        icon={<CheckOutlined />}
+                                        loading={isAction(
+                                          getActionKey("reponse", q.id)
+                                        )}
+                                        disabled={!hasReponseChanged}
+                                        onClick={() =>
+                                          handleSaveText(
+                                            q.id,
+                                            "reponse",
+                                            reponseValue
+                                          )
+                                        }
+                                      >
+                                        Valider
+                                      </Button>
+                                    </Tooltip>
+                                  </div>
+                                </div>
+                              }
+                            >
+                              <Tooltip
+                                title={
+                                  isReponseEmpty
+                                    ? "Saisir la reponse"
+                                    : "Modifier la reponse"
+                                }
+                                mouseEnterDelay={0.3}
+                              >
+                                <Button size="small" icon={<EditOutlined />} />
+                              </Tooltip>
+                            </Popover>
+                          </div>
+                          <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                            {isReponseEmpty ? (
+                              <span className="text-gray-400">
+                                Aucune reponse
+                              </span>
+                            ) : (
+                              reponseNodes
+                            )}
+                            {reponseHasError && (
+                              <span
+                                style={{
+                                  color: "#ff4d4f",
+                                  marginLeft: 6,
+                                  fontSize: 12,
+                                }}
+                              >
+                                ($ non ferme)
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold text-gray-700">
+                                Image reponse
+                              </p>
+                              <div className="flex gap-2">
+                                <Upload {...buildUploadProps(q, "imreponse")}>
+                                  <Tooltip
+                                    title="Importer une image"
+                                    mouseEnterDelay={0.3}
+                                  >
+                                    <Button
+                                      size="small"
+                                      icon={<UploadOutlined />}
+                                      loading={uploadingImageFor === reponseImageKey}
+                                      data-upload-flash-index={idx}
+                                      data-upload-flash-field="imreponse"
+                                    >
+                                      Uploader
+                                    </Button>
+                                  </Tooltip>
+                                </Upload>
+                                <Tooltip
+                                  title="Coller une image"
+                                  mouseEnterDelay={0.3}
+                                >
+                                  <Button
+                                    size="small"
+                                    onClick={() =>
+                                      handlePasteFromClipboard(q, "imreponse")
+                                    }
+                                    disabled={uploadingImageFor === reponseImageKey}
+                                    data-upload-flash-index={idx}
+                                    data-upload-flash-field="imreponse"
+                                  >
+                                    Coller
+                                  </Button>
+                                </Tooltip>
+                                <Tooltip
+                                  title="Supprimer l'image"
+                                  mouseEnterDelay={0.3}
+                                >
+                                  <Button
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    loading={isAction(
+                                      getActionKey("delete-image", q.id, "imreponse")
+                                    )}
+                                    disabled={!q.imreponse}
+                                    onClick={() => handleDeleteImage(q, "imreponse")}
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                            <div
+                              className="flex items-center justify-center rounded border border-dashed border-gray-300 bg-white"
+                              style={{
+                                width: "90%",
+                                margin: "auto",
+                              }}
+                            >
+                              {q.imreponse ? (
+                                <Image
+                                  src={`${racine}${q.imreponse}`}
+                                  alt=""
+                                  width={PREVIEW_IMAGE_WIDTH}
+                                  height={PREVIEW_IMAGE_WIDTH}
+                                  style={{
+                                    width: "100%",
+                                    height: "auto",
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs text-gray-500">
+                                  Aucune image
+                                </span>
+                              )}
+                            </div>
+                            {q.imreponse && (
+                              <p className="text-xs text-gray-500 break-all">
+                                {q.imreponse}
                               </p>
                             )}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                </div>
-              );
-            })}
-          </Carousel>
+                    </Card>
+                  </div>
+                );
+              })}
+            </Carousel>
+          )}
         </div>
       </div>
     </div>
