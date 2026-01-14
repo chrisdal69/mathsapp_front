@@ -193,7 +193,7 @@ export default function FlashBlock({
             adaptiveHeight
             className="max-w-xs sm:max-w-2xl"
           >
-            {flash.map((q) => {
+            {flash.map((q, idx) => {
               return (
                 <div
                   key={q.id}
@@ -209,7 +209,7 @@ export default function FlashBlock({
                       backgroundColor: "rgba(100,100,100,0.2)",
                     }}
                   >
-                    <Flip q={q} racine={racine} />
+                    <Flip q={q} racine={racine} index={idx + 1} />
                   </Card>
                 </div>
               );

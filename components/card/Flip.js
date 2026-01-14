@@ -80,13 +80,25 @@ const renderInlineKatex = (input) => {
   return { nodes, hasUnmatched };
 };
 
-function Flip({ q, racine }) {
+function Flip({ q, racine, index }) {
   const [flipped, setFlipped] = useState(false);
 
   const questionText = String(q?.question ?? "").trim();
   const answerText = String(q?.reponse ?? "").trim();
   const questionImage = q?.imquestion ? `${racine}${q.imquestion}` : "";
   const answerImage = q?.imreponse ? `${racine}${q.imreponse}` : "";
+  const labelSuffix = Number.isFinite(index) ? ` ${index}` : "";
+  const labelText = flipped
+    ? `R\u00e9ponse${labelSuffix}`
+    : `Question${labelSuffix}`;
+  const labelStyle = {
+    margin: "0 0 8px",
+    textAlign: "center",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    color: "#555",
+    letterSpacing: "0.02em",
+  };
 
   const renderFace = ({ text, imageSrc, imageAlt, isBack }) => {
     const hasText = text.length > 0;
@@ -105,6 +117,8 @@ function Flip({ q, racine }) {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.75)",
+      borderRadius: 15,
       transform: isBack ? "rotateY(180deg)" : "rotateY(0deg)",
     };
 
@@ -155,26 +169,31 @@ function Flip({ q, racine }) {
   };
 
   return (
-    <div style={{ position: "relative", marginBottom: 0, width: "100%" }}>
-      <motion.div
-        onClick={() => setFlipped(!flipped)}
-        style={{
-          width: "100%",
-          height: 300,
-          minHeight: 300,
-          perspective: 1000,
-        }}
-      >
+    <div style={{ width: "100%" }}>
+      <p style={labelStyle}>{labelText}</p>
+      <div style={{ position: "relative", marginBottom: 0, width: "100%" }}>
         <motion.div
-          animate={{ rotateY: flipped ? 180 : 0 }}
+          onClick={() => setFlipped(!flipped)}
           style={{
             width: "100%",
-            height: "100%",
-            transformStyle: "preserve-3d",
-            cursor: "pointer",
-            position: "relative",
+            height: 300,
+            minHeight: 300,
+            perspective: 1000,
+            borderRadius: 15,
+            overflow: "hidden",
           }}
         >
+          <motion.div
+            animate={{ rotateY: flipped ? 180 : 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              transformStyle: "preserve-3d",
+              cursor: "pointer",
+              position: "relative",
+            }}
+          >
           {renderFace({
             text: questionText,
             imageSrc: questionImage,
@@ -187,8 +206,9 @@ function Flip({ q, racine }) {
             imageAlt: "Image reponse",
             isBack: true,
           })}
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 }
