@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
@@ -102,6 +102,9 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const carouselRef = useRef(null);
   const pendingSlideRef = useRef(null);
+  const flashListRef = useRef([]);
+  const uploadingImageForRef = useRef("");
+  const handleUploadImageRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
   const [flashList, setFlashList] = useState(Array.isArray(flash) ? flash : []);
@@ -125,6 +128,14 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
   useEffect(() => {
     setFlashList(Array.isArray(flash) ? flash : []);
   }, [flash]);
+
+  useEffect(() => {
+    flashListRef.current = flashList;
+  }, [flashList]);
+
+  useEffect(() => {
+    uploadingImageForRef.current = uploadingImageFor;
+  }, [uploadingImageFor]);
 
   useEffect(() => {
     if (pendingSlideRef.current === null) return;
@@ -442,6 +453,10 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
     }
   };
 
+  useEffect(() => {
+    handleUploadImageRef.current = handleUploadImage;
+  }, [handleUploadImage]);
+
   const handleDeleteImage = async (flashItem, field) => {
     if (!flashItem?.id || !field || !flashItem?.[field]) {
       return;
@@ -491,10 +506,10 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
     }
   };
 
-  const handlePasteImage = (flashItem, field, event) => {
+  const handlePasteImage = useCallback((flashItem, field, event) => {
     if (!flashItem?.id || !field) return;
-    const uploadKey = getActionKey("upload", flashItem.id, field);
-    if (uploadingImageFor === uploadKey) return;
+    const uploadKey = ["upload", flashItem.id, field].filter(Boolean).join("-");
+    if (uploadingImageForRef.current === uploadKey) return;
     const items = Array.from(event.clipboardData?.items || []);
     const imageItem = items.find((item) => item.type?.startsWith("image/"));
     if (!imageItem) return;
@@ -521,13 +536,15 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
         ? blob.name
         : `capture-${Date.now()}${ext}`;
     const file = new File([blob], name, { type: mime });
-    handleUploadImage(flashItem, field, file);
-  };
+    if (handleUploadImageRef.current) {
+      handleUploadImageRef.current(flashItem, field, file);
+    }
+  }, []);
 
-  const handlePasteFromClipboard = async (flashItem, field) => {
+  const handlePasteFromClipboard = useCallback(async (flashItem, field) => {
     if (!flashItem?.id || !field) return;
-    const uploadKey = getActionKey("upload", flashItem.id, field);
-    if (uploadingImageFor === uploadKey) return;
+    const uploadKey = ["upload", flashItem.id, field].filter(Boolean).join("-");
+    if (uploadingImageForRef.current === uploadKey) return;
     if (!navigator?.clipboard?.read) {
       message.error(
         "Le collage direct n'est pas disponible sur ce navigateur."
@@ -561,12 +578,14 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       }
       const name = `capture-${Date.now()}${ext}`;
       const file = new File([blob], name, { type: mime });
-      handleUploadImage(flashItem, field, file);
+      if (handleUploadImageRef.current) {
+        handleUploadImageRef.current(flashItem, field, file);
+      }
     } catch (error) {
       console.error("Erreur collage image flash", error);
       message.error("Erreur lors du collage.");
     }
-  };
+  }, []);
 
   useEffect(() => {
     const handlePaste = (event) => {
@@ -577,14 +596,14 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       if (fieldAttr !== "imquestion" && fieldAttr !== "imreponse") return;
       const index = Number(indexAttr);
       if (Number.isNaN(index)) return;
-      const item = flashList[index];
+      const item = flashListRef.current[index];
       if (!item) return;
       handlePasteImage(item, fieldAttr, event);
     };
 
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  }, [flashList, handlePasteImage]);
+  }, [handlePasteImage]);
 
   const insertionOptions = useMemo(() => {
     const options = [{ value: "start", label: "Debut (avant la premiere)" }];
@@ -963,7 +982,10 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
                               </Tooltip>
                             </Popover>
                           </div>
-                          <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                          <div
+                            className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800"
+                            style={{ whiteSpace: "pre-line" }}
+                          >
                             {isQuestionEmpty ? (
                               <span className="text-gray-400">
                                 Aucun intitule
@@ -1170,7 +1192,10 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
                               </Tooltip>
                             </Popover>
                           </div>
-                          <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                          <div
+                            className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800"
+                            style={{ whiteSpace: "pre-line" }}
+                          >
                             {isReponseEmpty ? (
                               <span className="text-gray-400">
                                 Aucune reponse

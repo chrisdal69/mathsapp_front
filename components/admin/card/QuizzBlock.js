@@ -1060,7 +1060,10 @@ export default function Quizz({
                             </Tooltip>
                           </Popover>
                         </div>
-                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800">
+                        <div
+                          className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800"
+                          style={{ whiteSpace: "pre-line" }}
+                        >
                           {isQuestionEmpty ? (
                             <span className="text-gray-400">
                               Aucun intitule
