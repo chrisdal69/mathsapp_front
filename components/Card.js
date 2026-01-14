@@ -7,6 +7,7 @@ import FilesBlock from "./card/FilesBlock";
 import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
+import FlashBlock from "./card/FlashBlock";
 
 const CardBlock = (data) => {
   const { isExpanded, onExpand } = data;
@@ -61,6 +62,8 @@ const CardBlock = (data) => {
       (isAuthenticated && data.evalQuizz === "oui")) &&
       data.quizz &&
       data.quizz.length !== 0 && { key: "quizz", label: "Quiz" },
+
+    data.flash && data.flash.length !== 0 && { key: "flash", label: "Flash" },
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
     data.video && data.video.length !== 0 && { key: "video", label: "Vidéos" },
   ].filter(Boolean); // <-- indispensable pour retirer les false/undefined
@@ -87,10 +90,17 @@ const CardBlock = (data) => {
   ) {
     contentList.quizz = <Quizz {...data} />;
   }
+
+  if (data.flash && data.flash.length != 0) {
+    contentList.flash = <FlashBlock {...data} />;
+  }
+
   const iscontenu = activeTabKey === "contenu";
   const isvideo = activeTabKey === "video";
   const isfichiers = activeTabKey === "fichiers";
   const isquizz = activeTabKey === "quizz";
+  const isflash = activeTabKey === "flash";
+
   const iscloud = activeTabKey === "cloud";
 
   return (
@@ -102,7 +112,7 @@ const CardBlock = (data) => {
     >
       <Card
         title={data.titre}
-        style={{ width: "100%",  }}
+        style={{ width: "100%" }}
         tabList={tabList}
         activeTabKey={activeTabKey}
         onTabChange={onTabChange}
@@ -111,7 +121,7 @@ const CardBlock = (data) => {
         styles={
           iscontenu
             ? { body: { padding: 1 } }
-            : isvideo || isfichiers || isquizz || iscloud
+            : isvideo || isfichiers || isquizz || iscloud || isflash
             ? { body: { padding: 0 } }
             : undefined
         }
@@ -121,6 +131,9 @@ const CardBlock = (data) => {
         </div>
         {activeTabKey === "fichiers" && contentList.fichiers}
         {activeTabKey === "quizz" && contentList.quizz}
+
+        {activeTabKey === "flash" && contentList.flash}
+
         {activeTabKey === "cloud" && contentList.cloud}
         {activeTabKey === "video" && contentList.video}
       </Card>
