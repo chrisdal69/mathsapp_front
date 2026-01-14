@@ -1,30 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
-
-import { Radio, Button, Card, Carousel, message } from "antd";
+import React, { useRef, useState } from "react";
+import { Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import "katex/dist/katex.min.css";
-import { InlineMath } from "react-katex";
-import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import Flip from "./Flip";
-
-const NODE_ENV = process.env.NODE_ENV;
-const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
-
 
 export default function FlashBlock({
   num,
   repertoire,
   flash,
-  _id,
   bg,
   isExpanded,
 }) {
   const carouselRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({});
 
   const bgRoot = `https://storage.googleapis.com/${
     process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
@@ -33,7 +22,7 @@ export default function FlashBlock({
     process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
   }/${repertoire}/tag${num}/imagesQuizz/`;
 
-   const toBlurFile = (filename) => {
+  const toBlurFile = (filename) => {
     const lastDot = filename.lastIndexOf(".");
     if (lastDot === -1) return `${filename}Blur`;
     return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
@@ -85,13 +74,11 @@ export default function FlashBlock({
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            alignItems: "center",
             width: "100%",
             position: "relative",
           }}
         >
           {/* Echelle de progression */}
-
           <div
             style={{
               width: "100%",
@@ -147,7 +134,9 @@ export default function FlashBlock({
                 }}
               >
                 {flash.map((q, idx) => {
-         
+                  const isCurrent = idx === current;
+                  const size = isCurrent ? DOT + 4 : DOT;
+                  const dotColor = isCurrent ? "#595959" : "#d9d9d9";
                   return (
                     <div
                       key={q.id}
@@ -160,7 +149,7 @@ export default function FlashBlock({
                         width: size,
                         height: size,
                         borderRadius: "50%",
-                        backgroundColor: bg,
+                        backgroundColor: dotColor,
                         border: "1px solid #bfbfbf",
                         boxSizing: "border-box",
                         cursor: "pointer",

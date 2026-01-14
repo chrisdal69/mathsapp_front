@@ -1,6 +1,84 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import React, { useState } from "react";
+import "katex/dist/katex.min.css";
+import { InlineMath } from "react-katex";
+
+const parseInlineKatex = (input) => {
+  const tokens = [];
+  const text = String(input ?? "");
+  let buffer = "";
+  let inMath = false;
+  let hasUnmatched = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (char === "\\") {
+      const next = text[i + 1];
+      if (next === "$") {
+        buffer += "$";
+        i += 1;
+        continue;
+      }
+      buffer += char;
+      continue;
+    }
+    if (char === "$") {
+      if (inMath) {
+        if (buffer.length === 0) {
+          const last = tokens[tokens.length - 1];
+          if (last && last.type === "text") {
+            last.value += "$$";
+          } else {
+            tokens.push({ type: "text", value: "$$" });
+          }
+        } else {
+          tokens.push({ type: "math", value: buffer });
+        }
+        buffer = "";
+        inMath = false;
+      } else {
+        if (buffer.length > 0) {
+          tokens.push({ type: "text", value: buffer });
+        }
+        buffer = "";
+        inMath = true;
+      }
+      continue;
+    }
+    buffer += char;
+  }
+
+  if (inMath) {
+    hasUnmatched = true;
+    const literal = `$${buffer}`;
+    const last = tokens[tokens.length - 1];
+    if (last && last.type === "text") {
+      last.value += literal;
+    } else if (literal.length > 0) {
+      tokens.push({ type: "text", value: literal });
+    }
+    return { parts: tokens, hasUnmatched };
+  }
+
+  if (buffer.length > 0) {
+    tokens.push({ type: "text", value: buffer });
+  }
+
+  return { parts: tokens, hasUnmatched };
+};
+
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
+    part.type === "text" ? (
+      <React.Fragment key={`text-${i}`}>{part.value}</React.Fragment>
+    ) : (
+      <InlineMath key={`math-${i}`} math={part.value} />
+    )
+  );
+  return { nodes, hasUnmatched };
+};
 
 function Flip({ q, racine }) {
   const [flipped, setFlipped] = useState(false);
@@ -14,6 +92,7 @@ function Flip({ q, racine }) {
     const hasText = text.length > 0;
     const hasImage = Boolean(imageSrc);
     const textOnly = hasText && !hasImage;
+    const { nodes } = hasText ? renderInlineKatex(text) : { nodes: null };
 
     const faceStyle = {
       backfaceVisibility: "hidden",
@@ -43,6 +122,8 @@ function Flip({ q, racine }) {
     const textStyle = {
       margin: 0,
       textAlign: "center",
+      whiteSpace: "pre-line",
+      fontSize: "1.05rem",
     };
 
     const imageWrapperStyle = {
@@ -56,7 +137,7 @@ function Flip({ q, racine }) {
     return (
       <div style={faceStyle}>
         <div style={contentStyle}>
-          {hasText && <p style={textStyle}>{text}</p>}
+          {hasText && <p style={textStyle}>{nodes}</p>}
           {hasImage && (
             <div style={imageWrapperStyle}>
               <Image
