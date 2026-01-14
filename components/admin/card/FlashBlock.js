@@ -284,6 +284,9 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       return;
     }
     const insertIndex = resolveInsertIndex(flashList, insertPos);
+    const previousIds = new Set(
+      flashList.map((item) => item?.id).filter(Boolean)
+    );
     pendingSlideRef.current = insertIndex;
     setActionKey("add-flash");
     try {
@@ -307,8 +310,25 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       }
       const updatedCard = data?.result;
       if (updatedCard?.flash) {
-        setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
-        syncCardsStore(updatedCard, updatedCard.flash);
+        const nextFlash = Array.isArray(updatedCard.flash) ? updatedCard.flash : [];
+        setFlashList(nextFlash);
+        syncCardsStore(updatedCard, nextFlash);
+
+        let targetIndex = nextFlash.findIndex(
+          (item) => item?.id && !previousIds.has(item.id)
+        );
+        if (targetIndex == -1) {
+          targetIndex = insertIndex;
+        }
+        targetIndex = Math.min(
+          Math.max(0, targetIndex),
+          Math.max(0, nextFlash.length - 1)
+        );
+        pendingSlideRef.current = targetIndex;
+        setTimeout(() => {
+          setCurrent(targetIndex);
+          carouselRef.current?.goTo(targetIndex);
+        }, 0);
       }
       message.success("Flash card ajoutee.");
       setAddCardOpen(false);
