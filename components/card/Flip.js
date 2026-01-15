@@ -83,6 +83,8 @@ const renderInlineKatex = (input) => {
 function Flip({ q, racine, index }) {
   const [flipped, setFlipped] = useState(false);
   const imageWheelHandlersRef = useRef(new Map());
+  const imageTouchHandlersRef = useRef(new Map());
+  const pinchStateRef = useRef(new Map());
   const flipWheelRef = useRef(null);
   const [zoomScales, setZoomScales] = useState({});
   const [zoomOrigins, setZoomOrigins] = useState({});
@@ -107,6 +109,14 @@ function Flip({ q, racine, index }) {
   const clampPercent = (value) => Math.max(0, Math.min(100, value));
 
   const clampScale = (value) => Math.max(1, Math.min(3, value));
+
+  const getTouchDistance = (t1, t2) =>
+    Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+  const getTouchCenter = (t1, t2) => ({
+    x: (t1.clientX + t2.clientX) / 2,
+    y: (t1.clientY + t2.clientY) / 2,
+  });
 
   const handleImageWheel = (event, key) => {
     if (!key) return;
@@ -136,16 +146,100 @@ function Flip({ q, racine, index }) {
     });
   };
 
+  const handleImageTouchStart = (event, key) => {
+    if (!key) return;
+    const touches = event.touches;
+    if (!touches || touches.length !== 2) return;
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const [t1, t2] = touches;
+    const rect = event.currentTarget?.getBoundingClientRect?.();
+    if (rect?.width && rect?.height) {
+      const center = getTouchCenter(t1, t2);
+      const x = clampPercent(((center.x - rect.left) / rect.width) * 100);
+      const y = clampPercent(((center.y - rect.top) / rect.height) * 100);
+      setZoomOrigins((prev) => ({ ...prev, [key]: `${x}% ${y}%` }));
+    }
+    const startDistance = getTouchDistance(t1, t2);
+    if (!Number.isFinite(startDistance) || startDistance <= 0) return;
+    pinchStateRef.current.set(key, {
+      startDistance,
+      startScale: zoomScales[key] ?? 1,
+    });
+  };
+
+  const handleImageTouchMove = (event, key) => {
+    if (!key) return;
+    const touches = event.touches;
+    if (!touches || touches.length !== 2) return;
+    const state = pinchStateRef.current.get(key);
+    if (!state) return;
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const [t1, t2] = touches;
+    const rect = event.currentTarget?.getBoundingClientRect?.();
+    if (rect?.width && rect?.height) {
+      const center = getTouchCenter(t1, t2);
+      const x = clampPercent(((center.x - rect.left) / rect.width) * 100);
+      const y = clampPercent(((center.y - rect.top) / rect.height) * 100);
+      setZoomOrigins((prev) => ({ ...prev, [key]: `${x}% ${y}%` }));
+    }
+    const distance = getTouchDistance(t1, t2);
+    if (!Number.isFinite(distance) || state.startDistance <= 0) return;
+    const nextScale = clampScale(state.startScale * (distance / state.startDistance));
+    setZoomScales((prev) => ({ ...prev, [key]: nextScale }));
+  };
+
+  const handleImageTouchEnd = (event, key) => {
+    if (!key) return;
+    if (event.touches && event.touches.length >= 2) return;
+    pinchStateRef.current.delete(key);
+  };
+
   const setImageContainerRef = (key) => (node) => {
     const existing = imageWheelHandlersRef.current.get(key);
     if (existing?.node && existing?.handler) {
       existing.node.removeEventListener("wheel", existing.handler);
       imageWheelHandlersRef.current.delete(key);
     }
+    const existingTouch = imageTouchHandlersRef.current.get(key);
+    if (existingTouch?.node && existingTouch?.handlers) {
+      const { start, move, end } = existingTouch.handlers;
+      existingTouch.node.removeEventListener("touchstart", start);
+      existingTouch.node.removeEventListener("touchmove", move);
+      existingTouch.node.removeEventListener("touchend", end);
+      existingTouch.node.removeEventListener("touchcancel", end);
+      imageTouchHandlersRef.current.delete(key);
+    }
     if (!node) return;
     const handler = (event) => handleImageWheel(event, key);
     node.addEventListener("wheel", handler, { passive: false });
     imageWheelHandlersRef.current.set(key, { node, handler });
+    const touchStart = (event) => handleImageTouchStart(event, key);
+    const touchMove = (event) => handleImageTouchMove(event, key);
+    const touchEnd = (event) => handleImageTouchEnd(event, key);
+    node.addEventListener("touchstart", touchStart, { passive: false });
+    node.addEventListener("touchmove", touchMove, { passive: false });
+    node.addEventListener("touchend", touchEnd, { passive: false });
+    node.addEventListener("touchcancel", touchEnd, { passive: false });
+    imageTouchHandlersRef.current.set(key, {
+      node,
+      handlers: { start: touchStart, move: touchMove, end: touchEnd },
+    });
   };
 
   useEffect(
@@ -154,6 +248,15 @@ function Flip({ q, racine, index }) {
         node.removeEventListener("wheel", handler);
       });
       imageWheelHandlersRef.current.clear();
+      imageTouchHandlersRef.current.forEach(({ node, handlers }) => {
+        if (!handlers) return;
+        node.removeEventListener("touchstart", handlers.start);
+        node.removeEventListener("touchmove", handlers.move);
+        node.removeEventListener("touchend", handlers.end);
+        node.removeEventListener("touchcancel", handlers.end);
+      });
+      imageTouchHandlersRef.current.clear();
+      pinchStateRef.current.clear();
     },
     []
   );
@@ -231,7 +334,7 @@ function Flip({ q, racine, index }) {
       overflow: "hidden",
       cursor: isZoomed ? "zoom-out" : "zoom-in",
       overscrollBehavior: "contain",
-      touchAction: "manipulation",
+      touchAction: "none",
     };
 
     return (

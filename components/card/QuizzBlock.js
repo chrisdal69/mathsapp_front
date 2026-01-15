@@ -101,6 +101,8 @@ export default function Quizz({
   const carouselRef = useRef(null);
   const preloadedImagesRef = useRef(new Set());
   const imageWheelHandlersRef = useRef(new Map());
+  const imageTouchHandlersRef = useRef(new Map());
+  const pinchStateRef = useRef(new Map());
   const lastTapRef = useRef(new Map());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -155,6 +157,14 @@ export default function Quizz({
 
   const clampScale = (value) => Math.max(1, Math.min(3, value));
 
+  const getTouchDistance = (t1, t2) =>
+    Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+  const getTouchCenter = (t1, t2) => ({
+    x: (t1.clientX + t2.clientX) / 2,
+    y: (t1.clientY + t2.clientY) / 2,
+  });
+
   const toggleZoomAt = (qid, rect, clientX, clientY) => {
     let origin = "50% 50%";
     if (rect?.width && rect?.height) {
@@ -177,8 +187,36 @@ export default function Quizz({
   };
 
   const handleImageTouchStart = (event, qid) => {
-    if (!event.touches || event.touches.length !== 1) return;
-    const touch = event.touches[0];
+    const touches = event.touches;
+    if (!touches) return;
+    if (touches.length === 2) {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      if (typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+      }
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      const [t1, t2] = touches;
+      const rect = event.currentTarget?.getBoundingClientRect?.();
+      if (rect?.width && rect?.height) {
+        const center = getTouchCenter(t1, t2);
+        const x = clampPercent(((center.x - rect.left) / rect.width) * 100);
+        const y = clampPercent(((center.y - rect.top) / rect.height) * 100);
+        setZoomOrigins((prev) => ({ ...prev, [qid]: `${x}% ${y}%` }));
+      }
+      const startDistance = getTouchDistance(t1, t2);
+      if (!Number.isFinite(startDistance) || startDistance <= 0) return;
+      pinchStateRef.current.set(qid, {
+        startDistance,
+        startScale: zoomScales[qid] ?? 1,
+      });
+      return;
+    }
+    if (touches.length !== 1) return;
+    const touch = touches[0];
     const now = Date.now();
     const lastTap = lastTapRef.current.get(qid);
     const isQuick = lastTap && now - lastTap.time <= 300;
@@ -203,6 +241,42 @@ export default function Quizz({
       x: touch.clientX,
       y: touch.clientY,
     });
+  };
+
+  const handleImageTouchMove = (event, qid) => {
+    const touches = event.touches;
+    if (!touches || touches.length !== 2) return;
+    const state = pinchStateRef.current.get(qid);
+    if (!state) return;
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    if (typeof event.stopPropagation === "function") {
+      event.stopPropagation();
+    }
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    const [t1, t2] = touches;
+    const rect = event.currentTarget?.getBoundingClientRect?.();
+    if (rect?.width && rect?.height) {
+      const center = getTouchCenter(t1, t2);
+      const x = clampPercent(((center.x - rect.left) / rect.width) * 100);
+      const y = clampPercent(((center.y - rect.top) / rect.height) * 100);
+      setZoomOrigins((prev) => ({ ...prev, [qid]: `${x}% ${y}%` }));
+    }
+    const distance = getTouchDistance(t1, t2);
+    if (!Number.isFinite(distance) || state.startDistance <= 0) return;
+    const nextScale = clampScale(
+      state.startScale * (distance / state.startDistance)
+    );
+    setZoomScales((prev) => ({ ...prev, [qid]: nextScale }));
+  };
+
+  const handleImageTouchEnd = (event, qid) => {
+    if (!qid) return;
+    if (event.touches && event.touches.length >= 2) return;
+    pinchStateRef.current.delete(qid);
   };
 
   const handleImageWheel = (event, qid) => {
@@ -242,10 +316,30 @@ export default function Quizz({
       existing.node.removeEventListener("wheel", existing.handler);
       imageWheelHandlersRef.current.delete(qid);
     }
+    const existingTouch = imageTouchHandlersRef.current.get(qid);
+    if (existingTouch?.node && existingTouch?.handlers) {
+      const { start, move, end } = existingTouch.handlers;
+      existingTouch.node.removeEventListener("touchstart", start);
+      existingTouch.node.removeEventListener("touchmove", move);
+      existingTouch.node.removeEventListener("touchend", end);
+      existingTouch.node.removeEventListener("touchcancel", end);
+      imageTouchHandlersRef.current.delete(qid);
+    }
     if (!node) return;
     const handler = (event) => handleImageWheel(event, qid);
     node.addEventListener("wheel", handler, { passive: false });
     imageWheelHandlersRef.current.set(qid, { node, handler });
+    const touchStart = (event) => handleImageTouchStart(event, qid);
+    const touchMove = (event) => handleImageTouchMove(event, qid);
+    const touchEnd = (event) => handleImageTouchEnd(event, qid);
+    node.addEventListener("touchstart", touchStart, { passive: false });
+    node.addEventListener("touchmove", touchMove, { passive: false });
+    node.addEventListener("touchend", touchEnd, { passive: false });
+    node.addEventListener("touchcancel", touchEnd, { passive: false });
+    imageTouchHandlersRef.current.set(qid, {
+      node,
+      handlers: { start: touchStart, move: touchMove, end: touchEnd },
+    });
   };
 
   useEffect(
@@ -254,6 +348,15 @@ export default function Quizz({
         node.removeEventListener("wheel", handler);
       });
       imageWheelHandlersRef.current.clear();
+      imageTouchHandlersRef.current.forEach(({ node, handlers }) => {
+        if (!handlers) return;
+        node.removeEventListener("touchstart", handlers.start);
+        node.removeEventListener("touchmove", handlers.move);
+        node.removeEventListener("touchend", handlers.end);
+        node.removeEventListener("touchcancel", handlers.end);
+      });
+      imageTouchHandlersRef.current.clear();
+      pinchStateRef.current.clear();
     },
     []
   );
@@ -595,14 +698,11 @@ export default function Quizz({
                             boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                             cursor: isZoomed ? "zoom-out" : "zoom-in",
                             overscrollBehavior: "contain",
-                            touchAction: "manipulation",
+                            touchAction: "none",
                           }}
                           ref={setImageContainerRef(q.id)}
                           onDoubleClick={(event) =>
                             handleImageDoubleClick(event, q.id)
-                          }
-                          onTouchStart={(event) =>
-                            handleImageTouchStart(event, q.id)
                           }
                         >
                           <Image
