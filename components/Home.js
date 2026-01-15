@@ -300,8 +300,8 @@ const App = ({ repertoire }) => {
                   <motion.div
                     style={{
                       position: "absolute",
-                      top: 20,
-                      right: 20,
+                      top: "clamp(0px, 3vw, 20px)",
+                      right: "clamp(0px, 3vw, 20px)",
                       zIndex: 50,
                     }}
                     whileHover={{ scale: 1.2 }}
@@ -400,3 +400,4 @@ function Accueil({ titre }) {
     </div>
   );
 }
+

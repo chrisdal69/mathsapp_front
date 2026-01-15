@@ -20,6 +20,7 @@ import CloudBlock from "./card/CloudBlock";
 import VideoBlock from "./card/VideoBlock";
 import Quizz from "./card/QuizzBlock";
 import QuizzResult from "./card/QuizzResult";
+import FlashBlock from "./card/FlashBlock";
 
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
 
@@ -267,9 +268,7 @@ const CardBlock = (data) => {
       message.success(nextCloud ? "Cloud active." : "Cloud desactive.");
     } catch (error) {
       console.error("Erreur lors de la mise a jour du cloud :", error);
-      message.error(
-        error.message || "Erreur lors de la mise a jour du cloud."
-      );
+      message.error(error.message || "Erreur lors de la mise a jour du cloud.");
     } finally {
       setIsTogglingCloud(false);
     }
@@ -436,15 +435,18 @@ const CardBlock = (data) => {
     { key: "fichiers", label: "Fichiers" },
     { key: "quizz", label: "Quiz" },
     { key: "quizzResult", label: "Quiz+" },
+    { key: "flash", label: "Flash" },
 
     isAuthenticated && isCloudEnabled && { key: "cloud", label: "Cloud" },
     data.video && { key: "video", label: "Vidéos" },
   ];
+  const visibleTabList = tabList.filter(Boolean);
   const contentList = {
     contenu: <ContentBlock {...data} />,
     fichiers: <FilesBlock {...data} />,
     quizz: <Quizz {...data} />,
     quizzResult: <QuizzResult {...data} />,
+    flash: <FlashBlock {...data} />,
   };
 
   if (data.video) {
@@ -475,42 +477,44 @@ const CardBlock = (data) => {
         title={isCollapsed ? "Deplier la carte" : "Replier la carte"}
         mouseEnterDelay={0.3}
       >
-      <Button
-        size="small"
-        type="default"
-        onClick={() => {
-          const nextExpanded = isCollapsed;
-          if (typeof data.onToggleExpand === "function") {
-            data.onToggleExpand(nextExpanded);
-          }
-          if (data.expanded === undefined) {
-            if (!isCollapsed) {
-              setActiveTabKey("contenu");
+        <Button
+          size="small"
+          type="default"
+          onClick={() => {
+            const nextExpanded = isCollapsed;
+            if (typeof data.onToggleExpand === "function") {
+              data.onToggleExpand(nextExpanded);
             }
-            setIsCollapsed((prev) => !prev);
+            if (data.expanded === undefined) {
+              if (!isCollapsed) {
+                setActiveTabKey("contenu");
+              }
+              setIsCollapsed((prev) => !prev);
+            }
+          }}
+          title={isCollapsed ? "Déplier" : "Replier"}
+          icon={
+            isCollapsed ? (
+              <VerticalAlignBottomOutlined
+                style={{
+                  backgroundColor: "#1677ff",
+                  color: "#fff",
+                  padding: 4,
+                  borderRadius: 4,
+                }}
+              />
+            ) : (
+              <VerticalAlignTopOutlined
+                style={{
+                  backgroundColor: "rgba(22,119,255,0.5)",
+                  color: "#fff",
+                  padding: 4,
+                  borderRadius: 4,
+                }}
+              />
+            )
           }
-        }}
-        title={isCollapsed ? "Déplier" : "Replier"}
-        icon={
-          isCollapsed ? (
-            <VerticalAlignBottomOutlined
-              style={{
-                backgroundColor: "#1677ff",
-                color: "#fff",
-                padding: 4,
-                borderRadius: 4,
-              }}
-            />
-          ) : (
-            <VerticalAlignTopOutlined  style={{
-                backgroundColor: "rgba(22,119,255,0.5)",
-                color: "#fff",
-                padding: 4,
-                borderRadius: 4,
-              }} />
-          )
-        }
-      />
+        />
       </Tooltip>
       <Popover
         placement="bottomRight"
@@ -584,7 +588,10 @@ const CardBlock = (data) => {
               }}
               content={renderMovePopoverContent("up")}
             >
-              <Tooltip title="Deplacer la carte vers le haut" mouseEnterDelay={0.3}>
+              <Tooltip
+                title="Deplacer la carte vers le haut"
+                mouseEnterDelay={0.3}
+              >
                 <Button
                   size="small"
                   type="default"
@@ -606,7 +613,10 @@ const CardBlock = (data) => {
               }}
               content={renderMovePopoverContent("down")}
             >
-              <Tooltip title="Deplacer la carte vers le bas" mouseEnterDelay={0.3}>
+              <Tooltip
+                title="Deplacer la carte vers le bas"
+                mouseEnterDelay={0.3}
+              >
                 <Button
                   size="small"
                   type="default"
@@ -693,7 +703,7 @@ const CardBlock = (data) => {
         </div>
       }
       style={{ width: "100%" }}
-      tabList={tabList}
+      tabList={visibleTabList}
       activeTabKey={activeTabKey}
       onTabChange={onTabChange}
       className="shadow-md hover:shadow-xl transition-shadow duration-200"
