@@ -39,7 +39,11 @@ const ANIMATION_END_MS = Math.round(
     1000
 );
 const BG_SWAP_LEAD_MS = 140;
-const BG_SWAP_DELAY_MS = Math.max(0, RAISE_START_MS - BG_SWAP_LEAD_MS);
+const BG_ADVANCE_MS = 700;
+const BG_SWAP_DELAY_MS = Math.max(
+  0,
+  RAISE_START_MS - BG_SWAP_LEAD_MS - BG_ADVANCE_MS
+);
 
 function useMotionDelayState(delayMs, setState) {
   useEffect(() => {
