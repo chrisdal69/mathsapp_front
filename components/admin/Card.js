@@ -433,8 +433,8 @@ const CardBlock = (data) => {
   const tabList = [
     { key: "contenu", label: "Contenu" },
     { key: "fichiers", label: "Fichiers" },
-    { key: "quizz", label: "Quiz" },
-    { key: "quizzResult", label: "Quiz+" },
+    { key: "quizz", label: "Qcm" },
+    { key: "quizzResult", label: "Qcm+" },
     { key: "flash", label: "Flash" },
 
     isAuthenticated && isCloudEnabled && { key: "cloud", label: "Cloud" },

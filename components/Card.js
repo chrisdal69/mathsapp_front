@@ -61,7 +61,7 @@ const CardBlock = (data) => {
     (data.evalQuizz === "non" ||
       (isAuthenticated && data.evalQuizz === "oui")) &&
       data.quizz &&
-      data.quizz.length !== 0 && { key: "quizz", label: "Quiz" },
+      data.quizz.length !== 0 && { key: "quizz", label: "Qcm" },
 
     data.flash && data.flash.length !== 0 && { key: "flash", label: "Flash" },
     isAuthenticated && data.cloud && { key: "cloud", label: "Cloud" },
