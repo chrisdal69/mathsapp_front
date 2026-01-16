@@ -9,6 +9,7 @@ import {
   PlusOutlined,
   CheckOutlined,
   CloseOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
@@ -153,6 +154,33 @@ export default function Contenu({
 
   const blurBg = useMemo(() => (localBg ? toBlurFile(localBg) : ""), [localBg]);
   const cardId = _id || id;
+
+  const formulaLinks = (
+    <>
+      <Tooltip title="Exemples formules latex" mouseEnterDelay={0.3}>
+        <a
+          href="https://quickref.me/latex.html"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Exemples formules latex"
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <LinkOutlined />
+        </a>
+      </Tooltip>
+      <Tooltip title="Exemples formules katex" mouseEnterDelay={0.3}>
+        <a
+          href="https://katex.org/docs/supported"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Exemples formules katex"
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <LinkOutlined />
+        </a>
+      </Tooltip>
+    </>
+  );
 
   const listConfigs = {
     presentation: {
@@ -458,7 +486,8 @@ export default function Contenu({
       <p className="text-xs text-gray-500">
         Utiliser $...$ pour les formules inline.
       </p>
-      <div className="flex justify-end gap-2">
+      <div className="flex w-full items-center justify-between">
+        {formulaLinks}
         <Button
           type="primary"
           size="small"
