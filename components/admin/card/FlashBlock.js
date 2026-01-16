@@ -3,12 +3,26 @@ import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, Card, Carousel, Input, message, Popover, Select, Tooltip, Upload } from "antd";
+import {
+  Button,
+  Card,
+  Carousel,
+  Input,
+  message,
+  Modal,
+  Popover,
+  Select,
+  Tooltip,
+  Upload,
+} from "antd";
+import JSZip from "jszip";
 import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
+  LinkOutlined,
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
@@ -20,6 +34,7 @@ const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const MAX_FLASH_IMAGE_BYTES = 4 * 1024 * 1024;
 const PREVIEW_IMAGE_WIDTH = 250;
+const FLASH_EXPORT_JSON_NAME = "flash.json";
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -97,6 +112,109 @@ const renderInlineKatex = (input) => {
   return { nodes, hasUnmatched };
 };
 
+const getZipBaseName = (value) => {
+  const raw = typeof value === "string" ? value : "";
+  const parts = raw.split(/[\\/]/);
+  return parts[parts.length - 1] || "";
+};
+
+const buildExportFileName = (repertoire, num) => {
+  const parts = ["flash"];
+  if (repertoire) parts.push(repertoire);
+  if (typeof num !== "undefined" && num !== null && `${num}` !== "") {
+    parts.push(`tag${num}`);
+  }
+  const base = parts.join("_");
+  const safe = base
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+  return `${safe || "flash"}.zip`;
+};
+
+const getFileNameFromDisposition = (value) => {
+  if (!value || typeof value !== "string") return "";
+  const utfMatch = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch && utfMatch[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch (error) {
+      return utfMatch[1];
+    }
+  }
+  const match = value.match(/filename="?([^";]+)"?/i);
+  return match && match[1] ? match[1] : "";
+};
+
+const isAllowedImageName = (name) => {
+  if (!name || typeof name !== "string") return false;
+  const lower = name.toLowerCase();
+  return ALLOWED_IMAGE_EXT.some((ext) => lower.endsWith(ext));
+};
+
+const validateImportedFlashPayload = (payload) => {
+  const errors = [];
+  const rawList = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.flash)
+    ? payload.flash
+    : null;
+
+  if (!rawList) {
+    return {
+      ok: false,
+      errors: ["Format attendu: tableau ou objet avec une cle 'flash'."],
+      normalized: [],
+    };
+  }
+
+  const normalized = [];
+  rawList.forEach((item, idx) => {
+    const label = `Flash ${idx + 1}`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push(`${label}: objet attendu.`);
+      return;
+    }
+
+    const question =
+      typeof item.question === "string" ? item.question.trim() : "";
+    if (!question) {
+      errors.push(`${label}: champ "question" manquant ou vide.`);
+    }
+
+    const reponse =
+      typeof item.reponse === "string" ? item.reponse.trim() : "";
+    if (!reponse) {
+      errors.push(`${label}: champ "reponse" manquant ou vide.`);
+    }
+
+    const rawImQuestion =
+      typeof item.imquestion === "string" ? item.imquestion.trim() : "";
+    const rawImReponse =
+      typeof item.imreponse === "string" ? item.imreponse.trim() : "";
+    const imquestion = rawImQuestion ? getZipBaseName(rawImQuestion) : "";
+    const imreponse = rawImReponse ? getZipBaseName(rawImReponse) : "";
+
+    if (imquestion && !isAllowedImageName(imquestion)) {
+      errors.push(`${label}: image question "${rawImQuestion}" invalide.`);
+    }
+    if (imreponse && !isAllowedImageName(imreponse)) {
+      errors.push(`${label}: image reponse "${rawImReponse}" invalide.`);
+    }
+
+    normalized.push({
+      id: "",
+      question,
+      imquestion: imquestion && isAllowedImageName(imquestion) ? imquestion : "",
+      reponse,
+      imreponse: imreponse && isAllowedImageName(imreponse) ? imreponse : "",
+    });
+  });
+
+  return { ok: errors.length === 0, errors, normalized };
+};
+
 export default function FlashBlock({ num, repertoire, flash, _id, id }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
@@ -116,6 +234,33 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
   const [uploadingImageFor, setUploadingImageFor] = useState("");
 
   const cardId = _id || id;
+
+  const formulaLinks = (
+    <>
+      <Tooltip title="Exemples formules latex" mouseEnterDelay={0.3}>
+        <a
+          href="https://quickref.me/latex.html"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Exemples formules latex"
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <LinkOutlined />
+        </a>
+      </Tooltip>
+      <Tooltip title="Exemples formules katex" mouseEnterDelay={0.3}>
+        <a
+          href="https://katex.org/docs/supported"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Exemples formules katex"
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <LinkOutlined />
+        </a>
+      </Tooltip>
+    </>
+  );
 
   const racine = useMemo(
     () =>
@@ -415,20 +560,25 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
     }
   };
 
-  const handleUploadImage = async (flashItem, field, file) => {
-    if (!flashItem?.id || !file || !field) return;
+  const handleUploadImage = async (
+    flashItem,
+    field,
+    file,
+    { silent = false } = {}
+  ) => {
+    if (!flashItem?.id || !file || !field) return false;
     const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
     if (!ALLOWED_IMAGE_EXT.includes(ext)) {
       message.error("Image non autorisee (jpg ou png).");
-      return;
+      return false;
     }
     if (file.size && file.size > MAX_FLASH_IMAGE_BYTES) {
       message.error("Fichier trop volumineux (4 Mo max).");
-      return;
+      return false;
     }
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
-      return;
+      return false;
     }
 
     const uploadKey = getActionKey("upload", flashItem.id, field);
@@ -464,10 +614,14 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
         setFlashList(Array.isArray(updatedCard.flash) ? updatedCard.flash : []);
         syncCardsStore(updatedCard, updatedCard.flash);
       }
-      message.success("Image importee.");
+      if (!silent) {
+        message.success("Image importee.");
+      }
+      return true;
     } catch (error) {
       console.error("Erreur upload image flash", error);
       message.error(error.message || "Erreur lors de l'upload.");
+      return false;
     } finally {
       setUploadingImageFor("");
     }
@@ -634,6 +788,249 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
     return options;
   }, [flashList]);
 
+  const handleExportFlash = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const exportKey = "export-flash";
+    setActionKey(exportKey);
+    message.loading({
+      content: "Export du flash en cours...",
+      key: exportKey,
+      duration: 0,
+    });
+    try {
+      const response = await fetch(
+        `${urlFetch}/cards/${cardId}/flash/export/zip`,
+        {
+          credentials: "include",
+        }
+      );
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
+        );
+      }
+      if (!response.ok) {
+        throw new Error("Impossible d'exporter le flash.");
+      }
+      const zipBlob = await response.blob();
+      const headerName = getFileNameFromDisposition(
+        response.headers.get("Content-Disposition")
+      );
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = headerName || buildExportFileName(repertoire, num);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      message.success({ content: "Export termine.", key: exportKey });
+    } catch (error) {
+      console.error("Erreur export flash", error);
+      message.error({ content: "Erreur lors de l'export.", key: exportKey });
+    } finally {
+      setActionKey("");
+    }
+  };
+
+  const handleImportZip = async (file) => {
+    if (!file) return;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const fileName = file.name || "";
+    if (!fileName.toLowerCase().endsWith(".zip")) {
+      message.error("Merci de choisir un fichier .zip.");
+      return;
+    }
+
+    setActionKey("import-zip");
+    try {
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+      const jsonEntry =
+        entries.find(
+          (entry) =>
+            getZipBaseName(entry.name).toLowerCase() ===
+            FLASH_EXPORT_JSON_NAME
+        ) || entries.find((entry) => entry.name.toLowerCase().endsWith(".json"));
+
+      if (!jsonEntry) {
+        message.error("Fichier JSON introuvable dans le zip.");
+        return;
+      }
+
+      let parsed = null;
+      try {
+        parsed = JSON.parse(await jsonEntry.async("text"));
+      } catch (error) {
+        message.error("Le fichier JSON est invalide.");
+        return;
+      }
+
+      const validation = validateImportedFlashPayload(parsed);
+      if (!validation.ok) {
+        const maxErrors = 6;
+        Modal.error({
+          title: "Import impossible",
+          content: (
+            <div>
+              <p className="m-0 text-sm text-gray-700">
+                Le fichier JSON ne respecte pas le format attendu.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm text-gray-600">
+                {validation.errors.slice(0, maxErrors).map((err, index) => (
+                  <li key={`${index}-${err}`}>{err}</li>
+                ))}
+              </ul>
+              {validation.errors.length > maxErrors && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {validation.errors.length - maxErrors} autre(s) erreur(s).
+                </p>
+              )}
+            </div>
+          ),
+        });
+        return;
+      }
+
+      const normalized = validation.normalized;
+      if (!normalized.length) {
+        message.error("Aucune flash card a importer.");
+        return;
+      }
+
+      const imageEntries = entries.filter((entry) =>
+        isAllowedImageName(getZipBaseName(entry.name))
+      );
+      const imageBlobs = new Map();
+      for (const entry of imageEntries) {
+        const baseName = getZipBaseName(entry.name);
+        if (!baseName || imageBlobs.has(baseName)) continue;
+        const blob = await entry.async("blob");
+        imageBlobs.set(baseName, blob);
+      }
+
+      const pendingImages = [];
+      let missingImages = 0;
+      const importedFlash = normalized.map((item, idx) => {
+        const fields = ["imquestion", "imreponse"];
+        fields.forEach((field) => {
+          const imageName = item[field];
+          if (imageName) {
+            const blob = imageBlobs.get(imageName);
+            if (blob) {
+              const lower = imageName.toLowerCase();
+              const type = lower.endsWith(".png") ? "image/png" : "image/jpeg";
+              pendingImages.push({
+                index: idx,
+                field,
+                file: new File([blob], imageName, {
+                  type: blob.type || type,
+                }),
+              });
+            } else {
+              missingImages += 1;
+            }
+          }
+        });
+        return { ...item, imquestion: "", imreponse: "" };
+      });
+
+      const totalCards = importedFlash.length;
+      Modal.confirm({
+        title: "Importer un flash",
+        content: `Ajouter ${totalCards} flash card${
+          totalCards > 1 ? "s" : ""
+        } au flash existant ?`,
+        okText: "Importer",
+        cancelText: "Annuler",
+        onOk: async () => {
+          const currentList = Array.isArray(flashListRef.current)
+            ? flashListRef.current
+            : [];
+          const baseLength = currentList.length;
+          const merged = [...currentList, ...importedFlash];
+          const ok = await persistFlash(merged, {}, "import-flash");
+          if (!ok) return;
+
+          const referencedImages = pendingImages.length + missingImages;
+          const baseSummaryParts = [
+            `${totalCards} flash card${totalCards > 1 ? "s" : ""} ajoutee${
+              totalCards > 1 ? "s" : ""
+            }`,
+          ];
+          if (referencedImages > 0) {
+            baseSummaryParts.push(
+              `${referencedImages} image${
+                referencedImages > 1 ? "s" : ""
+              } referencee${referencedImages > 1 ? "s" : ""}`
+            );
+          }
+
+          if (!pendingImages.length) {
+            if (missingImages) {
+              baseSummaryParts.push(
+                `${missingImages} manquante${missingImages > 1 ? "s" : ""}`
+              );
+            }
+            const summary = `Import termine: ${baseSummaryParts.join(", ")}.`;
+            const severity = missingImages ? "warning" : "success";
+            message[severity](summary);
+            return;
+          }
+
+          const imagesKey = "import-images";
+          message.loading({
+            content: "Import des images...",
+            key: imagesKey,
+            duration: 0,
+          });
+          let uploaded = 0;
+          for (const item of pendingImages) {
+            const flashId = `f${baseLength + item.index + 1}`;
+            const okImage = await handleUploadImage(
+              { id: flashId },
+              item.field,
+              item.file,
+              { silent: true }
+            );
+            if (okImage) uploaded += 1;
+          }
+
+          const failed = pendingImages.length - uploaded;
+          const summaryParts = [...baseSummaryParts];
+          summaryParts.push(
+            `${uploaded}/${pendingImages.length} image${
+              pendingImages.length > 1 ? "s" : ""
+            } importee${pendingImages.length > 1 ? "s" : ""}`
+          );
+          if (missingImages) {
+            summaryParts.push(
+              `${missingImages} manquante${missingImages > 1 ? "s" : ""}`
+            );
+          }
+          if (failed) {
+            summaryParts.push(`${failed} en echec`);
+          }
+          const summary = `Import termine: ${summaryParts.join(", ")}.`;
+          const severity = missingImages || failed ? "warning" : "success";
+          message[severity]({ content: summary, key: imagesKey });
+        },
+      });
+    } catch (error) {
+      console.error("Erreur import flash", error);
+      message.error("Erreur lors de la lecture du zip.");
+    } finally {
+      setActionKey("");
+    }
+  };
+
   const buildUploadProps = (flashItem, field) => ({
     accept: ALLOWED_IMAGE_EXT.join(","),
     showUploadList: false,
@@ -642,6 +1039,16 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       return false;
     },
   });
+
+  const importUploadProps = {
+    accept: ".zip",
+    maxCount: 1,
+    beforeUpload: (file) => {
+      handleImportZip(file);
+      return Upload.LIST_IGNORE;
+    },
+    showUploadList: false,
+  };
 
   return (
     <div className="relative w-full">
@@ -836,6 +1243,27 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
                 </Button>
               </Tooltip>
             </Popover>
+
+            <Tooltip title="Exporter le flash en zip" mouseEnterDelay={0.3}>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleExportFlash}
+                disabled={!flashList.length || !cardId}
+              >
+                Exporter le Flash
+              </Button>
+            </Tooltip>
+
+            <Upload {...importUploadProps}>
+              <Tooltip
+                title="Importer un flash depuis un zip"
+                mouseEnterDelay={0.3}
+              >
+                <Button icon={<UploadOutlined />} disabled={!cardId}>
+                  Importer un Flash
+                </Button>
+              </Tooltip>
+            </Upload>
           </div>
 
           {flashList.length === 0 ? (
@@ -944,7 +1372,8 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
                                   <p className="text-xs text-gray-500">
                                     Utiliser $...$ pour les formules inline.
                                   </p>
-                                  <div className="flex justify-end gap-2">
+                                  <div className="flex w-full items-center justify-between">
+                                    {formulaLinks}
                                     <Tooltip
                                       title="Annuler"
                                       mouseEnterDelay={0.3}
@@ -1154,7 +1583,8 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
                                   <p className="text-xs text-gray-500">
                                     Utiliser $...$ pour les formules inline.
                                   </p>
-                                  <div className="flex justify-end gap-2">
+                                  <div className="flex w-full items-center justify-between">
+                                    {formulaLinks}
                                     <Tooltip
                                       title="Annuler"
                                       mouseEnterDelay={0.3}
