@@ -9,16 +9,19 @@ import {
   Carousel,
   Input,
   message,
+  Modal,
   Popover,
   Radio,
   Select,
   Tooltip,
   Upload,
 } from "antd";
+import JSZip from "jszip";
 import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
+  DownloadOutlined,
   EditOutlined,
   LinkOutlined,
   PlusOutlined,
@@ -33,6 +36,7 @@ const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const MAX_QUIZZ_IMAGE_BYTES = 4 * 1024 * 1024;
 const PREVIEW_IMAGE_WIDTH = 250;
+const QUIZZ_EXPORT_JSON_NAME = "quizz.json";
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -110,6 +114,136 @@ const renderInlineKatex = (input) => {
   return { nodes, hasUnmatched };
 };
 
+const getZipBaseName = (value) => {
+  const raw = typeof value === "string" ? value : "";
+  const parts = raw.split(/[\\/]/);
+  return parts[parts.length - 1] || "";
+};
+
+const buildExportFileName = (repertoire, num) => {
+  const parts = ["quizz"];
+  if (repertoire) parts.push(repertoire);
+  if (typeof num !== "undefined" && num !== null && `${num}` !== "") {
+    parts.push(`tag${num}`);
+  }
+  const base = parts.join("_");
+  const safe = base
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+  return `${safe || "quizz"}.zip`;
+};
+
+const getFileNameFromDisposition = (value) => {
+  if (!value || typeof value !== "string") return "";
+  const utfMatch = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utfMatch && utfMatch[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1]);
+    } catch (error) {
+      return utfMatch[1];
+    }
+  }
+  const match = value.match(/filename="?([^";]+)"?/i);
+  return match && match[1] ? match[1] : "";
+};
+
+const isAllowedImageName = (name) => {
+  if (!name || typeof name !== "string") return false;
+  const lower = name.toLowerCase();
+  return ALLOWED_IMAGE_EXT.some((ext) => lower.endsWith(ext));
+};
+
+const validateImportedQuizzPayload = (payload) => {
+  const errors = [];
+  const rawList = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.quizz)
+    ? payload.quizz
+    : null;
+
+  if (!rawList) {
+    return {
+      ok: false,
+      errors: ["Format attendu: tableau ou objet avec une cle 'quizz'."],
+      normalized: [],
+    };
+  }
+
+  const normalized = [];
+  rawList.forEach((item, idx) => {
+    const label = `Question ${idx + 1}`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      errors.push(`${label}: objet attendu.`);
+      return;
+    }
+
+    const question =
+      typeof item.question === "string" ? item.question.trim() : "";
+    if (!question) {
+      errors.push(`${label}: champ "question" manquant ou vide.`);
+    }
+
+    const rawOptions = item.options;
+    if (!Array.isArray(rawOptions)) {
+      errors.push(`${label}: champ "options" doit etre un tableau.`);
+    }
+    const options = Array.isArray(rawOptions)
+      ? rawOptions.map((opt, optIdx) => {
+          if (typeof opt !== "string") {
+            errors.push(
+              `${label}: option ${optIdx + 1} doit etre une chaine.`
+            );
+            return "";
+          }
+          const trimmed = opt.trim();
+          if (!trimmed) {
+            errors.push(`${label}: option ${optIdx + 1} est vide.`);
+          }
+          return trimmed;
+        })
+      : [];
+    if (Array.isArray(rawOptions) && options.length === 0) {
+      errors.push(`${label}: aucune option fournie.`);
+    }
+
+    let correct = null;
+    if (
+      Object.prototype.hasOwnProperty.call(item, "correct") &&
+      item.correct !== null &&
+      typeof item.correct !== "undefined"
+    ) {
+      if (!Number.isInteger(item.correct)) {
+        errors.push(`${label}: "correct" doit etre un entier.`);
+      } else if (!options.length) {
+        errors.push(`${label}: "correct" defini sans options valides.`);
+      } else if (item.correct < 0 || item.correct >= options.length) {
+        errors.push(`${label}: "correct" hors limites.`);
+      } else {
+        correct = item.correct;
+      }
+    }
+
+    const rawImage =
+      typeof item.image === "string" ? item.image.trim() : "";
+    const image = rawImage ? getZipBaseName(rawImage) : "";
+    if (image && !isAllowedImageName(image)) {
+      errors.push(`${label}: image "${rawImage}" invalide (jpg/png).`);
+    }
+
+    normalized.push({
+      id: "",
+      question,
+      image: image && isAllowedImageName(image) ? image : "",
+      options,
+      correct,
+    });
+  });
+
+  return { ok: errors.length === 0, errors, normalized };
+};
+
 export default function Quizz({
   num,
   repertoire,
@@ -128,6 +262,7 @@ export default function Quizz({
   const [quizzList, setQuizzList] = useState(Array.isArray(quizz) ? quizz : []);
   const [localEvalQuizz, setLocalEvalQuizz] = useState(evalQuizz || "non");
   const [localResultatQuizz, setLocalResultatQuizz] = useState(!!resultatQuizz);
+  const quizzListRef = useRef(quizzList);
 
   const [addQuestionOpen, setAddQuestionOpen] = useState(false);
   const [deleteQuestionOpen, setDeleteQuestionOpen] = useState(false);
@@ -188,6 +323,10 @@ export default function Quizz({
   useEffect(() => {
     setQuizzList(Array.isArray(quizz) ? quizz : []);
   }, [quizz]);
+
+  useEffect(() => {
+    quizzListRef.current = quizzList;
+  }, [quizzList]);
 
   useEffect(() => {
     setLocalEvalQuizz(evalQuizz || "non");
@@ -516,20 +655,20 @@ export default function Quizz({
     );
   };
 
-  const handleUploadImage = async (question, file) => {
+  const handleUploadImage = async (question, file, { silent = false } = {}) => {
     if (!question?.id || !file) return;
     const ext = `.${(file.name || "").split(".").pop()?.toLowerCase() || ""}`;
     if (!ALLOWED_IMAGE_EXT.includes(ext)) {
       message.error("Image non autorisee (jpg ou png).");
-      return;
+      return false;
     }
     if (file.size && file.size > MAX_QUIZZ_IMAGE_BYTES) {
       message.error("Fichier trop volumineux (4 Mo max)");
-      return;
+      return false;
     }
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
-      return;
+      return false;
     }
     setUploadingImageFor(question.id);
 
@@ -562,10 +701,14 @@ export default function Quizz({
         setQuizzList(Array.isArray(updatedCard.quizz) ? updatedCard.quizz : []);
         syncCardsStore(updatedCard, updatedCard.quizz);
       }
-      message.success("Image importee.");
+      if (!silent) {
+        message.success("Image importee.");
+      }
+      return true;
     } catch (error) {
       console.error("Erreur upload image quizz", error);
       message.error(error.message || "Erreur lors de l'upload.");
+      return false;
     } finally {
       setUploadingImageFor("");
     }
@@ -726,6 +869,242 @@ export default function Quizz({
     return opts;
   };
 
+  const handleExportQuizz = async () => {
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const exportKey = "export-quizz";
+    setActionKey(exportKey);
+    message.loading({
+      content: "Export du quizz en cours...",
+      key: exportKey,
+      duration: 0,
+    });
+    try {
+      const response = await fetch(`${urlFetch}/quizzs/${cardId}/export/zip`, {
+        credentials: "include",
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(
+          "Session expiree ou droits insuffisants. Merci de vous reconnecter."
+        );
+      }
+      if (!response.ok) {
+        throw new Error("Impossible d'exporter le quizz.");
+      }
+      const zipBlob = await response.blob();
+      const headerName = getFileNameFromDisposition(
+        response.headers.get("Content-Disposition")
+      );
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = headerName || buildExportFileName(repertoire, num);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      message.success({ content: "Export termine.", key: exportKey });
+    } catch (error) {
+      console.error("Erreur export quizz", error);
+      message.error({ content: "Erreur lors de l'export.", key: exportKey });
+    } finally {
+      setActionKey("");
+    }
+  };
+
+  const handleImportZip = async (file) => {
+    if (!file) return;
+    if (!cardId) {
+      message.error("Identifiant de carte manquant.");
+      return;
+    }
+    const fileName = file.name || "";
+    if (!fileName.toLowerCase().endsWith(".zip")) {
+      message.error("Merci de choisir un fichier .zip.");
+      return;
+    }
+
+    setActionKey("import-zip");
+    try {
+      const zip = await JSZip.loadAsync(await file.arrayBuffer());
+      const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+      const jsonEntry =
+        entries.find(
+          (entry) =>
+            getZipBaseName(entry.name).toLowerCase() ===
+            QUIZZ_EXPORT_JSON_NAME
+        ) || entries.find((entry) => entry.name.toLowerCase().endsWith(".json"));
+
+      if (!jsonEntry) {
+        message.error("Fichier JSON introuvable dans le zip.");
+        return;
+      }
+
+      let parsed = null;
+      try {
+        parsed = JSON.parse(await jsonEntry.async("text"));
+      } catch (error) {
+        message.error("Le fichier JSON est invalide.");
+        return;
+      }
+
+      const validation = validateImportedQuizzPayload(parsed);
+      if (!validation.ok) {
+        const maxErrors = 6;
+        Modal.error({
+          title: "Import impossible",
+          content: (
+            <div>
+              <p className="m-0 text-sm text-gray-700">
+                Le fichier JSON ne respecte pas le format attendu.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm text-gray-600">
+                {validation.errors.slice(0, maxErrors).map((err, index) => (
+                  <li key={`${index}-${err}`}>{err}</li>
+                ))}
+              </ul>
+              {validation.errors.length > maxErrors && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {validation.errors.length - maxErrors} autre(s) erreur(s).
+                </p>
+              )}
+            </div>
+          ),
+        });
+        return;
+      }
+
+      const normalized = validation.normalized;
+      if (!normalized.length) {
+        message.error("Aucune question a importer.");
+        return;
+      }
+
+      const imageEntries = entries.filter((entry) =>
+        isAllowedImageName(getZipBaseName(entry.name))
+      );
+      const imageBlobs = new Map();
+      for (const entry of imageEntries) {
+        const baseName = getZipBaseName(entry.name);
+        if (!baseName || imageBlobs.has(baseName)) continue;
+        const blob = await entry.async("blob");
+        imageBlobs.set(baseName, blob);
+      }
+
+      const pendingImages = [];
+      let missingImages = 0;
+      const importedQuestions = normalized.map((q, idx) => {
+        const imageName = q.image;
+        if (imageName) {
+          const blob = imageBlobs.get(imageName);
+          if (blob) {
+            const lower = imageName.toLowerCase();
+            const type = lower.endsWith(".png") ? "image/png" : "image/jpeg";
+            pendingImages.push({
+              index: idx,
+              file: new File([blob], imageName, {
+                type: blob.type || type,
+              }),
+            });
+          } else {
+            missingImages += 1;
+          }
+        }
+        return { ...q, image: "" };
+      });
+
+      const totalQuestions = importedQuestions.length;
+      Modal.confirm({
+        title: "Importer un quizz",
+        content: `Ajouter ${totalQuestions} question${
+          totalQuestions > 1 ? "s" : ""
+        } au quizz existant ?`,
+        okText: "Importer",
+        cancelText: "Annuler",
+        onOk: async () => {
+          const currentList = Array.isArray(quizzListRef.current)
+            ? quizzListRef.current
+            : [];
+          const baseLength = currentList.length;
+          const merged = [...currentList, ...importedQuestions];
+          const ok = await persistQuizz(merged, {}, "import-quizz");
+          if (!ok) return;
+
+          const totalQuestions = importedQuestions.length;
+          const referencedImages = pendingImages.length + missingImages;
+          const baseSummaryParts = [
+            `${totalQuestions} question${
+              totalQuestions > 1 ? "s" : ""
+            } ajoutee${totalQuestions > 1 ? "s" : ""}`,
+          ];
+          if (referencedImages > 0) {
+            baseSummaryParts.push(
+              `${referencedImages} image${
+                referencedImages > 1 ? "s" : ""
+              } referencee${referencedImages > 1 ? "s" : ""}`
+            );
+          }
+
+          if (!pendingImages.length) {
+            if (missingImages) {
+              baseSummaryParts.push(
+                `${missingImages} manquante${missingImages > 1 ? "s" : ""}`
+              );
+            }
+            const summary = `Import termine: ${baseSummaryParts.join(", ")}.`;
+            const severity = missingImages ? "warning" : "success";
+            message[severity](summary);
+            return;
+          }
+
+          const imagesKey = "import-images";
+          message.loading({
+            content: "Import des images...",
+            key: imagesKey,
+            duration: 0,
+          });
+          let uploaded = 0;
+          for (const item of pendingImages) {
+            const questionId = `q${baseLength + item.index + 1}`;
+            const okImage = await handleUploadImage(
+              { id: questionId },
+              item.file,
+              { silent: true }
+            );
+            if (okImage) uploaded += 1;
+          }
+
+          const failed = pendingImages.length - uploaded;
+          const summaryParts = [...baseSummaryParts];
+          summaryParts.push(
+            `${uploaded}/${pendingImages.length} image${
+              pendingImages.length > 1 ? "s" : ""
+            } importee${pendingImages.length > 1 ? "s" : ""}`
+          );
+          if (missingImages) {
+            summaryParts.push(
+              `${missingImages} manquante${missingImages > 1 ? "s" : ""}`
+            );
+          }
+          if (failed) {
+            summaryParts.push(`${failed} en echec`);
+          }
+          const summary = `Import termine: ${summaryParts.join(", ")}.`;
+          const severity = missingImages || failed ? "warning" : "success";
+          message[severity]({ content: summary, key: imagesKey });
+        },
+      });
+    } catch (error) {
+      console.error("Erreur import quizz", error);
+      message.error("Erreur lors de la lecture du zip.");
+    } finally {
+      setActionKey("");
+    }
+  };
+
   const buildUploadProps = (question) => ({
     accept: ALLOWED_IMAGE_EXT.join(","),
     maxCount: 1,
@@ -735,6 +1114,16 @@ export default function Quizz({
     },
     showUploadList: false,
   });
+
+  const importUploadProps = {
+    accept: ".zip",
+    maxCount: 1,
+    beforeUpload: (file) => {
+      handleImportZip(file);
+      return Upload.LIST_IGNORE;
+    },
+    showUploadList: false,
+  };
 
   return (
     <div className="relative w-full">
@@ -952,6 +1341,24 @@ export default function Quizz({
             </Button>
           </Tooltip>
         </Popover>
+
+        <Tooltip title="Exporter le quizz en zip" mouseEnterDelay={0.3}>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExportQuizz}
+            disabled={!quizzList.length || !cardId}
+          >
+            Exporter le Quiz
+          </Button>
+        </Tooltip>
+
+        <Upload {...importUploadProps}>
+          <Tooltip title="Importer un quizz depuis un zip" mouseEnterDelay={0.3}>
+            <Button icon={<UploadOutlined />} disabled={!cardId}>
+              Importer un Quizz
+            </Button>
+          </Tooltip>
+        </Upload>
       </div>
 
       {/* Carousel responsive */}
