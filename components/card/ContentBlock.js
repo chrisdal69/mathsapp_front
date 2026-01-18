@@ -170,12 +170,14 @@ export default function Contenu({
   }, [typing, totalSteps]);
 
   const toBlurFile = (filename) => {
+    if (!filename || typeof filename !== "string") return "";
     const lastDot = filename.lastIndexOf(".");
     if (lastDot === -1) return `${filename}Blur`;
     return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
   };
 
   const blurBg = useMemo(() => toBlurFile(bg), [bg]);
+  const hasBackground = typeof bg === "string" && bg.trim().length > 0;
   const hoverKeepsImage = !!contentHoverKeepsImage;
   const shouldHideImage = !isExpanded && typing && !hoverKeepsImage;
   const showExpandedOverlay = isExpanded && (typing || typedStep > 0);
@@ -207,29 +209,31 @@ export default function Contenu({
         )}
       </div>
 
-      <motion.div
-        className="absolute inset-0 z-0"
-        initial="hidden"
-        animate={revealImage ? "visible" : "hidden"}
-        variants={{
-          hidden: { clipPath: "inset(0 0 100% 0)" },
-          visible: { clipPath: "inset(0 0 0% 0)" },
-        }}
-        transition={{ duration: 1.9, ease: [0.22, 1, 0.36, 1] }}
-        style={{ willChange: "clip-path" }}
-      >
-        <Image
-          src={`${racine}${bg}`}
-          alt="Logo"
-          fill
-          placeholder="blur"
-          blurDataURL={`${racine}${blurBg}`}
-          sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-          className={`object-cover object-center transition-opacity duration-300 ease-out ${
-            shouldHideImage ? "opacity-0 pointer-events-none" : "opacity-100"
-          }`}
-        />
-      </motion.div>
+      {hasBackground && (
+        <motion.div
+          className="absolute inset-0 z-0"
+          initial="hidden"
+          animate={revealImage ? "visible" : "hidden"}
+          variants={{
+            hidden: { clipPath: "inset(0 0 100% 0)" },
+            visible: { clipPath: "inset(0 0 0% 0)" },
+          }}
+          transition={{ duration: 1.9, ease: [0.22, 1, 0.36, 1] }}
+          style={{ willChange: "clip-path" }}
+        >
+          <Image
+            src={`${racine}${bg}`}
+            alt="Logo"
+            fill
+            placeholder={blurBg ? "blur" : undefined}
+            blurDataURL={blurBg ? `${racine}${blurBg}` : undefined}
+            sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className={`object-cover object-center transition-opacity duration-300 ease-out ${
+              shouldHideImage ? "opacity-0 pointer-events-none" : "opacity-100"
+            }`}
+          />
+        </motion.div>
+      )}
 
       {showOverlay && (
         <div

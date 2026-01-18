@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Carousel } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -12,6 +12,7 @@ export default function FlashBlock({
   isExpanded,
 }) {
   const carouselRef = useRef(null);
+  const carouselWrapRef = useRef(null);
 
   const [current, setCurrent] = useState(0);
 
@@ -40,6 +41,51 @@ export default function FlashBlock({
     setCurrent((c) => Math.min(flash.length - 1, c + 1));
     carouselRef.current?.next();
   };
+
+  const reflowCarousel = useCallback(() => {
+    const slider = carouselRef.current?.innerSlider;
+    if (slider?.onWindowResized) {
+      slider.onWindowResized();
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("resize"));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!flash.length) return;
+    const timer = setTimeout(() => {
+      reflowCarousel();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [flash.length, reflowCarousel]);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const timer = setTimeout(() => {
+      reflowCarousel();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isExpanded, reflowCarousel]);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const node = carouselWrapRef.current;
+    if (!node) return undefined;
+    let frame;
+    const observer = new ResizeObserver(() => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        reflowCarousel();
+      });
+    });
+    observer.observe(node);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [reflowCarousel]);
 
   // Echelle de progression dynamique (points rapproches)
   const DOT = 10; // diametre du point (px)
@@ -182,41 +228,64 @@ export default function FlashBlock({
           </div>
 
           {/* Carrousel de questions */}
-          <Carousel
-            ref={carouselRef}
-            dots
-            swipe
-            draggable
-            infinite={false}
-            beforeChange={(_, to) => setCurrent(to)}
-            afterChange={(i) => setCurrent(i)}
-            adaptiveHeight
-            className="max-w-xs sm:max-w-2xl"
-          >
-            {flash.map((q, idx) => {
-              return (
-                <div
-                  key={q.id}
-                  style={{ display: "flex", justifyContent: "center" }}
-                >
-                  <Card
+          <div ref={carouselWrapRef} className="w-full max-w-xs sm:max-w-2xl">
+            <Carousel
+              ref={carouselRef}
+              dots
+              swipe
+              draggable
+              infinite={false}
+              beforeChange={(_, to) => setCurrent(to)}
+              afterChange={(i) => setCurrent(i)}
+              adaptiveHeight
+              className="flash-carousel w-full"
+            >
+              {flash.map((q, idx) => {
+                return (
+                  <div
+                    key={q.id}
                     style={{
-                      margin: "4px auto",
+                      display: "flex",
+                      justifyContent: "center",
                       width: "100%",
-                      maxWidth: "100%",
-                      textAlign: "center",
-                      padding: "0px",
-                      backgroundColor: "rgba(100,100,100,0.2)",
                     }}
                   >
-                    <Flip q={q} racine={racine} index={idx + 1} />
-                  </Card>
-                </div>
-              );
-            })}
-          </Carousel>
+                    <Card
+                      style={{
+                        margin: "4px auto",
+                        width: "100%",
+                        maxWidth: "100%",
+                        textAlign: "center",
+                        padding: "0px",
+                        backgroundColor: "rgba(100,100,100,0.2)",
+                      }}
+                    >
+                      <Flip q={q} racine={racine} index={idx + 1} />
+                    </Card>
+                  </div>
+                );
+              })}
+            </Carousel>
+          </div>
         </div>
       </div>
+      <style jsx>{`
+        :global(.flash-carousel .slick-list) {
+          width: 100%;
+        }
+        :global(.flash-carousel .slick-track) {
+          display: flex;
+        }
+        :global(.flash-carousel .slick-slide) {
+          height: auto;
+        }
+        :global(.flash-carousel .slick-slide > div) {
+          width: 100%;
+        }
+        :global(.flash-carousel .slick-slide > div > div) {
+          width: 100%;
+        }
+      `}</style>
     </div>
   );
 }
