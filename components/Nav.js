@@ -21,15 +21,19 @@ export default function Nav(props) {
 
   const pathToKey = {
     "/": "1",
-    "/admin": "1",
-    "/signup": "4",
-    "/forgot": "4",
-    "/changepassword": "4",
+    "/signup": "6",
+    "/forgot": "6",
+    "/changepassword": "6",
   };
 
   const keyByRepertoire = {
     ciel1: "2",
     python: "3",
+  };
+
+  const adminKeyByRepertoire = {
+    ciel1: "4",
+    python: "5",
   };
 
   const isDynamicRoute =
@@ -42,27 +46,84 @@ export default function Nav(props) {
 
   const selectedKey = !router.isReady
     ? "1"
+    : router.pathname === "/admin"
+    ? undefined
     : isDynamicRoute
-    ? keyByRepertoire[rawRepertoire] || "1"
+    ? (router.pathname === "/admin/[repertoire]"
+        ? adminKeyByRepertoire[rawRepertoire]
+        : keyByRepertoire[rawRepertoire]) || "1"
     : pathToKey[router.pathname] || "1";
-  //const accueilHref = isAdmin ? "/admin" : "/";
-  const accueilHref =  "/";
-  const mathsHref = isAdmin ? "/admin/ciel1" : "/ciel1";
-  const pythonHref = isAdmin ? "/admin/python" : "/python";
-  const items = [
-    { key: "1", label: <Link href={accueilHref}>Accueil</Link>, className: "nav-item" },
-    { key: "2", label: <Link href={mathsHref}>Maths</Link>, className: "nav-item" },
-    { key: "3", label: <Link href={pythonHref}>Python</Link>, className: "nav-item" },
-    { key: "4", icon: <UserOutlined />, label: <Modal />, className: "nav-item nav-item--last" },
-  ];
+
+  const selectedKeys = selectedKey ? [selectedKey] : [];
+
+  let items;
+  if (!isAdmin) {
+    items = [
+      {
+        key: "1",
+        label: <Link href="/">Accueil</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "2",
+        label: <Link href="/ciel1">Maths</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "3",
+        label: <Link href="/python">Python</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "6",
+        icon: <UserOutlined />,
+        label: <Modal />,
+        className: "nav-item nav-item--last",
+      },
+    ];
+  } else {
+    items = [
+      {
+        key: "1",
+        label: <Link href="/">Accueil</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "2",
+        label: <Link href="/ciel1">Maths</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "3",
+        label: <Link href="/python">Python</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "4",
+        label: <Link href="/admin/ciel1">A_Maths</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "5",
+        label: <Link href="/admin/python">A_Python</Link>,
+        className: "nav-item",
+      },
+      {
+        key: "6",
+        icon: <UserOutlined />,
+        label: <Modal />,
+        className: "nav-item nav-item--last",
+      },
+    ];
+  }
 
   const navColors = {
-    bg:props.bg,
+    bg: props.bg,
     border: "#222",
     tabBorder: "#000",
     text: "#333",
     textSize: "18px",
-    selectedBg:props.selectedBg,
+    selectedBg: props.selectedBg,
     selectedText: "#0f172a",
     hoverBg: "#fff",
   };
@@ -77,7 +138,7 @@ export default function Nav(props) {
           className="nav-menu nav-menu--desktop"
           theme="dark"
           mode="horizontal"
-          selectedKeys={[selectedKey]}
+          selectedKeys={selectedKeys}
           items={items}
           style={{ flex: 1, justifyContent: "flex-end" }}
         />
@@ -100,7 +161,7 @@ export default function Nav(props) {
           className="nav-menu nav-menu--mobile"
           theme="dark"
           mode="vertical"
-          selectedKeys={[selectedKey]}
+          selectedKeys={selectedKeys}
           items={items}
           onClick={() => setMenuOpen(false)}
         />
@@ -218,7 +279,8 @@ export default function Nav(props) {
         .nav-menu.ant-menu-dark .ant-menu-item:hover {
           background: ${navColors.hoverBg};
         }
-        .nav-menu--mobile.ant-menu-dark .ant-menu-item:not(.ant-menu-item-selected):hover,
+        .nav-menu--mobile.ant-menu-dark
+          .ant-menu-item:not(.ant-menu-item-selected):hover,
         .nav-menu--mobile.ant-menu-dark .ant-menu-item-active {
           background: ${navColors.hoverBg};
         }
@@ -235,7 +297,6 @@ export default function Nav(props) {
           line-height: 1.2;
           border-bottom: 1px solid #111;
           border-radius: 0;
-
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-item:last-child {
           border-bottom: 0;
@@ -252,8 +313,7 @@ export default function Nav(props) {
           display: none;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-item::after,
-        .nav-menu--mobile.ant-menu-dark
-          .ant-menu-item-selected::after {
+        .nav-menu--mobile.ant-menu-dark .ant-menu-item-selected::after {
           border: none;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-title-content {
@@ -276,7 +336,7 @@ export default function Nav(props) {
         .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
           padding: 6px 20px;
           width: 70%;
-          margin-left:7px;
+          margin-left: 7px;
         }
         .nav-menu--mobile.ant-menu-dark .ant-menu-title-content > .ant-btn {
           white-space: nowrap;
@@ -311,16 +371,30 @@ export default function Nav(props) {
           animation-delay: calc(160ms + var(--nav-mobile-delay));
         }
         @keyframes navBorderDown {
-          from { transform: scaleY(0); }
-          to { transform: scaleY(1); }
+          from {
+            transform: scaleY(0);
+          }
+          to {
+            transform: scaleY(1);
+          }
         }
         @keyframes navTextUp {
-          from { opacity: 0; transform: translateY(100%); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         @keyframes navMobileTextIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
         @media (prefers-reduced-motion: reduce) {
           .nav-menu.ant-menu-dark .nav-item::before {
