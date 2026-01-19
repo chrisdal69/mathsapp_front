@@ -131,10 +131,10 @@ export default function Contenu({
   const inView = useInView(contentRef, { once: true, amount: 0.3 });
 
   useEffect(() => {
-    if (inView) {
+    if (inView || isExpanded) {
       setRevealImage(true);
     }
-  }, [inView]);
+  }, [inView, isExpanded]);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -142,10 +142,6 @@ export default function Contenu({
       setTypedStep(0);
     }
   }, [isExpanded]);
-
-  useEffect(() => {
-    setRevealImage(true);
-  }, []);
 
   useEffect(() => {
     let timer;
