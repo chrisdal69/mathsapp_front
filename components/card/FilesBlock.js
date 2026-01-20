@@ -294,8 +294,8 @@ export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }
 
   const blurBg = useMemo(() => (bg ? toBlurFile(bg) : ""), [bg]);
   const showBackground = Boolean(isExpanded && bg);
-
-  const tab = (fichiers || []).map((elt, idx) => {
+  const fichiersFiltered = (fichiers || []).filter((elt) => elt.visible);
+  const tab = fichiersFiltered.map((elt, idx) => {
     const name =
       elt.txt || elt.name || elt.label || elt.href || `fichier-${idx}`;
     const href = racine + elt.href || "#";
