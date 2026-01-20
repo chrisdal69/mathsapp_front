@@ -54,6 +54,7 @@ const parseInlineKatex = (input) => {
   const text = String(input ?? "");
   let buffer = "";
   let inMath = false;
+  let hasUnmatched = false;
 
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
@@ -94,6 +95,7 @@ const parseInlineKatex = (input) => {
   }
 
   if (inMath) {
+    hasUnmatched = true;
     const literal = `$${buffer}`;
     const last = tokens[tokens.length - 1];
     if (last && last.type === "text") {
@@ -101,28 +103,32 @@ const parseInlineKatex = (input) => {
     } else if (literal.length > 0) {
       tokens.push({ type: "text", value: literal });
     }
-    return tokens;
+    return { parts: tokens, hasUnmatched };
   }
 
   if (buffer.length > 0) {
     tokens.push({ type: "text", value: buffer });
   }
 
-  return tokens;
+  return { parts: tokens, hasUnmatched };
 };
 
-const renderInlineKatex = (input) =>
-  parseInlineKatex(input).map((part, i) =>
+const renderInlineKatex = (input) => {
+  const { parts, hasUnmatched } = parseInlineKatex(input);
+  const nodes = parts.map((part, i) =>
     part.type === "text" ? (
       <Fragment key={`text-${i}`}>{part.value}</Fragment>
     ) : (
       <InlineMath key={`math-${i}`} math={part.value} />
     )
   );
+  return { nodes, hasUnmatched };
+};
 
 const renderSlateNode = (node, key) => {
   if (Text.isText(node)) {
-    let children = renderInlineKatex(node.text || "");
+    const { nodes, hasUnmatched } = renderInlineKatex(node.text || "");
+    let children = nodes;
     if (node.bold) {
       children = <strong>{children}</strong>;
     }
@@ -132,7 +138,22 @@ const renderSlateNode = (node, key) => {
     if (node.underline) {
       children = <u>{children}</u>;
     }
-    return <span key={key}>{children}</span>;
+    return (
+      <span key={key}>
+        {children}
+        {hasUnmatched && (
+          <span
+            style={{
+              color: "#ff4d4f",
+              marginLeft: 6,
+              fontSize: 12,
+            }}
+          >
+            ($ non ferme)
+          </span>
+        )}
+      </span>
+    );
   }
 
   const style = node.align ? { textAlign: node.align } : undefined;
@@ -726,5 +747,22 @@ function Leaf({ attributes, children, leaf }) {
   if (leaf.underline) {
     content = <u>{content}</u>;
   }
-  return <span {...attributes}>{content}</span>;
+  const { hasUnmatched } = parseInlineKatex(leaf.text || "");
+  return (
+    <span {...attributes}>
+      {content}
+      {hasUnmatched && (
+        <span
+          contentEditable={false}
+          style={{
+            color: "#ff4d4f",
+            marginLeft: 6,
+            fontSize: 12,
+          }}
+        >
+          ($ non ferme)
+        </span>
+      )}
+    </span>
+  );
 }
