@@ -5,6 +5,20 @@
   box-sizing: border-box;
 }
 
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.drawer-foreground {
+  position: relative;
+  z-index: 1001;
+}
+
+
 .card-tabs-reveal .ant-tabs-nav {
   clip-path: inset(0 0 100% 0);
   opacity: 0;

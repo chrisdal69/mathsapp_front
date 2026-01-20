@@ -1,30 +1,59 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import { Button, Input, Popover, Select, Tooltip, message } from "antd";
+import { Button, Drawer, Tooltip, message } from "antd";
 import {
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BarsOutlined,
+  BoldOutlined,
   CheckOutlined,
   CloseOutlined,
+  EditOutlined,
+  ItalicOutlined,
   LinkOutlined,
+  OrderedListOutlined,
+  UnderlineOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
+import {
+  createEditor,
+  Editor,
+  Element as SlateElement,
+  Text,
+  Transforms,
+} from "slate";
+import { Editable, Slate, useSlate, withReact } from "slate-react";
+import { withHistory } from "slate-history";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
-const EMPTY_SENTINEL = "\u200B"; // Persist an "empty-looking" item through backend trimming.
 const MAX_BG_BYTES = 4 * 1024 * 1024;
+const CONTENT_VERSION = 1;
+const DRAWER_Z_INDEX = 1001;
+
+const LIST_TYPES = ["numbered-list", "bulleted-list"];
+const TEXT_ALIGN_TYPES = ["left", "center", "right", "justify"];
+
+const DEFAULT_CONTENT = [
+  {
+    type: "paragraph",
+    children: [{ text: "" }],
+  },
+];
+
+const normalizeContent = (value) =>
+  Array.isArray(value) && value.length ? value : DEFAULT_CONTENT;
 
 const parseInlineKatex = (input) => {
   const tokens = [];
   const text = String(input ?? "");
   let buffer = "";
   let inMath = false;
-  let hasUnmatched = false;
 
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
@@ -65,7 +94,6 @@ const parseInlineKatex = (input) => {
   }
 
   if (inMath) {
-    hasUnmatched = true;
     const literal = `$${buffer}`;
     const last = tokens[tokens.length - 1];
     if (last && last.type === "text") {
@@ -73,69 +101,101 @@ const parseInlineKatex = (input) => {
     } else if (literal.length > 0) {
       tokens.push({ type: "text", value: literal });
     }
-    return { parts: tokens, hasUnmatched };
+    return tokens;
   }
 
   if (buffer.length > 0) {
     tokens.push({ type: "text", value: buffer });
   }
 
-  return { parts: tokens, hasUnmatched };
+  return tokens;
 };
 
-const renderInlineKatex = (input) => {
-  const { parts, hasUnmatched } = parseInlineKatex(input);
-  const nodes = parts.map((part, i) =>
+const renderInlineKatex = (input) =>
+  parseInlineKatex(input).map((part, i) =>
     part.type === "text" ? (
       <Fragment key={`text-${i}`}>{part.value}</Fragment>
     ) : (
       <InlineMath key={`math-${i}`} math={part.value} />
     )
   );
-  return { nodes, hasUnmatched };
+
+const renderSlateNode = (node, key) => {
+  if (Text.isText(node)) {
+    let children = renderInlineKatex(node.text || "");
+    if (node.bold) {
+      children = <strong>{children}</strong>;
+    }
+    if (node.italic) {
+      children = <em>{children}</em>;
+    }
+    if (node.underline) {
+      children = <u>{children}</u>;
+    }
+    return <span key={key}>{children}</span>;
+  }
+
+  const style = node.align ? { textAlign: node.align } : undefined;
+  const children = (node.children || []).map((child, index) =>
+    renderSlateNode(child, `${key}-${index}`)
+  );
+
+  switch (node.type) {
+    case "bulleted-list":
+      return (
+        <ul key={key} className="list-disc pl-6" style={style}>
+          {children}
+        </ul>
+      );
+    case "numbered-list":
+      return (
+        <ol key={key} className="list-decimal pl-6" style={style}>
+          {children}
+        </ol>
+      );
+    case "list-item":
+      return (
+        <li key={key} style={style}>
+          {children}
+        </li>
+      );
+    default:
+      return (
+        <p key={key} className="whitespace-pre-wrap" style={style}>
+          {children}
+        </p>
+      );
+  }
 };
 
-const normalizeEmptyValue = (value) =>
-  value === EMPTY_SENTINEL ? "" : value || "";
+const renderSlateNodes = (nodes) =>
+  nodes.map((node, index) => renderSlateNode(node, `node-${index}`));
 
 export default function Contenu({
   _id,
   id,
   num,
   repertoire,
-  plan = [],
-  presentation = [],
+  content,
+  contentVersion,
   bg,
 }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
 
-  const [localPresentation, setLocalPresentation] = useState(
-    Array.isArray(presentation) ? presentation : []
-  );
-  const [localPlan, setLocalPlan] = useState(Array.isArray(plan) ? plan : []);
-  const [insertPositions, setInsertPositions] = useState({
-    presentation: "end",
-    plan: "end",
-  });
-  const [editContext, setEditContext] = useState({ type: null, index: null });
-  const [deleteContext, setDeleteContext] = useState({
-    type: null,
-    index: null,
-  });
-  const [editValue, setEditValue] = useState("");
-  const [actionKey, setActionKey] = useState("");
+  const [localContent, setLocalContent] = useState(normalizeContent(content));
+  const [draftContent, setDraftContent] = useState(localContent);
+  const [editorKey, setEditorKey] = useState(0);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+
   const [localBg, setLocalBg] = useState(bg || "");
   const [isUploadingBg, setIsUploadingBg] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    setLocalPresentation(Array.isArray(presentation) ? presentation : []);
-  }, [presentation]);
-
-  useEffect(() => {
-    setLocalPlan(Array.isArray(plan) ? plan : []);
-  }, [plan]);
+    setLocalContent(normalizeContent(content));
+  }, [content]);
 
   useEffect(() => {
     const nextBg = bg || "";
@@ -182,79 +242,7 @@ export default function Contenu({
     </>
   );
 
-  const listConfigs = {
-    presentation: {
-      title: "Présentation",
-      placeholder: "Nouveau paragraphe",
-      empty: "Aucune paragraphe enregistré.",
-      label: "Paragraphe",
-      success: {
-        add: "Paragraphe ajoutée.",
-        edit: "Paragraphe mise à jour.",
-        delete: "Paragraphe supprimé.",
-      },
-    },
-    plan: {
-      title: "Plan",
-      placeholder: "Nouveau chapitre",
-      empty: "Aucun chapitre enregistré.",
-      label: "Chapitre",
-      success: {
-        add: "Chapitre ajouté.",
-        edit: "Chapitre mis à jour.",
-        delete: "Chapitre supprimé.",
-      },
-    },
-  };
-
-  const getActionKey = (mode, type, index) =>
-    [mode, type, typeof index === "number" ? index : ""]
-      .filter((segment) => segment !== "")
-      .join("-");
-
-  const isActionInProgress = (mode, type, index) =>
-    actionKey === getActionKey(mode, type, index);
-
-  const getListForType = (type) =>
-    type === "presentation" ? localPresentation : localPlan;
-
-  const setListForType = (type, nextList) => {
-    if (type === "presentation") {
-      setLocalPresentation(nextList);
-    } else {
-      setLocalPlan(nextList);
-    }
-  };
-
-  const insertAt = (list, value, index) => {
-    if (!Array.isArray(list)) {
-      return [value];
-    }
-    const safeIndex =
-      typeof index === "number"
-        ? Math.max(0, Math.min(index, list.length))
-        : list.length;
-    const copy = [...list];
-    copy.splice(safeIndex, 0, value);
-    return copy;
-  };
-
-  const getInsertIndex = (type) => {
-    const list = getListForType(type);
-    const pos = insertPositions[type];
-    if (pos === "start") {
-      return 0;
-    }
-    if (list.length === 0 || pos === "end" || typeof pos === "undefined") {
-      return list.length;
-    }
-    if (typeof pos === "number" && !Number.isNaN(pos)) {
-      return Math.min(list.length, Math.max(0, pos + 1));
-    }
-    return list.length;
-  };
-
-  const syncCardsStore = (updatedCard, fallbackList, typeName) => {
+  const syncCardsStore = (updatedCard, fallbackPatch) => {
     if (!cardsData || !Array.isArray(cardsData.result)) {
       return;
     }
@@ -263,7 +251,7 @@ export default function Contenu({
     const targetNum =
       typeof updatedCard?.num !== "undefined" ? updatedCard.num : num;
     const targetRepertoire = updatedCard?.repertoire || repertoire || null;
-    const patch = updatedCard || { [typeName]: fallbackList };
+    const patch = updatedCard || fallbackPatch || {};
 
     const nextResult = cardsData.result.map((card) => {
       const matchById =
@@ -283,18 +271,32 @@ export default function Contenu({
     dispatch(setCardsMaths({ ...cardsData, result: nextResult }));
   };
 
-  const persistList = async (type, nextList, successMsg) => {
+  const handleOpenEditor = () => {
+    setDraftContent(JSON.parse(JSON.stringify(normalizeContent(localContent))));
+    setEditorKey((prev) => prev + 1);
+    setIsEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+  };
+
+  const handleSaveContent = async () => {
     if (!cardId) {
       message.error("Identifiant de carte manquant.");
-      return false;
+      return;
     }
 
+    setIsSavingContent(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/${type}`, {
+      const response = await fetch(`${urlFetch}/cards/${cardId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ [type]: nextList }),
+        body: JSON.stringify({
+          content: draftContent,
+          contentVersion: contentVersion || CONTENT_VERSION,
+        }),
       });
 
       let payload = null;
@@ -309,27 +311,19 @@ export default function Contenu({
       }
 
       const updatedCard = payload?.result;
-      if (updatedCard) {
-        setLocalPresentation(
-          Array.isArray(updatedCard.presentation)
-            ? updatedCard.presentation
-            : []
-        );
-        setLocalPlan(Array.isArray(updatedCard.plan) ? updatedCard.plan : []);
-      } else {
-        setListForType(type, nextList);
-      }
-
-      syncCardsStore(updatedCard, nextList, type);
-      if (successMsg) {
-        message.success(successMsg);
-      }
-
-      return true;
+      const nextContent = normalizeContent(updatedCard?.content || draftContent);
+      setLocalContent(nextContent);
+      syncCardsStore(updatedCard, {
+        content: nextContent,
+        contentVersion: contentVersion || CONTENT_VERSION,
+      });
+      message.success("Contenu enregistre.");
+      setIsEditorOpen(false);
     } catch (error) {
-      console.error(`Erreur lors de la mise à jour de ${type}`, error);
+      console.error("Erreur lors de la mise a jour du contenu", error);
       message.error(error.message || "Erreur lors de la sauvegarde.");
-      return false;
+    } finally {
+      setIsSavingContent(false);
     }
   };
 
@@ -357,12 +351,12 @@ export default function Contenu({
       return;
     }
     if (!repertoire) {
-      message.error("Répertoire manquant.");
+      message.error("Repertoire manquant.");
       return;
     }
     const normalizedNum = Number(num);
     if (!Number.isFinite(normalizedNum)) {
-      message.error("Numéro de tag invalide.");
+      message.error("Numero de tag invalide.");
       return;
     }
 
@@ -398,8 +392,8 @@ export default function Contenu({
       if (nextBg) {
         setLocalBg(nextBg);
       }
-      syncCardsStore(updatedCard, nextBg, "bg");
-      message.success("Image importée.");
+      syncCardsStore(updatedCard, { bg: nextBg });
+      message.success("Image importee.");
     } catch (error) {
       console.error("Erreur lors de l'upload de l'image de fond", error);
       message.error(error.message || "Erreur lors de l'upload.");
@@ -408,293 +402,38 @@ export default function Contenu({
     }
   };
 
-  const closeEditPopover = () => {
-    setEditContext({ type: null, index: null });
-    setEditValue("");
-  };
-
-  const closeDeletePopover = () => {
-    setDeleteContext({ type: null, index: null });
-  };
-
-  const handleAddItem = async (type) => {
-    const config = listConfigs[type];
-    if (!config) return;
-
-    const nextList = insertAt(
-      getListForType(type),
-      EMPTY_SENTINEL,
-      getInsertIndex(type)
-    );
-    const key = getActionKey("add", type);
-    setActionKey(key);
-    await persistList(type, nextList, config.success.add);
-    setActionKey("");
-  };
-
-  const handleSaveEdit = async () => {
-    const { type, index } = editContext;
-    if (type === null || index === null) {
-      return;
-    }
-
-    const config = listConfigs[type];
-    const value = editValue.trim();
-    if (!value) {
-      message.error("Le champ ne peut pas être vide.");
-      return;
-    }
-
-    const nextList = [...getListForType(type)];
-    nextList[index] = value;
-    const key = getActionKey("edit", type, index);
-    setActionKey(key);
-    const success = await persistList(type, nextList, config.success.edit);
-    setActionKey("");
-    if (success) {
-      closeEditPopover();
-    }
-  };
-
-  const handleDeleteItem = async () => {
-    const { type, index } = deleteContext;
-    if (type === null || index === null) {
-      return;
-    }
-
-    const config = listConfigs[type];
-    const nextList = getListForType(type).filter((_, idx) => idx !== index);
-    const key = getActionKey("delete", type, index);
-    setActionKey(key);
-    const success = await persistList(type, nextList, config.success.delete);
-    setActionKey("");
-    if (success) {
-      closeDeletePopover();
-    }
-  };
-
-  const renderEditContent = (type, index) => (
-    <div className="flex w-64 flex-col gap-2">
-      <Input.TextArea
-        autoFocus
-        value={editValue}
-        maxLength={500}
-        autoSize={{ minRows: 2, maxRows: 5 }}
-        placeholder="Texte et formules avec $...$"
-        onChange={(e) => setEditValue(e.target.value)}
-      />
-      <p className="text-xs text-gray-500">
-        Utiliser $...$ pour les formules inline.
-      </p>
-      <div className="flex w-full items-center justify-between">
-        {formulaLinks}
-        <Button
-          type="primary"
-          size="small"
-          icon={<CheckOutlined />}
-          loading={isActionInProgress("edit", type, index)}
-          onClick={handleSaveEdit}
-        >
-          Valider
-        </Button>
-        <Button
-          size="small"
-          icon={<CloseOutlined />}
-          onClick={closeEditPopover}
-        >
-          Annuler
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderDeleteContent = (type, index) => {
-    const config = listConfigs[type];
-    return (
-      <div className="w-56">
-        <p className="text-sm text-gray-700">
-          Supprimer {config.label.toLowerCase()} {index + 1} ?
-        </p>
-        <div className="mt-3 flex justify-end gap-2">
-          <Button
-            danger
-            size="small"
-            loading={isActionInProgress("delete", type, index)}
-            onClick={handleDeleteItem}
-          >
-            Supprimer
-          </Button>
-          <Button size="small" onClick={closeDeletePopover}>
-            Annuler
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderListSection = (type) => {
-    const list = getListForType(type);
-    const config = listConfigs[type];
-    const insertionOptions = [
-      { value: "start", label: "Début (avant le premier)" },
-      ...list.map((_, idx) => ({
-        value: idx,
-        label: `Après ${config.label.toLowerCase()} ${idx + 1}`,
-      })),
-      { value: "end", label: "Fin (après le dernier)" },
-    ];
-    return (
-      <section
-        key={type}
-        className="mb-6 rounded-lg bg-white/60 p-1 md:p-4 shadow-sm"
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <p className="text-base font-semibold text-gray-800">
-            {config.title}
-          </p>
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:items-start">
-            <Select
-              className="w-full sm:w-56"
-              value={insertPositions[type]}
-              options={insertionOptions}
-              onChange={(value) =>
-                setInsertPositions((prev) => ({ ...prev, [type]: value }))
-              }
-            />
-            <Tooltip
-              title={`Ajouter ${config.label.toLowerCase()}`}
-              mouseEnterDelay={0.3}
-            >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                loading={isActionInProgress("add", type)}
-                onClick={() => handleAddItem(type)}
-                className="shrink-0"
-              >
-                Ajouter
-              </Button>
-            </Tooltip>
-          </div>
-        </div>
-
-        <ul className="mt-4 space-y-3">
-          {list.length ? (
-            list.map((text, index) => {
-              const isEditOpen =
-                editContext.type === type && editContext.index === index;
-              const isDeleteOpen =
-                deleteContext.type === type && deleteContext.index === index;
-              const displayValue = isEditOpen
-                ? editValue
-                : normalizeEmptyValue(text);
-              const { nodes: renderedValue, hasUnmatched } =
-                renderInlineKatex(displayValue);
-
-              return (
-                <li
-                  key={`${type}-${index}`}
-                  className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-1 md:p-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      {config.label} {index + 1}
-                    </p>
-                    <p className="whitespace-pre-line break-words text-sm text-gray-800">
-                      {displayValue ? (
-                        renderedValue
-                      ) : (
-                        <span className="text-gray-400">vide</span>
-                      )}
-                      {displayValue && hasUnmatched && (
-                        <span
-                          style={{
-                            color: "#ff4d4f",
-                            marginLeft: 6,
-                            fontSize: 12,
-                          }}
-                        >
-                          ($ non ferme)
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Popover
-                      trigger="click"
-                      placement="left"
-                      open={isEditOpen}
-                      onOpenChange={(visible) => {
-                        if (visible) {
-                          setEditContext({ type, index });
-                          setEditValue(normalizeEmptyValue(text));
-                        } else if (isEditOpen) {
-                          closeEditPopover();
-                        }
-                      }}
-                      content={renderEditContent(type, index)}
-                    >
-                      <Tooltip
-                        title={`Modifier ${config.label.toLowerCase()} ${
-                          index + 1
-                        }`}
-                        mouseEnterDelay={0.3}
-                      >
-                        <Button
-                          icon={<EditOutlined />}
-                          size="small"
-                          type="default"
-                        />
-                      </Tooltip>
-                    </Popover>
-                    <Popover
-                      trigger="click"
-                      placement="left"
-                      open={isDeleteOpen}
-                      onOpenChange={(visible) => {
-                        if (visible) {
-                          setDeleteContext({ type, index });
-                        } else if (isDeleteOpen) {
-                          closeDeletePopover();
-                        }
-                      }}
-                      content={renderDeleteContent(type, index)}
-                    >
-                      <Tooltip
-                        title={`Supprimer ${config.label.toLowerCase()} ${
-                          index + 1
-                        }`}
-                        mouseEnterDelay={0.3}
-                      >
-                        <Button
-                          icon={<DeleteOutlined />}
-                          size="small"
-                          danger
-                          type="default"
-                        />
-                      </Tooltip>
-                    </Popover>
-                  </div>
-                </li>
-              );
-            })
-          ) : (
-            <li className="text-sm text-gray-500">{config.empty}</li>
-          )}
-        </ul>
-      </section>
-    );
-  };
+  const editor = useMemo(() => withHistory(withReact(createEditor())), []);
+  const renderElement = useCallback((props) => <Element {...props} />, []);
+  const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
+  const displayContent = isEditorOpen ? draftContent : localContent;
 
   return (
     <div className="group relative w-full min-h-[150px]">
-      <div className="flex flex-col gap-6 ">
+      <div className="flex flex-col gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-4">
-          {renderListSection("presentation")}
-          {renderListSection("plan")}
+          <section className="rounded-lg bg-white/60 p-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <p className="text-base font-semibold text-gray-800">Contenu</p>
+              <Tooltip title="Modifier le contenu" mouseEnterDelay={0.3}>
+                <Button
+                  icon={<EditOutlined />}
+                  size="small"
+                  type="default"
+                  onClick={handleOpenEditor}
+                />
+              </Tooltip>
+            </div>
+            <div className="mt-3 space-y-2 text-sm text-gray-800">
+              {displayContent && displayContent.length ? (
+                renderSlateNodes(normalizeContent(displayContent))
+              ) : (
+                <p className="text-gray-500">Aucun contenu.</p>
+              )}
+            </div>
+          </section>
         </div>
         <div className="mx-5 flex flex-col items-center gap-2 pb-4">
-          <div className="flex  items-center gap-3">
+          <div className="flex items-center gap-3">
             <p className="text-sm font-medium text-gray-700">
               Image background :
             </p>
@@ -731,11 +470,261 @@ export default function Contenu({
             />
           ) : (
             <p className="text-sm text-gray-500">
-              Aucun fichier d&#39;image défini.
+              Aucun fichier d'image defini.
             </p>
           )}
         </div>
       </div>
+
+      <Drawer
+        title="Edition du contenu"
+        open={isEditorOpen}
+        onClose={handleCloseEditor}
+        placement="bottom"
+        height="50vh"
+        mask={false}
+        zIndex={DRAWER_Z_INDEX}
+        drawerRender={(node) => (
+          <>
+            {isEditorOpen && <div className="drawer-backdrop" />}
+            <div className="drawer-foreground">{node}</div>
+          </>
+        )}
+        destroyOnClose
+      >
+        <div className="flex flex-col gap-4">
+          <Slate
+            key={editorKey}
+            editor={editor}
+            initialValue={normalizeContent(draftContent)}
+            onChange={setDraftContent}
+          >
+            <div className="flex flex-wrap gap-2">
+              <MarkButton
+                format="bold"
+                label="Gras"
+                icon={<BoldOutlined />}
+              />
+              <MarkButton
+                format="italic"
+                label="Italique"
+                icon={<ItalicOutlined />}
+              />
+              <MarkButton
+                format="underline"
+                label="Souligne"
+                icon={<UnderlineOutlined />}
+              />
+              <BlockButton
+                format="bulleted-list"
+                label="Liste"
+                icon={<UnorderedListOutlined />}
+              />
+              <BlockButton
+                format="numbered-list"
+                label="Liste numerotee"
+                icon={<OrderedListOutlined />}
+              />
+              <BlockButton
+                format="left"
+                label="Aligner a gauche"
+                icon={<AlignLeftOutlined />}
+              />
+              <BlockButton
+                format="center"
+                label="Centrer"
+                icon={<AlignCenterOutlined />}
+              />
+              <BlockButton
+                format="right"
+                label="Aligner a droite"
+                icon={<AlignRightOutlined />}
+              />
+              <BlockButton
+                format="justify"
+                label="Justifier"
+                icon={<BarsOutlined />}
+              />
+            </div>
+            <Editable
+              className="mt-3 min-h-[220px] rounded border border-slate-300 p-3"
+              renderElement={renderElement}
+              renderLeaf={renderLeaf}
+              placeholder="Texte et formules avec $...$"
+              spellCheck
+            />
+          </Slate>
+          <p className="text-xs text-gray-500">
+            Utiliser $...$ pour les formules inline.
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">{formulaLinks}</div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="primary"
+                icon={<CheckOutlined />}
+                loading={isSavingContent}
+                onClick={handleSaveContent}
+              >
+                Valider
+              </Button>
+              <Button icon={<CloseOutlined />} onClick={handleCloseEditor}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
+}
+
+function MarkButton({ format, label, icon }) {
+  const editor = useSlate();
+  const isActive = isMarkActive(editor, format);
+  return (
+    <Tooltip title={label} mouseEnterDelay={0.3}>
+      <Button
+        size="small"
+        type={isActive ? "primary" : "default"}
+        icon={icon}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          toggleMark(editor, format);
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+function BlockButton({ format, label, icon }) {
+  const editor = useSlate();
+  const isActive = isBlockActive(
+    editor,
+    format,
+    isAlignType(format) ? "align" : "type"
+  );
+  return (
+    <Tooltip title={label} mouseEnterDelay={0.3}>
+      <Button
+        size="small"
+        type={isActive ? "primary" : "default"}
+        icon={icon}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          toggleBlock(editor, format);
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+function toggleMark(editor, format) {
+  const isActive = isMarkActive(editor, format);
+  if (isActive) {
+    Editor.removeMark(editor, format);
+  } else {
+    Editor.addMark(editor, format, true);
+  }
+}
+
+function isMarkActive(editor, format) {
+  const marks = Editor.marks(editor);
+  return marks ? marks[format] === true : false;
+}
+
+function toggleBlock(editor, format) {
+  const isActive = isBlockActive(
+    editor,
+    format,
+    isAlignType(format) ? "align" : "type"
+  );
+  const isList = LIST_TYPES.includes(format);
+
+  Transforms.unwrapNodes(editor, {
+    match: (node) =>
+      !Editor.isEditor(node) &&
+      SlateElement.isElement(node) &&
+      LIST_TYPES.includes(node.type) &&
+      !isAlignType(format),
+    split: true,
+  });
+
+  let newProperties;
+  if (isAlignType(format)) {
+    newProperties = {
+      align: isActive ? undefined : format,
+    };
+  } else {
+    newProperties = {
+      type: isActive ? "paragraph" : isList ? "list-item" : format,
+    };
+  }
+
+  Transforms.setNodes(editor, newProperties);
+
+  if (!isActive && isList) {
+    Transforms.wrapNodes(editor, { type: format, children: [] });
+  }
+}
+
+function isBlockActive(editor, format, blockType = "type") {
+  const { selection } = editor;
+  if (!selection) return false;
+  const [match] = Editor.nodes(editor, {
+    at: Editor.unhangRange(editor, selection),
+    match: (node) =>
+      !Editor.isEditor(node) &&
+      SlateElement.isElement(node) &&
+      (blockType === "align" ? node.align === format : node.type === format),
+  });
+  return !!match;
+}
+
+function isAlignType(format) {
+  return TEXT_ALIGN_TYPES.includes(format);
+}
+
+function Element({ attributes, children, element }) {
+  const style = element.align ? { textAlign: element.align } : undefined;
+  switch (element.type) {
+    case "bulleted-list":
+      return (
+        <ul className="list-disc pl-6" style={style} {...attributes}>
+          {children}
+        </ul>
+      );
+    case "numbered-list":
+      return (
+        <ol className="list-decimal pl-6" style={style} {...attributes}>
+          {children}
+        </ol>
+      );
+    case "list-item":
+      return (
+        <li style={style} {...attributes}>
+          {children}
+        </li>
+      );
+    default:
+      return (
+        <p style={style} {...attributes}>
+          {children}
+        </p>
+      );
+  }
+}
+
+function Leaf({ attributes, children, leaf }) {
+  let content = children;
+  if (leaf.bold) {
+    content = <strong>{content}</strong>;
+  }
+  if (leaf.italic) {
+    content = <em>{content}</em>;
+  }
+  if (leaf.underline) {
+    content = <u>{content}</u>;
+  }
+  return <span {...attributes}>{content}</span>;
 }

@@ -568,7 +568,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, isExpanded }) => {
                 >
                   <div className="flex justify-between items-center gap-2 ">
                     <p className="underline underline-offset-4">
-                      <span className="text-3xl  ">@</span>
+                      <span className="text-2xl  ">@</span>
                       {obj?.filename} :
                     </p>
                     <Popover
@@ -611,7 +611,9 @@ const CloudBlock = ({ num, repertoire, _id, bg, isExpanded }) => {
                         title="Supprimer ce message"
                         mouseEnterDelay={0.3}
                       >
-                        <Button danger icon={<DeleteOutlined />} size="small" />
+                        <Button danger icon={<DeleteOutlined />} 
+                        className="mx-2"
+                        size="small" />
                       </Tooltip>
                     </Popover>
                   </div>

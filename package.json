@@ -33,6 +33,10 @@
     "react-redux": "^9.2.0",
     "react-spinners": "^0.17.0",
     "react-type-animation": "^3.2.0",
+    "slate": "^0.112.0",
+    "slate-dom": "^0.112.0",
+    "slate-history": "^0.112.0",
+    "slate-react": "^0.112.0",
     "tailwindcss": "^4.1.14",
     "yup": "^1.7.1",
     "zxcvbn": "^4.4.2"

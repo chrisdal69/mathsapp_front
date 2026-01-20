@@ -3,6 +3,17 @@ import { motion, useInView } from "framer-motion";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
+import { Text } from "slate";
+
+const DEFAULT_CONTENT = [
+  {
+    type: "paragraph",
+    children: [{ text: "" }],
+  },
+];
+
+const normalizeContent = (value) =>
+  Array.isArray(value) && value.length ? value : DEFAULT_CONTENT;
 
 const parseInlineKatex = (input) => {
   const tokens = [];
@@ -66,41 +77,112 @@ const parseInlineKatex = (input) => {
   return tokens;
 };
 
-const countTypedSteps = (tokens) =>
-  tokens.reduce(
+const countTextTokens = (text) =>
+  parseInlineKatex(text).reduce(
     (sum, token) => sum + (token.type === "text" ? token.value.length : 1),
     0
   );
 
-const renderTypedInlineKatex = (tokens, step) => {
-  let remaining = step;
-  const nodes = [];
+const countNodeSteps = (node) => {
+  if (Text.isText(node)) {
+    return countTextTokens(node.text || "");
+  }
+  if (!node || !Array.isArray(node.children)) {
+    return 0;
+  }
+  return node.children.reduce((sum, child) => sum + countNodeSteps(child), 0);
+};
+
+const renderTextTyped = (leaf, remaining, key) => {
+  if (remaining.count <= 0) return null;
+
+  const tokens = parseInlineKatex(leaf.text || "");
+  const pieces = [];
 
   tokens.forEach((token, index) => {
-    if (remaining <= 0) return;
+    if (remaining.count <= 0) return;
     if (token.type === "text") {
-      const count = Math.min(token.value.length, remaining);
+      const count = Math.min(token.value.length, remaining.count);
       const text = token.value.slice(0, count);
       if (text.length > 0) {
-        nodes.push(
-          <Fragment key={`text-${index}`}>{text}</Fragment>
+        pieces.push(
+          <Fragment key={`${key}-text-${index}`}>{text}</Fragment>
         );
       }
-      remaining -= count;
+      remaining.count -= count;
     } else {
-      nodes.push(<InlineMath key={`math-${index}`} math={token.value} />);
-      remaining -= 1;
+      pieces.push(
+        <InlineMath key={`${key}-math-${index}`} math={token.value} />
+      );
+      remaining.count -= 1;
     }
   });
 
-  return nodes;
+  if (!pieces.length) return null;
+
+  let content = pieces;
+  if (leaf.bold) {
+    content = <strong>{content}</strong>;
+  }
+  if (leaf.italic) {
+    content = <em>{content}</em>;
+  }
+  if (leaf.underline) {
+    content = <u>{content}</u>;
+  }
+
+  return <span key={key}>{content}</span>;
 };
+
+const renderNodeTyped = (node, remaining, key) => {
+  if (Text.isText(node)) {
+    return renderTextTyped(node, remaining, key);
+  }
+
+  const style = node.align ? { textAlign: node.align } : undefined;
+  const children = (node.children || [])
+    .map((child, index) => renderNodeTyped(child, remaining, `${key}-${index}`))
+    .filter(Boolean);
+
+  if (!children.length) return null;
+
+  switch (node.type) {
+    case "bulleted-list":
+      return (
+        <ul key={key} className="list-disc pl-6" style={style}>
+          {children}
+        </ul>
+      );
+    case "numbered-list":
+      return (
+        <ol key={key} className="list-decimal pl-6" style={style}>
+          {children}
+        </ol>
+      );
+    case "list-item":
+      return (
+        <li key={key} style={style}>
+          {children}
+        </li>
+      );
+    default:
+      return (
+        <p key={key} className="whitespace-pre-wrap" style={style}>
+          {children}
+        </p>
+      );
+  }
+};
+
+const renderNodesTyped = (nodes, remaining) =>
+  nodes
+    .map((node, index) => renderNodeTyped(node, remaining, `node-${index}`))
+    .filter(Boolean);
 
 export default function Contenu({
   num,
   repertoire,
-  plan,
-  presentation,
+  content,
   bg,
   isExpanded,
   contentHoverKeepsImage,
@@ -109,23 +191,20 @@ export default function Contenu({
   const [typedStep, setTypedStep] = useState(0);
   const [revealImage, setRevealImage] = useState(false);
 
-  const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/`;
-
-  
-  const combinedText = useMemo(() => {
-    const safePlan = Array.isArray(plan) ? plan : [];
-    const safePresentation = Array.isArray(presentation) ? presentation : [];
-    const numberedPlan = safePlan.map((elt, idx) => `${idx + 1}. ${elt}`);
-    const lines = [...safePresentation, "", ...numberedPlan];
-    return lines.join("\n");
-  }, [plan, presentation]);
-
-  const tokens = useMemo(() => parseInlineKatex(combinedText), [combinedText]);
-  const totalSteps = useMemo(() => countTypedSteps(tokens), [tokens]);
-  const typedNodes = useMemo(
-    () => renderTypedInlineKatex(tokens, typedStep),
-    [tokens, typedStep]
+  const normalizedContent = useMemo(
+    () => normalizeContent(content),
+    [content]
   );
+
+  const totalSteps = useMemo(
+    () => normalizedContent.reduce((sum, node) => sum + countNodeSteps(node), 0),
+    [normalizedContent]
+  );
+
+  const typedNodes = useMemo(() => {
+    const remaining = { count: typedStep };
+    return renderNodesTyped(normalizedContent, remaining);
+  }, [normalizedContent, typedStep]);
 
   const contentRef = useRef(null);
   const inView = useInView(contentRef, { once: true, amount: 0.3 });
@@ -164,6 +243,8 @@ export default function Contenu({
       if (timer) clearInterval(timer);
     };
   }, [typing, totalSteps]);
+
+  const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/`;
 
   const toBlurFile = (filename) => {
     if (!filename || typeof filename !== "string") return "";
