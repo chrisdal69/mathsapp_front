@@ -156,10 +156,13 @@ function Index() {
       const { innerWidth: width, innerHeight: height } = window;
       let value;
       let nextSrc;
-      if (width / height > 2.2) {
+      if (width / height > 2) {
         value = 270;
         nextSrc = BG_SOURCES.large;
-      } else if (width / height > 1) {
+      } else if (width / height > 1.5) {
+        nextSrc = BG_SOURCES.large;
+        value = 200;
+      }else if (width / height > 1) {
         nextSrc = BG_SOURCES.large;
         value = 150;
       } else {
