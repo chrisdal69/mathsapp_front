@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
+import { Tooltip } from "antd";
 
 export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }) {
   const parseInlineKatex = (input) => {
@@ -309,6 +310,19 @@ export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }
       : "";
     const ext = (extFromHref || extFromName || "").split(/[?#]/)[0];
     const icon = <FileTypeIcon ext={ext} className="w-5 h-5" />;
+    const nameNode = <span className="break-all whitespace-normal">{name}</span>;
+    const hoverTitle = hoverText ? (
+      <span style={{ whiteSpace: "pre-line", wordBreak: "break-word" }}>
+        {renderInlineKatex(hoverText)}
+      </span>
+    ) : null;
+    const nameWithHover = hoverText ? (
+      <Tooltip title={hoverTitle} mouseEnterDelay={0.2}>
+        {nameNode}
+      </Tooltip>
+    ) : (
+      nameNode
+    );
     return (
       <li key={`${name}-${idx}`} className="flex items-center gap-2 py-1">
         <a
@@ -318,16 +332,7 @@ export default function FilesBlock({ num, repertoire, fichiers, bg, isExpanded }
           className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 underline decoration-blue-300 hover:decoration-blue-500"
         >
           <span className="shrink-0 text-lg leading-none">{icon}</span>
-          {hoverText ? (
-            <span className="relative group">
-              <span className="break-all whitespace-normal">{name}</span>
-              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-xs -translate-x-1/2 rounded bg-gray-900/95 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 whitespace-pre-line">
-                {renderInlineKatex(hoverText)}
-              </span>
-            </span>
-          ) : (
-            <span className="break-all whitespace-normal">{name}</span>
-          )}
+          {nameWithHover}
           {ext && (
             <span className="text-xs text-gray-500">({ext.toUpperCase()})</span>
           )}
