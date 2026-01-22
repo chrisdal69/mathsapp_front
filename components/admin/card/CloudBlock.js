@@ -694,10 +694,11 @@ const CloudBlock = ({ num, repertoire, _id }) => {
                         content={
                           <Space direction="vertical">
                             <Input.TextArea
-                              rows={3}
+                              rows={5}
                               value={messageText}
                               onChange={(e) => setMessageText(e.target.value)}
-                              placeholder="Message..."
+                              placeholder= {`message à ${nom} ${prenom}`}
+                              style={{ width: "min(600px, 85vw)" }}
                               disabled={messageSending}
                             />
                             <Space>
