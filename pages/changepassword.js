@@ -156,7 +156,7 @@ export default function ChangePassword() {
         setMessage("Mot de passe changé avec succès ✅");
         reset();
         setPasswordStrength(0);
-        setTimeout(() => router.push("/"), 1000);
+        setTimeout(() => router.push("/"), 2000);
       } else {
         setMessage(json.error || "Erreur lors du changement de mot de passe.");
       }
@@ -259,7 +259,7 @@ export default function ChangePassword() {
             aria-disabled={busy}
             onClick={(e) => { if (busy) e.preventDefault(); }}
           >
-            Retour Page Maths
+            Retour Page Accueil
           </Link>
         </div>
       </form>

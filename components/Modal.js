@@ -2,14 +2,12 @@ import React, { useState } from "react";
 import { Button, Modal } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import Account from "./Account";
-import { useRouter } from "next/router";
 import Login from "./Login";
 
 export default function App() {
   const [open, setOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const router = useRouter();
 
   const showModal = () => {
     setOpen(true);
@@ -23,7 +21,6 @@ export default function App() {
   };
   const handleCancel = () => {
     setOpen(false);
-    router.push("/");
   };
 
   return (

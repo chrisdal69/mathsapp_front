@@ -282,7 +282,7 @@ export default function ForgotWizard() {
                 href="/"
                 className="text-sm text-blue-600 hover:underline"
               >
-                Retour page Maths ?
+                Retour page Accueil ?
               </Link>
             </div>
           </motion.form>
@@ -454,7 +454,7 @@ export default function ForgotWizard() {
               Mot de passe réinitialisé ✅
             </h2>
             <p className="text-sm text-gray-600 mt-2">
-              Redirection vers la page de connexion...
+              Redirection vers la page de Accueil ...
             </p>
           </motion.div>
         )}

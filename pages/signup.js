@@ -390,12 +390,11 @@ export default function SignupWizard() {
                 {isLoading ? "Envoi..." : "S'inscrire"}
               </button>
               <div className="mt-1 text-center">
-                <span className="text-sm text-gray-600">Retour page </span>
                 <Link
                   href="/"
                   className="text-sm font-medium text-blue-600 hover:underline"
                 >
-                  Retour page Maths
+                  Retour page Accueil
                 </Link>
               </div>
             </form>
@@ -454,7 +453,7 @@ export default function SignupWizard() {
             <CheckCircle className="mx-auto text-green-500" size={48} />
             <h2 className="text-xl font-semibold mt-3">Compte activé ✅</h2>
             <p className="text-sm text-gray-600 mt-2">
-              Redirection vers la page de login...
+              Redirection vers la page de Accueil...
             </p>
           </motion.div>
         )}
