@@ -450,6 +450,7 @@ export default function Quizz({
                     maxWidth: "100%",
                     textAlign: "center",
                     padding: "0px",
+                    backgroundColor:"rgba(200,200,200,0.5)"
                   }}
                 >
                   {hasImage && (
