@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import { Button, Carousel, Input, Popover, Select, Tooltip, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -111,6 +112,8 @@ export default function Video({
   id,
   num,
   repertoire,
+  bg,
+  expanded,
 }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
@@ -218,6 +221,20 @@ export default function Video({
   const [w, h] = (ratio || "16:9").split(":").map(Number);
   const paddingTop =
     Number.isFinite(w) && Number.isFinite(h) && h > 0 ? (h / w) * 100 : 56.25;
+  const toBlurFile = (filename = "") => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+  const bgRoot = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/`;
+  const bgPath =
+    bg && repertoire ? `${repertoire}/tag${num}/${bg}` : bg || "";
+  const blurBgPath =
+    bg && repertoire ? `${repertoire}/tag${num}/${toBlurFile(bg)}` : "";
+  const isExpanded = expanded !== false;
+  const showBackground = Boolean(isExpanded && bgPath);
 
   const carouselRef = useRef(null);
   const iframeRefs = useRef([]);
@@ -468,10 +485,30 @@ export default function Video({
   };
 
   return (
-    <div
-      className={`vb-wrap ${className || ""}`}
-      style={{ width: "100%", maxWidth, margin: "0 auto" }}
-    >
+    <div className="relative w-full">
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${bgRoot}${bgPath}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBgPath}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
+      <div
+        className={`vb-wrap ${className || ""} relative z-20`}
+        style={{ width: "100%", maxWidth, margin: "0 auto" }}
+      >
       <div
         style={{
           width: "100%",
@@ -832,6 +869,7 @@ export default function Video({
           }
         }
       `}</style>
+    </div>
     </div>
   );
 }

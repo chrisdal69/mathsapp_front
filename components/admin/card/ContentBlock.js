@@ -201,6 +201,7 @@ export default function Contenu({
   content,
   contentVersion,
   bg,
+  expanded,
 }) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
@@ -235,6 +236,8 @@ export default function Contenu({
   };
 
   const blurBg = useMemo(() => (localBg ? toBlurFile(localBg) : ""), [localBg]);
+  const isExpanded = expanded !== false;
+  const showBackground = Boolean(isExpanded && localBg);
   const cardId = _id || id;
 
   const formulaLinks = (
@@ -492,6 +495,15 @@ export default function Contenu({
       const file = new File([blob], name, { type: mime });
       uploadBackgroundFile(file);
     } catch (error) {
+      const errName = error?.name;
+      const errMessage = String(error?.message || "");
+      if (
+        errName === "NotAllowedError" ||
+        errName === "AbortError" ||
+        errMessage.toLowerCase().includes("clipboard read operation is not allowed")
+      ) {
+        return;
+      }
       console.error("Erreur collage image background", error);
       message.error("Erreur lors du collage.");
     }
@@ -517,183 +529,204 @@ export default function Contenu({
 
   return (
     <div className="group relative w-full min-h-[150px]">
-      <div className="flex flex-col gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-4">
-          <section className="rounded-lg bg-white/60 p-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <p className="text-base font-semibold text-gray-800">Contenu</p>
-              <Tooltip title="Modifier le contenu" mouseEnterDelay={0.3}>
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${racine}${localBg}`}
+              alt=""
+              fill
+              placeholder={blurBg ? "blur" : undefined}
+              blurDataURL={blurBg ? `${racine}${blurBg}` : undefined}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
+      <div className="relative z-20">
+        <div className="flex flex-col gap-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-4">
+            <section className="rounded-lg bg-white/60 p-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-base font-semibold text-gray-800">Contenu</p>
+                <Tooltip title="Modifier le contenu" mouseEnterDelay={0.3}>
+                  <Button
+                    icon={<EditOutlined />}
+                    size="small"
+                    type="default"
+                    onClick={handleOpenEditor}
+                  />
+                </Tooltip>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-gray-800">
+                {displayContent && displayContent.length ? (
+                  renderSlateNodes(normalizeContent(displayContent))
+                ) : (
+                  <p className="text-gray-500">Aucun contenu.</p>
+                )}
+              </div>
+            </section>
+          </div>
+          <div className="mx-5 flex flex-col items-center gap-2 pb-4">
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-medium text-gray-700">
+                Image background :
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleBackgroundInputChange}
+              />
+              <Tooltip title="Changer l'image de fond" mouseEnterDelay={0.3}>
                 <Button
                   icon={<EditOutlined />}
                   size="small"
                   type="default"
-                  onClick={handleOpenEditor}
-                />
+                  onClick={handleBackgroundButtonClick}
+                  loading={isUploadingBg}
+                  className="flex items-center"
+                  data-upload-background="true"
+                >
+                  {isUploadingBg ? "Upload..." : "Changer"}
+                </Button>
+              </Tooltip>
+              <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
+                <Button
+                  size="small"
+                  onClick={handlePasteFromClipboard}
+                  disabled={isUploadingBg}
+                  data-upload-background="true"
+                >
+                  Coller
+                </Button>
               </Tooltip>
             </div>
-            <div className="mt-3 space-y-2 text-sm text-gray-800">
-              {displayContent && displayContent.length ? (
-                renderSlateNodes(normalizeContent(displayContent))
-              ) : (
-                <p className="text-gray-500">Aucun contenu.</p>
-              )}
-            </div>
-          </section>
-        </div>
-        <div className="mx-5 flex flex-col items-center gap-2 pb-4">
-          <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-gray-700">
-              Image background :
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleBackgroundInputChange}
-            />
-            <Tooltip title="Changer l'image de fond" mouseEnterDelay={0.3}>
-              <Button
-                icon={<EditOutlined />}
-                size="small"
-                type="default"
-                onClick={handleBackgroundButtonClick}
-                loading={isUploadingBg}
-                className="flex items-center"
-                data-upload-background="true"
-              >
-                {isUploadingBg ? "Upload..." : "Changer"}
-              </Button>
-            </Tooltip>
-            <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
-              <Button
-                size="small"
-                onClick={handlePasteFromClipboard}
-                disabled={isUploadingBg}
-                data-upload-background="true"
-              >
-                Coller
-              </Button>
-            </Tooltip>
+            {localBg ? (
+              <Image
+                src={`${racine}${localBg}`}
+                alt="Illustration de la carte"
+                width={300}
+                height={300}
+                placeholder={blurBg ? "blur" : undefined}
+                blurDataURL={blurBg ? `${racine}${blurBg}` : undefined}
+                sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                className="max-w-full rounded-lg object-cover shadow"
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                Aucun fichier d'image defini.
+              </p>
+            )}
           </div>
-          {localBg ? (
-            <Image
-              src={`${racine}${localBg}`}
-              alt="Illustration de la carte"
-              width={300}
-              height={300}
-              placeholder={blurBg ? "blur" : undefined}
-              blurDataURL={blurBg ? `${racine}${blurBg}` : undefined}
-              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="max-w-full rounded-lg object-cover shadow"
-            />
-          ) : (
-            <p className="text-sm text-gray-500">
-              Aucun fichier d'image defini.
-            </p>
-          )}
         </div>
-      </div>
 
-      <Drawer
-        title="Edition du contenu"
-        open={isEditorOpen}
-        onClose={handleCloseEditor}
-        placement="bottom"
-        height="50vh"
-        mask={false}
-        zIndex={DRAWER_Z_INDEX}
-        drawerRender={(node) => (
-          <>
-            {isEditorOpen && <div className="drawer-backdrop" />}
-            <div className="drawer-foreground">{node}</div>
-          </>
-        )}
-        destroyOnClose
-      >
-        <div className="flex flex-col gap-4">
-          <Slate
-            key={editorKey}
-            editor={editor}
-            initialValue={normalizeContent(draftContent)}
-            onChange={setDraftContent}
-          >
-            <div className="flex flex-wrap gap-2">
-              <MarkButton
-                format="bold"
-                label="Gras"
-                icon={<BoldOutlined />}
+        <Drawer
+          title="Edition du contenu"
+          open={isEditorOpen}
+          onClose={handleCloseEditor}
+          placement="bottom"
+          height="50vh"
+          mask={false}
+          zIndex={DRAWER_Z_INDEX}
+          drawerRender={(node) => (
+            <>
+              {isEditorOpen && <div className="drawer-backdrop" />}
+              <div className="drawer-foreground">{node}</div>
+            </>
+          )}
+          destroyOnClose
+        >
+          <div className="flex flex-col gap-4">
+            <Slate
+              key={editorKey}
+              editor={editor}
+              initialValue={normalizeContent(draftContent)}
+              onChange={setDraftContent}
+            >
+              <div className="flex flex-wrap gap-2">
+                <MarkButton
+                  format="bold"
+                  label="Gras"
+                  icon={<BoldOutlined />}
+                />
+                <MarkButton
+                  format="italic"
+                  label="Italique"
+                  icon={<ItalicOutlined />}
+                />
+                <MarkButton
+                  format="underline"
+                  label="Souligne"
+                  icon={<UnderlineOutlined />}
+                />
+                <BlockButton
+                  format="bulleted-list"
+                  label="Liste"
+                  icon={<UnorderedListOutlined />}
+                />
+                <BlockButton
+                  format="numbered-list"
+                  label="Liste numerotee"
+                  icon={<OrderedListOutlined />}
+                />
+                <BlockButton
+                  format="left"
+                  label="Aligner a gauche"
+                  icon={<AlignLeftOutlined />}
+                />
+                <BlockButton
+                  format="center"
+                  label="Centrer"
+                  icon={<AlignCenterOutlined />}
+                />
+                <BlockButton
+                  format="right"
+                  label="Aligner a droite"
+                  icon={<AlignRightOutlined />}
+                />
+                <BlockButton
+                  format="justify"
+                  label="Justifier"
+                  icon={<BarsOutlined />}
+                />
+              </div>
+              <Editable
+                className="mt-3 min-h-[220px] rounded border border-slate-300 p-3"
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                placeholder="Texte et formules avec $...$"
+                spellCheck
               />
-              <MarkButton
-                format="italic"
-                label="Italique"
-                icon={<ItalicOutlined />}
-              />
-              <MarkButton
-                format="underline"
-                label="Souligne"
-                icon={<UnderlineOutlined />}
-              />
-              <BlockButton
-                format="bulleted-list"
-                label="Liste"
-                icon={<UnorderedListOutlined />}
-              />
-              <BlockButton
-                format="numbered-list"
-                label="Liste numerotee"
-                icon={<OrderedListOutlined />}
-              />
-              <BlockButton
-                format="left"
-                label="Aligner a gauche"
-                icon={<AlignLeftOutlined />}
-              />
-              <BlockButton
-                format="center"
-                label="Centrer"
-                icon={<AlignCenterOutlined />}
-              />
-              <BlockButton
-                format="right"
-                label="Aligner a droite"
-                icon={<AlignRightOutlined />}
-              />
-              <BlockButton
-                format="justify"
-                label="Justifier"
-                icon={<BarsOutlined />}
-              />
-            </div>
-            <Editable
-              className="mt-3 min-h-[220px] rounded border border-slate-300 p-3"
-              renderElement={renderElement}
-              renderLeaf={renderLeaf}
-              placeholder="Texte et formules avec $...$"
-              spellCheck
-            />
-          </Slate>
-          <p className="text-xs text-gray-500">
-            Utiliser $...$ pour les formules inline.
-          </p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">{formulaLinks}</div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="primary"
-                icon={<CheckOutlined />}
-                loading={isSavingContent}
-                onClick={handleSaveContent}
-              >
-                Valider
-              </Button>
-              <Button icon={<CloseOutlined />} onClick={handleCloseEditor}>
-                Annuler
-              </Button>
+            </Slate>
+            <p className="text-xs text-gray-500">
+              Utiliser $...$ pour les formules inline.
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">{formulaLinks}</div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  loading={isSavingContent}
+                  onClick={handleSaveContent}
+                >
+                  Valider
+                </Button>
+                <Button icon={<CloseOutlined />} onClick={handleCloseEditor}>
+                  Annuler
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </Drawer>
+        </Drawer>
+      </div>
     </div>
   );
 }

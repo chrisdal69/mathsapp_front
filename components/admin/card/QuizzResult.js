@@ -92,6 +92,8 @@ export default function Quizz({
   resultatQuizz,
   _id,
   id,
+  bg,
+  expanded,
 }) {
   const carouselRef = useRef(null);
   const [current, setCurrent] = useState(0);
@@ -110,6 +112,17 @@ export default function Quizz({
   const [resultsLoading, setResultsLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const racine = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"}/${repertoire}/tag${num}/imagesQuizz/`;
+  const bgRoot = `https://storage.googleapis.com/${
+    process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+  }/${repertoire}/tag${num}/`;
+  const toBlurFile = (filename = "") => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+  const blurBg = bg ? toBlurFile(bg) : "";
+  const isExpanded = expanded !== false;
+  const showBackground = Boolean(isExpanded && bg);
 
   
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -235,20 +248,40 @@ export default function Quizz({
   console.log("quizz : ",quizz)
 
   return (
-    <div>
-      {contextHolder}
+    <div className="relative w-full">
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${bgRoot}${bg}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBg}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
+      <div className="relative z-20">
+        {contextHolder}
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          position: "relative",
-        }}
-      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            position: "relative",
+          }}
+        >
         {showOverlay && (
           <div
             style={{
@@ -258,7 +291,7 @@ export default function Quizz({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              zIndex: 10,
+              zIndex: 30,
             }}
           >
             <ClimbingBoxLoader color="#6C6C6C" size={12} />
@@ -610,6 +643,7 @@ export default function Quizz({
             );
           })}
         </Carousel>
+        </div>
       </div>
     </div>
   );

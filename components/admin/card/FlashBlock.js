@@ -215,7 +215,15 @@ const validateImportedFlashPayload = (payload) => {
   return { ok: errors.length === 0, errors, normalized };
 };
 
-export default function FlashBlock({ num, repertoire, flash, _id, id }) {
+export default function FlashBlock({
+  num,
+  repertoire,
+  flash,
+  _id,
+  id,
+  bg,
+  expanded,
+}) {
   const dispatch = useDispatch();
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const carouselRef = useRef(null);
@@ -269,6 +277,21 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
       }/${repertoire}/tag${num}/imagesFlash/`,
     [repertoire, num]
   );
+  const bgRoot = useMemo(
+    () =>
+      `https://storage.googleapis.com/${
+        process.env.NEXT_PUBLIC_BUCKET_NAME || "mathsapp"
+      }/${repertoire}/tag${num}/`,
+    [repertoire, num]
+  );
+  const toBlurFile = (filename = "") => {
+    const lastDot = filename.lastIndexOf(".");
+    if (lastDot === -1) return `${filename}Blur`;
+    return `${filename.slice(0, lastDot)}Blur${filename.slice(lastDot)}`;
+  };
+  const blurBg = bg ? toBlurFile(bg) : "";
+  const isExpanded = expanded !== false;
+  const showBackground = Boolean(isExpanded && bg);
 
   useEffect(() => {
     setFlashList(Array.isArray(flash) ? flash : []);
@@ -1052,6 +1075,25 @@ export default function FlashBlock({ num, repertoire, flash, _id, id }) {
 
   return (
     <div className="relative w-full">
+      {showBackground && (
+        <>
+          <div className="absolute inset-0 z-0">
+            <Image
+              src={`${bgRoot}${bg}`}
+              alt=""
+              fill
+              placeholder="blur"
+              blurDataURL={`${bgRoot}${blurBg}`}
+              sizes="(max-width: 576px) 100vw, (max-width: 992px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-cover object-center"
+            />
+          </div>
+          <div
+            className="absolute inset-0 z-10 pointer-events-none"
+            style={{ background: "rgba(255,255,255,0.8)" }}
+          />
+        </>
+      )}
       <div className="relative z-20 p-4">
         <div
           style={{
