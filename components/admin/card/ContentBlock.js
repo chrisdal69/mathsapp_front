@@ -32,6 +32,7 @@ import { withHistory } from "slate-history";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
+const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const MAX_BG_BYTES = 4 * 1024 * 1024;
 const CONTENT_VERSION = 1;
 const DRAWER_Z_INDEX = 1001;
@@ -423,6 +424,92 @@ export default function Contenu({
     }
   };
 
+  const handlePasteImage = (event) => {
+    if (isUploadingBg) return;
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.type?.startsWith("image/"));
+    if (!imageItem) return;
+    event.preventDefault();
+
+    const blob = imageItem.getAsFile();
+    if (!blob) return;
+
+    const mime = blob.type || "image/png";
+    const ext =
+      mime === "image/png"
+        ? ".png"
+        : mime === "image/jpeg" || mime === "image/jpg"
+        ? ".jpg"
+        : "";
+
+    if (!ALLOWED_IMAGE_EXT.includes(ext)) {
+      message.error("Image non autorisee (jpg ou png).");
+      return;
+    }
+
+    const name =
+      blob.name && blob.name.toLowerCase().endsWith(ext)
+        ? blob.name
+        : `capture-${Date.now()}${ext}`;
+    const file = new File([blob], name, { type: mime });
+    uploadBackgroundFile(file);
+  };
+
+  const handlePasteFromClipboard = async () => {
+    if (isUploadingBg) return;
+    if (!navigator?.clipboard?.read) {
+      message.error(
+        "Le collage direct n'est pas disponible sur ce navigateur."
+      );
+      return;
+    }
+
+    try {
+      const items = await navigator.clipboard.read();
+      const imageItem = items.find((item) =>
+        item.types.some((type) => type.startsWith("image/"))
+      );
+      if (!imageItem) {
+        message.error("Aucune image dans le presse-papiers.");
+        return;
+      }
+      const mime =
+        imageItem.types.find((type) => type.startsWith("image/")) ||
+        "image/png";
+      const blob = await imageItem.getType(mime);
+      if (!blob) return;
+      const ext =
+        mime === "image/png"
+          ? ".png"
+          : mime === "image/jpeg" || mime === "image/jpg"
+          ? ".jpg"
+          : "";
+      if (!ALLOWED_IMAGE_EXT.includes(ext)) {
+        message.error("Image non autorisee (jpg ou png).");
+        return;
+      }
+      const name = `capture-${Date.now()}${ext}`;
+      const file = new File([blob], name, { type: mime });
+      uploadBackgroundFile(file);
+    } catch (error) {
+      console.error("Erreur collage image background", error);
+      message.error("Erreur lors du collage.");
+    }
+  };
+
+  useEffect(() => {
+    const handlePaste = (event) => {
+      const active = document.activeElement;
+      const isTarget =
+        active?.getAttribute?.("data-upload-background") === "true";
+      if (!isTarget) return;
+      handlePasteImage(event);
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [handlePasteImage]);
+
   const editor = useMemo(() => withHistory(withReact(createEditor())), []);
   const renderElement = useCallback((props) => <Element {...props} />, []);
   const renderLeaf = useCallback((props) => <Leaf {...props} />, []);
@@ -473,8 +560,19 @@ export default function Contenu({
                 onClick={handleBackgroundButtonClick}
                 loading={isUploadingBg}
                 className="flex items-center"
+                data-upload-background="true"
               >
                 {isUploadingBg ? "Upload..." : "Changer"}
+              </Button>
+            </Tooltip>
+            <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
+              <Button
+                size="small"
+                onClick={handlePasteFromClipboard}
+                disabled={isUploadingBg}
+                data-upload-background="true"
+              >
+                Coller
               </Button>
             </Tooltip>
           </div>
