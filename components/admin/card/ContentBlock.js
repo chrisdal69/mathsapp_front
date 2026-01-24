@@ -597,7 +597,7 @@ export default function Contenu({
                   {isUploadingBg ? "Upload..." : "Changer"}
                 </Button>
               </Tooltip>
-              <Tooltip title="Coller une image" mouseEnterDelay={0.3}>
+              <Tooltip title="Coller une image capturée (screenshot)" mouseEnterDelay={0.3}>
                 <Button
                   size="small"
                   onClick={handlePasteFromClipboard}

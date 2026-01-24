@@ -1519,7 +1519,7 @@ export default function FlashBlock({
                                   </Tooltip>
                                 </Upload>
                                 <Tooltip
-                                  title="Coller une image"
+                                  title="Coller une image capturée (screenshot)"
                                   mouseEnterDelay={0.3}
                                 >
                                   <Button
@@ -1730,7 +1730,7 @@ export default function FlashBlock({
                                   </Tooltip>
                                 </Upload>
                                 <Tooltip
-                                  title="Coller une image"
+                                  title="Coller une image capturée (screenshot)"
                                   mouseEnterDelay={0.3}
                                 >
                                   <Button

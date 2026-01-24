@@ -1583,7 +1583,7 @@ export default function Quizz({
                                 </Tooltip>
                               </Upload>
                               <Tooltip
-                                title="Coller une image"
+                                title="Coller une image capturée (screenshot)"
                                 mouseEnterDelay={0.3}
                               >
                                 <Button
