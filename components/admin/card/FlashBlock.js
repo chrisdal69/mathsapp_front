@@ -1375,7 +1375,7 @@ export default function FlashBlock({
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-semibold text-gray-700">
-                              Question
+                              Question {idx+1}
                             </p>
                             <Popover
                               trigger="click"
@@ -1586,7 +1586,7 @@ export default function FlashBlock({
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-semibold text-gray-700">
-                              Reponse
+                              Reponse {idx+1}
                             </p>
                             <Popover
                               trigger="click"

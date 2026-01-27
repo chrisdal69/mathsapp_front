@@ -733,7 +733,7 @@ export default function Video({
               <div className="w-full max-w-5xl px-2">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="m-0 flex-1 text-center text-base font-medium">
-                    {slide.txt || "Intitule non renseigne"}
+                    {`Vidéo ${idx+1} : `}{slide.txt || "Intitule non renseigne"}
                   </p>
                   <div className="flex items-center gap-1">
                     {fieldPopover(

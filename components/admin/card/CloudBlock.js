@@ -37,7 +37,8 @@ import {
 } from "@ant-design/icons";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { clearAuth } from "../../../reducers/authSlice";
+import { useRouter } from "next/router";
+import { handleAuthError, throwIfUnauthorized } from "../../../utils/auth";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -70,6 +71,12 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
   const [messageSending, setMessageSending] = useState(false);
 
   const dispatch = useDispatch();
+  const router = useRouter();
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
   const deleteTimer = useRef(null);
   const listContainerRef = useRef(null);
   const toBlurFile = (filename = "") => {
@@ -126,7 +133,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
     });
 
     try {
-      const res = await fetch(`${urlFetch}/upload`, {
+      const res = await authFetch(`${urlFetch}/upload`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -135,16 +142,6 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       try {
         data = await res.json();
       } catch (_) {}
-
-      if (res.status === 401 || res.status === 403) {
-        setUpload(false);
-        message.error(data.message || "erreur d’autorisation");
-        setTimeout(() => {
-          form.resetFields();
-          dispatch(clearAuth());
-        }, 3000);
-        return;
-      }
 
       if (!res.ok || data.result === false) {
         const msg = data.error || data.message || "Erreur lors de l’upload";
@@ -163,8 +160,11 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       }
     } catch (err) {
       console.error("Erreur upload:", err);
+      const handled = handleAuthError(err, { dispatch, router });
       setUpload(false);
-      message.error("Erreur lors de l’upload");
+      if (!handled) {
+        message.error("Erreur lors de l’upload");
+      }
       form.resetFields();
     }
   };
@@ -174,7 +174,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
     formData.append("parent", "cloud");
     formData.append("repertoire", `${repertoire}tag${num}`);
     try {
-      const res = await fetch(`${urlFetch}/upload/recupA`, {
+      const res = await authFetch(`${urlFetch}/upload/recupA`, {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -184,12 +184,13 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       //console.log(data);
     } catch (err) {
       console.error("Erreur upload:", err);
+      handleAuthError(err, { dispatch, router });
     }
   };
 
   const handleDelete = async (fileName) => {
     try {
-      const res = await fetch(`${urlFetch}/upload/deleteA`, {
+    const res = await authFetch(`${urlFetch}/upload/deleteA`, {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
@@ -208,7 +209,10 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       }
     } catch (err) {
       console.error(err);
-      message.error("Erreur de communication avec le serveur");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        message.error("Erreur de communication avec le serveur");
+      }
     }
     setDeleteVisible(null);
   };
@@ -232,7 +236,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
   const handleConfirmRename = async (file) => {
     //console.log("handleConfirmRename : ", file.name, newName);
     try {
-      const res = await fetch(`${urlFetch}/upload/renameA`, {
+    const res = await authFetch(`${urlFetch}/upload/renameA`, {
         method: "POST",
         body: JSON.stringify({
           parent: "cloud",
@@ -252,7 +256,10 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       }
     } catch (err) {
       console.error(err);
-      message.error("Erreur de communication avec le serveur");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        message.error("Erreur de communication avec le serveur");
+      }
     }
     setRenameVisible(null);
   };
@@ -285,7 +292,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
 
     setMessageSending(true);
     try {
-      const res = await fetch(`${urlFetch}/cards/cloud`, {
+    const res = await authFetch(`${urlFetch}/cards/cloud`, {
         method: "POST",
         body: JSON.stringify({
           id_card: _id,
@@ -314,7 +321,10 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       setMessageText("");
     } catch (err) {
       console.error(err);
-      message.error("Erreur de communication avec le serveur");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        message.error("Erreur de communication avec le serveur");
+      }
     } finally {
       setMessageSending(false);
     }
@@ -324,7 +334,7 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
     if (!filesCloud.length || zipLoading) return;
     setZipLoading(true);
     try {
-      const res = await fetch(`${urlFetch}/upload/downloadZipA`, {
+    const res = await authFetch(`${urlFetch}/upload/downloadZipA`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -356,7 +366,10 @@ const CloudBlock = ({ num, repertoire, _id, bg, expanded }) => {
       message.success("Archive ZIP téléchargée");
     } catch (err) {
       console.error("Erreur download zip:", err);
-      message.error(err?.message || "Erreur lors du téléchargement ZIP");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        message.error(err?.message || "Erreur lors du téléchargement ZIP");
+      }
     } finally {
       setZipLoading(false);
     }

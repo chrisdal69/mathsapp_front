@@ -1444,12 +1444,14 @@ export default function Quizz({
                       maxWidth: "1100px",
                       minWidth: "280px",
                       padding: "8px",
+                        backgroundColor: "rgba(100,100,100,0.2)",
+
                     }}
                     title={
                       <div className="flex w-full flex-col gap-2">
                         <div className="flex items-start justify-between gap-2">
-                          <label className="text-sm font-normal text-gray-700">
-                            Question {idx + 1} ({q.id || `q${idx + 1}`}) :
+                          <label className="text-sm font-bold text-gray-700">
+                            Question {idx + 1}  :
                           </label>
                           <Popover
                             trigger="click"
@@ -1534,7 +1536,7 @@ export default function Quizz({
                           </Popover>
                         </div>
                         <div
-                          className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-sm text-gray-800"
+                          className="rounded border border-gray-200 bg-gray-100 px-2 py-1 text-sm text-gray-800"
                           style={{ whiteSpace: "pre-line" }}
                         >
                           {isQuestionEmpty ? (
@@ -1760,7 +1762,7 @@ export default function Quizz({
                             return (
                               <li
                                 key={`${q.id}-${optionIndex}`}
-                                className="flex flex-col gap-1 rounded border border-gray-200 bg-white px-2 py-1 sm:flex-row sm:items-start sm:justify-between"
+                                className="flex flex-col gap-1 rounded border border-gray-200 bg-gray-200 px-2 py-1 sm:flex-row sm:items-start sm:justify-between"
                               >
                                 <div className="flex-1 flex items-start gap-2">
                                   <Radio
@@ -1912,7 +1914,7 @@ export default function Quizz({
                           )}
                         </ul>
 
-                        <div className="rounded border border-gray-200 bg-gray-50 px-2 py-2 text-sm">
+                        <div className="rounded border border-gray-200 bg-gray-100 px-2 py-2 text-sm">
                           <p className="m-0 text-xs text-gray-600">
                             Selectionner la bonne reponse
                           </p>

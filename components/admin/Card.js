@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, Button, Input, Popover, Space, Tooltip, message } from "antd";
+import { useRouter } from "next/router";
 import {
   EditOutlined,
   CheckOutlined,
@@ -23,6 +24,7 @@ import QuizzResult from "./card/QuizzResult";
 import FlashBlock from "./card/FlashBlock";
 
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
+import { handleAuthError, throwIfUnauthorized } from "../../utils/auth";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -45,8 +47,14 @@ const CardBlock = (data) => {
   );
 
   const dispatch = useDispatch();
+  const router = useRouter();
   const cardsData = useSelector((state) => state.cardsMaths.data);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
 
   //console.log("visible dans admin/Cards: ",data.visible)
   useEffect(() => {
@@ -138,7 +146,7 @@ const CardBlock = (data) => {
 
     setIsSavingTitle(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/title`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/title`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -172,7 +180,10 @@ const CardBlock = (data) => {
       message.success("Titre mis à jour.");
     } catch (error) {
       console.error("Erreur lors de la mise à jour du titre :", error);
-      message.error(error.message || "Erreur lors de la mise à jour du titre.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la mise à jour du titre.");
+      }
     } finally {
       setIsSavingTitle(false);
     }
@@ -188,7 +199,7 @@ const CardBlock = (data) => {
     const nextVisible = !data?.visible;
     setIsTogglingVisible(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/visible`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/visible`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -217,9 +228,12 @@ const CardBlock = (data) => {
       message.success(nextVisible ? "Carte rendue visible." : "Carte masquee.");
     } catch (error) {
       console.error("Erreur lors de la mise a jour de la visibilite :", error);
-      message.error(
-        error.message || "Erreur lors de la mise a jour de la visibilite."
-      );
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(
+          error.message || "Erreur lors de la mise a jour de la visibilite."
+        );
+      }
     } finally {
       setIsTogglingVisible(false);
     }
@@ -235,7 +249,7 @@ const CardBlock = (data) => {
     const nextCloud = !data?.cloud;
     setIsTogglingCloud(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/cloud`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/cloud`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -268,7 +282,10 @@ const CardBlock = (data) => {
       message.success(nextCloud ? "Cloud active." : "Cloud desactive.");
     } catch (error) {
       console.error("Erreur lors de la mise a jour du cloud :", error);
-      message.error(error.message || "Erreur lors de la mise a jour du cloud.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la mise a jour du cloud.");
+      }
     } finally {
       setIsTogglingCloud(false);
     }
@@ -288,7 +305,7 @@ const CardBlock = (data) => {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -314,7 +331,10 @@ const CardBlock = (data) => {
       message.success("Carte supprimée.");
     } catch (error) {
       console.error("Erreur lors de la suppression :", error);
-      message.error(error.message || "Erreur lors de la suppression.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la suppression.");
+      }
     } finally {
       setIsDeleting(false);
     }
@@ -333,7 +353,7 @@ const CardBlock = (data) => {
 
     setIsMoving(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/move`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/move`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -364,7 +384,10 @@ const CardBlock = (data) => {
       message.success("Carte déplacée.");
     } catch (error) {
       console.error("Erreur lors du déplacement :", error);
-      message.error(error.message || "Erreur lors du déplacement.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors du déplacement.");
+      }
     } finally {
       setIsMoving(false);
     }

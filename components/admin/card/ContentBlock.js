@@ -3,6 +3,7 @@ import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
 import { Button, Drawer, Tooltip, message } from "antd";
+import { useRouter } from "next/router";
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -20,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
+import { handleAuthError, throwIfUnauthorized } from "../../../utils/auth";
 import {
   createEditor,
   Editor,
@@ -204,7 +206,13 @@ export default function Contenu({
   expanded,
 }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const cardsData = useSelector((state) => state.cardsMaths.data);
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
 
   const [localContent, setLocalContent] = useState(normalizeContent(content));
   const [draftContent, setDraftContent] = useState(localContent);
@@ -314,7 +322,7 @@ export default function Contenu({
 
     setIsSavingContent(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/content`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/content`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -346,7 +354,10 @@ export default function Contenu({
       setIsEditorOpen(false);
     } catch (error) {
       console.error("Erreur lors de la mise a jour du contenu", error);
-      message.error(error.message || "Erreur lors de la sauvegarde.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la sauvegarde.");
+      }
     } finally {
       setIsSavingContent(false);
     }
@@ -397,7 +408,7 @@ export default function Contenu({
 
     setIsUploadingBg(true);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/bg/upload`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/bg/upload`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -421,7 +432,10 @@ export default function Contenu({
       message.success("Image importee.");
     } catch (error) {
       console.error("Erreur lors de l'upload de l'image de fond", error);
-      message.error(error.message || "Erreur lors de l'upload.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de l'upload.");
+      }
     } finally {
       setIsUploadingBg(false);
     }

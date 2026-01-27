@@ -26,7 +26,9 @@ import {
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/router";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
+import { handleAuthError, throwIfUnauthorized } from "../../../utils/auth";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 
 const NODE_ENV = process.env.NODE_ENV;
@@ -359,6 +361,7 @@ export default function FilesBlock({
   expanded,
 }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const cardsData = useSelector((state) => state.cardsMaths.data);
 
   const [localFiles, setLocalFiles] = useState(
@@ -380,7 +383,13 @@ export default function FilesBlock({
   const [editingHoverLoadingKey, setEditingHoverLoadingKey] = useState("");
   const [reorderKey, setReorderKey] = useState("");
   const [visibilityLoadingKey, setVisibilityLoadingKey] = useState("");
+  const [moveTooltipKey, setMoveTooltipKey] = useState("");
   const cardId = _id || id;
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
 
   useEffect(() => {
     setLocalFiles(Array.isArray(fichiers) ? fichiers : []);
@@ -477,7 +486,7 @@ export default function FilesBlock({
     }
     setDeletingKey(key);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/files`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -499,7 +508,10 @@ export default function FilesBlock({
       message.success("Fichier supprime.");
     } catch (error) {
       console.error("Erreur suppression fichier", error);
-      message.error(error.message || "Erreur lors de la suppression.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la suppression.");
+      }
     } finally {
       setDeletingKey("");
     }
@@ -522,7 +534,7 @@ export default function FilesBlock({
     }
     setEditingLoadingKey(key);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/files`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -548,7 +560,10 @@ export default function FilesBlock({
       setEditingValue("");
     } catch (error) {
       console.error("Erreur edition fichier", error);
-      message.error(error.message || "Erreur lors de la mise a jour.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la mise a jour.");
+      }
     } finally {
       setEditingLoadingKey("");
     }
@@ -567,7 +582,7 @@ export default function FilesBlock({
     const trimmed = (editingHoverValue || "").trim();
     setEditingHoverLoadingKey(key);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/files`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -593,7 +608,10 @@ export default function FilesBlock({
       setEditingHoverValue("");
     } catch (error) {
       console.error("Erreur edition texte survol", error);
-      message.error(error.message || "Erreur lors de la mise a jour.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de la mise a jour.");
+      }
     } finally {
       setEditingHoverLoadingKey("");
     }
@@ -614,7 +632,7 @@ export default function FilesBlock({
     const nextVisible = !currentVisible;
     setVisibilityLoadingKey(key);
     try {
-      const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+      const response = await authFetch(`${urlFetch}/cards/${cardId}/files`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -638,9 +656,12 @@ export default function FilesBlock({
       message.success(nextVisible ? "Fichier visible." : "Fichier masque.");
     } catch (error) {
       console.error("Erreur lors du changement de visibilite", error);
-      message.error(
-        error.message || "Erreur lors de la mise a jour de la visibilite."
-      );
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(
+          error.message || "Erreur lors de la mise a jour de la visibilite."
+        );
+      }
     } finally {
       setVisibilityLoadingKey("");
     }
@@ -703,7 +724,7 @@ export default function FilesBlock({
     setReorderKey(key);
 
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${urlFetch}/cards/${cardId}/files/reorder`,
         {
           method: "PATCH",
@@ -729,9 +750,12 @@ export default function FilesBlock({
       syncCardsStore(updatedCard, next);
     } catch (error) {
       console.error("Erreur lors du reordonnancement des fichiers", error);
-      message.error(
-        error.message || "Erreur lors du reordonnancement des fichiers."
-      );
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(
+          error.message || "Erreur lors du reordonnancement des fichiers."
+        );
+      }
       setLocalFiles(prevFiles);
     } finally {
       setReorderKey("");
@@ -767,7 +791,7 @@ export default function FilesBlock({
     try {
       const contentType = selectedFile.type || "application/octet-stream";
       const uploadDirect = async () => {
-        const signResponse = await fetch(
+        const signResponse = await authFetch(
           `${urlFetch}/cards/${cardId}/files/sign`,
           {
             method: "POST",
@@ -814,7 +838,7 @@ export default function FilesBlock({
           throw err;
         }
 
-        const confirmResponse = await fetch(
+        const confirmResponse = await authFetch(
           `${urlFetch}/cards/${cardId}/files/confirm`,
           {
             method: "POST",
@@ -854,7 +878,7 @@ export default function FilesBlock({
         formData.append("num", `${normalizedNum}`);
         formData.append("position", insertPosition);
 
-        const response = await fetch(`${urlFetch}/cards/${cardId}/files`, {
+        const response = await authFetch(`${urlFetch}/cards/${cardId}/files`, {
           method: "POST",
           credentials: "include",
           body: formData,
@@ -909,7 +933,10 @@ export default function FilesBlock({
       setIsFormOpen(false);
     } catch (error) {
       console.error("Erreur lors de l'ajout du fichier :", error);
-      message.error(error.message || "Erreur lors de l'ajout du fichier.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors de l'ajout du fichier.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -931,6 +958,8 @@ export default function FilesBlock({
     const canMoveDown = idx < (localFiles?.length || 0) - 1;
     const isVisible = elt?.visible !== false;
     const hoverText = typeof elt?.hover === "string" ? elt.hover.trim() : "";
+    const moveUpTooltipKey = `${deleteKey}-up`;
+    const moveDownTooltipKey = `${deleteKey}-down`;
 
     const extFromHref = href.includes(".")
       ? href.split(".").pop().toLowerCase()
@@ -971,8 +1000,8 @@ export default function FilesBlock({
     return (
       <li
         key={`${elt?.href || idx}`}
-        className={`flex items-center gap-2 py-1 px-2 ${
-          idx % 2 === 1 ? "bg-gray-50" : ""
+        className={`flex items-center gap-2 py-3 px-2 ${
+          idx % 2 === 1 ? "bg-gray-300" : ""
         }`}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -1152,25 +1181,57 @@ export default function FilesBlock({
           </Tooltip>
         )}
         {canMoveUp && (
-          <Tooltip title="Monter ce fichier" mouseEnterDelay={0.3}>
-            <Button
-              size="small"
-              icon={<ArrowUpOutlined />}
-              disabled={isDeleting || isEditingLoading || isReordering}
-              loading={isReordering}
-              onClick={() => handleMoveFile(idx, "up")}
-            />
+          <Tooltip
+            title="Monter ce fichier"
+            mouseEnterDelay={0.3}
+            open={moveTooltipKey === moveUpTooltipKey && !isReordering}
+            onOpenChange={(visible) => {
+              if (visible) {
+                setMoveTooltipKey(moveUpTooltipKey);
+              } else if (moveTooltipKey === moveUpTooltipKey) {
+                setMoveTooltipKey("");
+              }
+            }}
+          >
+            <span className="inline-flex">
+              <Button
+                size="small"
+                icon={<ArrowUpOutlined />}
+                disabled={isDeleting || isEditingLoading || isReordering}
+                loading={isReordering}
+                onClick={() => {
+                  setMoveTooltipKey("");
+                  handleMoveFile(idx, "up");
+                }}
+              />
+            </span>
           </Tooltip>
         )}
         {canMoveDown && (
-          <Tooltip title="Descendre ce fichier" mouseEnterDelay={0.3}>
-            <Button
-              size="small"
-              icon={<ArrowDownOutlined />}
-              disabled={isDeleting || isEditingLoading || isReordering}
-              loading={isReordering}
-              onClick={() => handleMoveFile(idx, "down")}
-            />
+          <Tooltip
+            title="Descendre ce fichier"
+            mouseEnterDelay={0.3}
+            open={moveTooltipKey === moveDownTooltipKey && !isReordering}
+            onOpenChange={(visible) => {
+              if (visible) {
+                setMoveTooltipKey(moveDownTooltipKey);
+              } else if (moveTooltipKey === moveDownTooltipKey) {
+                setMoveTooltipKey("");
+              }
+            }}
+          >
+            <span className="inline-flex">
+              <Button
+                size="small"
+                icon={<ArrowDownOutlined />}
+                disabled={isDeleting || isEditingLoading || isReordering}
+                loading={isReordering}
+                onClick={() => {
+                  setMoveTooltipKey("");
+                  handleMoveFile(idx, "down");
+                }}
+              />
+            </span>
           </Tooltip>
         )}
       </li>

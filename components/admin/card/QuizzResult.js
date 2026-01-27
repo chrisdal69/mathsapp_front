@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import { Radio, Button, Card, Carousel, message } from "antd";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -7,6 +7,8 @@ import Image from "next/image";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
+import { useRouter } from "next/router";
+import { handleAuthError, throwIfUnauthorized } from "../../../utils/auth";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -127,6 +129,13 @@ export default function Quizz({
   
   const { isAuthenticated } = useSelector((state) => state.auth);
   const cardId = _id || id;
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
 
   const handlePrev = () => {
     setCurrent((c) => Math.max(0, c - 1));
@@ -175,7 +184,7 @@ export default function Quizz({
     }
     setResultsLoading(true);
     try {
-      const res = await fetch(`${urlFetch}/quizzs/${cardId}/results`, {
+      const res = await authFetch(`${urlFetch}/quizzs/${cardId}/results`, {
         credentials: "include",
       });
       const payload = await res.json();
@@ -200,7 +209,10 @@ export default function Quizz({
         );
       }
     } catch (err) {
-      message.error("Erreur lors du chargement des resultats.");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        message.error("Erreur lors du chargement des resultats.");
+      }
     } finally {
       setResultsLoading(false);
     }
@@ -213,7 +225,7 @@ export default function Quizz({
     }
     setExportLoading(true);
     try {
-      const res = await fetch(`${urlFetch}/quizzs/${cardId}/results/export`, {
+      const res = await authFetch(`${urlFetch}/quizzs/${cardId}/results/export`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -233,7 +245,10 @@ export default function Quizz({
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      message.error(error.message || "Erreur lors du telechargement.");
+      const handled = handleAuthError(error, { dispatch, router });
+      if (!handled) {
+        message.error(error.message || "Erreur lors du telechargement.");
+      }
     } finally {
       setExportLoading(false);
     }

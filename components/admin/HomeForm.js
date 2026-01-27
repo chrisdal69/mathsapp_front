@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../../reducers/cardsMathsSlice";
 import { useRouter } from "next/router";
+import { handleAuthError, throwIfUnauthorized } from "../../utils/auth";
 
 const NODE_ENV = process.env.NODE_ENV;
 const URL_BACK = process.env.NEXT_PUBLIC_URL_BACK;
@@ -26,6 +27,11 @@ const App = ({ nomRepertoire }) => {
   }, [isAdmin, router]);
 /////
   const dispatch = useDispatch();
+  const authFetch = async (url, options) => {
+    const response = await fetch(url, options);
+    throwIfUnauthorized(response);
+    return response;
+  };
   const data = useSelector((state) => state.cardsMaths.data);
   const cardsFiltre = Array.isArray(data?.result) ? data.result : [];
   const cards = cardsFiltre.filter((obj) => obj.repertoire === nomRepertoire);
@@ -40,7 +46,7 @@ const App = ({ nomRepertoire }) => {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const response = await fetch(`${urlFetch}/cards/admin`, {
+      const response = await authFetch(`${urlFetch}/cards/admin`, {
         credentials: "include",
       });
       const payload = await response.json();
@@ -53,7 +59,10 @@ const App = ({ nomRepertoire }) => {
         );
       }
     } catch (err) {
-      setErrorMessage("Erreur serveur.");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        setErrorMessage("Erreur serveur.");
+      }
     } finally {
       setLoading(false);
     }
@@ -104,7 +113,7 @@ const App = ({ nomRepertoire }) => {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`${urlFetch}/cards/admin`, {
+      const response = await authFetch(`${urlFetch}/cards/admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -120,7 +129,10 @@ const App = ({ nomRepertoire }) => {
       message.success("Carte ajoutée.");
       await fetchCards();
     } catch (err) {
-      setErrorMessage("Erreur lors de l'ajout de la carte.");
+      const handled = handleAuthError(err, { dispatch, router });
+      if (!handled) {
+        setErrorMessage("Erreur lors de l'ajout de la carte.");
+      }
     } finally {
       setCreating(false);
     }
