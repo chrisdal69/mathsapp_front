@@ -15,7 +15,7 @@ const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
 // ✅ Validation schéma
 const nameRegex = /^[\p{L}\s_-]+$/u;
 
-const schema = yup.object().shape({
+const schema = yup.object().shape({ 
   nom: yup
     .string()
     .min(2, "Min 2 caractères")
