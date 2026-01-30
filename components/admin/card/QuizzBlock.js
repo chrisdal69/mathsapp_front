@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  cloneElement,
-  isValidElement,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
@@ -21,7 +13,6 @@ import {
   Popover,
   Radio,
   Select,
-  Tooltip as AntTooltip,
   Upload,
 } from "antd";
 import JSZip from "jszip";
@@ -38,6 +29,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ClimbingBoxLoader from "react-spinners/ClimbingBoxLoader";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
+import Tooltip from "./TooltipClickClose";
 
 const NODE_ENV = process.env.NODE_ENV;
 const urlFetch = NODE_ENV === "production" ? "" : "http://localhost:3000";
@@ -45,55 +37,6 @@ const ALLOWED_IMAGE_EXT = [".jpg", ".jpeg", ".png"];
 const MAX_QUIZZ_IMAGE_BYTES = 4 * 1024 * 1024;
 const PREVIEW_IMAGE_WIDTH = 250;
 const QUIZZ_EXPORT_JSON_NAME = "quizz.json";
-
-const callAll =
-  (...handlers) =>
-  (event) => {
-    handlers.forEach((handler) => {
-      if (typeof handler === "function") handler(event);
-    });
-  };
-
-const Tooltip = ({ children, open: controlledOpen, onOpenChange, ...props }) => {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
-  const isControlled = typeof controlledOpen === "boolean";
-  const resolvedOpen = isControlled ? controlledOpen : uncontrolledOpen;
-
-  const handleOpenChange = (nextOpen) => {
-    if (!isControlled) setUncontrolledOpen(nextOpen);
-    if (onOpenChange) onOpenChange(nextOpen);
-  };
-
-  const handleClick = (event) => {
-    if (event?.currentTarget?.blur) event.currentTarget.blur();
-    if (!isControlled) setUncontrolledOpen(false);
-    if (onOpenChange) onOpenChange(false);
-  };
-
-  if (!isValidElement(children)) {
-    return (
-      <AntTooltip
-        {...props}
-        open={resolvedOpen}
-        onOpenChange={handleOpenChange}
-      >
-        {children}
-      </AntTooltip>
-    );
-  }
-
-  return (
-    <AntTooltip
-      {...props}
-      open={resolvedOpen}
-      onOpenChange={handleOpenChange}
-    >
-      {cloneElement(children, {
-        onClick: callAll(children.props?.onClick, handleClick),
-      })}
-    </AntTooltip>
-  );
-};
 
 const parseInlineKatex = (input) => {
   const tokens = [];

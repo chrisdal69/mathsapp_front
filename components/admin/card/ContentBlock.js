@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import Image from "next/image";
 import "katex/dist/katex.min.css";
 import { InlineMath } from "react-katex";
-import { Button, Drawer, Tooltip, message } from "antd";
+import { Button, Drawer, message } from "antd";
 import { useRouter } from "next/router";
 import {
   AlignCenterOutlined,
@@ -22,6 +22,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { setCardsMaths } from "../../../reducers/cardsMathsSlice";
 import { handleAuthError, throwIfUnauthorized } from "../../../utils/auth";
+import Tooltip from "./TooltipClickClose";
 import {
   createEditor,
   Editor,
