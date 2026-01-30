@@ -649,6 +649,15 @@ export default function Contenu({
           height="50vh"
           mask={false}
           zIndex={DRAWER_Z_INDEX}
+          styles={{
+            body: {
+              padding: 16,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              overflow: "hidden",
+            },
+          }}
           drawerRender={(node) => (
             <>
               {isEditorOpen && <div className="drawer-backdrop" />}
@@ -657,72 +666,74 @@ export default function Contenu({
           )}
           destroyOnClose
         >
-          <div className="flex flex-col gap-4">
-            <Slate
-              key={editorKey}
-              editor={editor}
-              initialValue={normalizeContent(draftContent)}
-              onChange={setDraftContent}
-            >
-              <div className="flex flex-wrap gap-2">
-                <MarkButton
-                  format="bold"
-                  label="Gras"
-                  icon={<BoldOutlined />}
+          <div className="flex h-full flex-col gap-4">
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
+              <Slate
+                key={editorKey}
+                editor={editor}
+                initialValue={normalizeContent(draftContent)}
+                onChange={setDraftContent}
+              >
+                <div className="flex flex-wrap gap-2">
+                  <MarkButton
+                    format="bold"
+                    label="Gras"
+                    icon={<BoldOutlined />}
+                  />
+                  <MarkButton
+                    format="italic"
+                    label="Italique"
+                    icon={<ItalicOutlined />}
+                  />
+                  <MarkButton
+                    format="underline"
+                    label="Souligne"
+                    icon={<UnderlineOutlined />}
+                  />
+                  <BlockButton
+                    format="bulleted-list"
+                    label="Liste"
+                    icon={<UnorderedListOutlined />}
+                  />
+                  <BlockButton
+                    format="numbered-list"
+                    label="Liste numerotee"
+                    icon={<OrderedListOutlined />}
+                  />
+                  <BlockButton
+                    format="left"
+                    label="Aligner a gauche"
+                    icon={<AlignLeftOutlined />}
+                  />
+                  <BlockButton
+                    format="center"
+                    label="Centrer"
+                    icon={<AlignCenterOutlined />}
+                  />
+                  <BlockButton
+                    format="right"
+                    label="Aligner a droite"
+                    icon={<AlignRightOutlined />}
+                  />
+                  <BlockButton
+                    format="justify"
+                    label="Justifier"
+                    icon={<BarsOutlined />}
+                  />
+                </div>
+                <Editable
+                  className="mt-3 min-h-[220px] rounded border border-slate-300 p-3"
+                  renderElement={renderElement}
+                  renderLeaf={renderLeaf}
+                  placeholder="Texte et formules avec $...$"
+                  spellCheck
                 />
-                <MarkButton
-                  format="italic"
-                  label="Italique"
-                  icon={<ItalicOutlined />}
-                />
-                <MarkButton
-                  format="underline"
-                  label="Souligne"
-                  icon={<UnderlineOutlined />}
-                />
-                <BlockButton
-                  format="bulleted-list"
-                  label="Liste"
-                  icon={<UnorderedListOutlined />}
-                />
-                <BlockButton
-                  format="numbered-list"
-                  label="Liste numerotee"
-                  icon={<OrderedListOutlined />}
-                />
-                <BlockButton
-                  format="left"
-                  label="Aligner a gauche"
-                  icon={<AlignLeftOutlined />}
-                />
-                <BlockButton
-                  format="center"
-                  label="Centrer"
-                  icon={<AlignCenterOutlined />}
-                />
-                <BlockButton
-                  format="right"
-                  label="Aligner a droite"
-                  icon={<AlignRightOutlined />}
-                />
-                <BlockButton
-                  format="justify"
-                  label="Justifier"
-                  icon={<BarsOutlined />}
-                />
-              </div>
-              <Editable
-                className="mt-3 min-h-[220px] rounded border border-slate-300 p-3"
-                renderElement={renderElement}
-                renderLeaf={renderLeaf}
-                placeholder="Texte et formules avec $...$"
-                spellCheck
-              />
-            </Slate>
-            <p className="text-xs text-gray-500">
-              Utiliser $...$ pour les formules inline.
-            </p>
-            <div className="flex items-center justify-between">
+              </Slate>
+              <p className="text-xs text-gray-500">
+                Utiliser $...$ pour les formules inline.
+              </p>
+            </div>
+            <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2">{formulaLinks}</div>
               <div className="flex items-center gap-2">
                 <Button
